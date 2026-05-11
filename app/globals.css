@@ -159,3 +159,87 @@ body {
     "GRAD" 0,
     "opsz" 24;
 }
+
+/* Trust ticker marquee */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 28s linear infinite;
+  width: max-content;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Footer accordion: hide default disclosure marker */
+details.footer-accordion summary::-webkit-details-marker,
+details.footer-accordion summary::marker {
+  display: none;
+}
+
+/* Entrance Animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-from-left {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-from-bottom {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-in {
+  animation-name: fade-in;
+}
+
+.slide-in-from-left-8 {
+  animation-name: slide-in-from-left;
+}
+
+.slide-in-from-left-12 {
+  animation-name: slide-in-from-left;
+}
+
+.slide-in-from-left-16 {
+  animation-name: slide-in-from-left;
+}
+
+.slide-in-from-bottom-8 {
+  animation-name: slide-in-from-bottom;
+}
+
+.duration-700 {
+  animation-duration: 700ms;
+}
+
+.duration-1000 {
+  animation-duration: 1000ms;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-500 {
+  animation-delay: 500ms;
+}

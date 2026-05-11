@@ -2,145 +2,123 @@ import Image from "next/image";
 
 interface Product {
   name: string;
-  subtitle: string;
   price: string;
-  lengths: string[];
-  badge?: { label: string; tone: "primary" | "secondary" };
-  primaryImage: { src: string; alt: string };
-  hoverImage: { src: string; alt: string };
+  caption: string;
+  image: { src: string; alt: string };
 }
 
 const PRODUCTS: Product[] = [
   {
-    name: "Raw Cambodian Straight",
-    subtitle: "100% Single Donor Raw Hair",
-    price: "₦45,000",
-    lengths: ['12"', '14"', '16"'],
-    badge: { label: "NEW ARRIVAL", tone: "primary" },
-    primaryImage: {
-      src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBUmlN5E6Lu2H7kiWBcut-VvHfI6cCyf-ChKUgfeHTceuSBHKQln-nkjn5pCGRdeNixBb2HDHAMjweWbfrNayPIVx_N3xXEYte-LgMHJfy73vAM752b6J_QASdtNFnLsG2QybXHmBD1Yv2zQ_hi4rzXKKDkAxKX6otA-T0YG0WF-gTxtQ4HwmoLh1uVOanBiu0a0aenDUK3xqdvX0uzjv-d9CWWZeffpM2j1X-neQjJRXqLMeAuYiT7CajtQIrZ5FNE-TqPXDu_LcQ",
-      alt: "Premium raw straight hair bundle in deep mahogany on a warm beige backdrop",
-    },
-    hoverImage: {
+    name: 'Silky Straight (16" Blunt Cut)',
+    price: "₦998,900.00",
+    caption: "More Sizes Available",
+    image: {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBJIrDCbKHj1lNWjlz2XTnjJTDqVrUvoJ0NP60Nk1aOVjZ55br3avfOpNxc5hUEKJM_JCMjUWu0FDDYKlEsx_hKbfrFN6ClMQKeUZKR6sNgmsMbB7F0jLMJoZxDzRzcHOA5ZPsSiQ1Tl3BALH-3U0ZMo9VBZXGnWcKRAEZd4vFFGQkjtPA7-_QVP8XXD8MfniWKE6pYGGREAPpMfqivuBQ6qhaGd8oN7IoUNBsmgT4185cMERKmpDkVJKTIPd2XJr0Aqmmb3yL6aAU",
-      alt: "Model styled with the straight hair extensions in warm sunlight",
+      alt: "Model wearing 16-inch silky straight blunt cut wig",
     },
   },
   {
-    name: "Brazilian Deep Wave",
-    subtitle: "Thick & Bouncy Texture",
-    price: "₦52,000",
-    lengths: ['18"', '20"', '22"'],
-    primaryImage: {
-      src: "https://lh3.googleusercontent.com/aida-public/AB6AXuAoeb3fKuu8Dtb70zQYGKO2T3DRvOIQWPoM667zl5UxVhRBUQC7Zo7e4Y2JGclRqD0P2PWqSgdTq_1EP1g4K1DxVWrls2QLlBcdObRylp8yhGt-DNOHpFrY7gxNcJj3udAGtmsjhRWznEaPQVUXjjgTpnKwrBxlKZ3q_Y_o2JflafdkUFCsNFf3AZfoGvTd8GeZW9Je6oGTrn-8_vJdMMKaosi-pwDmIVVDSZ_c0Yns6bir-nqgQTBpPeHqhfTBcrSt00qSIMbGnAM",
-      alt: "Deep wave bundle with thick, lush coils in espresso brown",
+    name: 'Silky Straight (16" Bangs)',
+    price: "₦998,900.00",
+    caption: "More Sizes Available",
+    image: {
+      src: "https://lh3.googleusercontent.com/aida-public/AB6AXuC8MvGfPv9xmu9tAGtOvdT7NDETHebZqs-VE1CDD_Pi87dlnRtntIko4HW3RmudRFc3MB86tKNRLdPqvZwGIXastCeTu-kq5jzKFxLxaDfFg5BfUTMTyYjg_aUfWGyYMW2QaSqc_9uhO5b5-zvS9_NVFUacOEMoj4Tb2U9pgT_ApiIJ__bO7QkazrjgfuIFrfLK7SZEmgky8rs47jjo5rTDZ924tRv-oRGmlI_Ip8csxTQAT1XXoRT2CVhtBa78GGqgnRfZRNJHFjs",
+      alt: "Model wearing 16-inch silky straight wig with bangs",
     },
-    hoverImage: {
+  },
+  {
+    name: 'Silky Straight 22"',
+    price: "₦1,569,600.00",
+    caption: "More Sizes Available",
+    image: {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBFX-9OmhJh4SRCnSkpCosnj2Iqrldwchm4acYjj5p1cAVj3uRnxLDhFh9ImRSaMTii3LwPKe-MFNT7NzveZ0SN1xzBackXquYvL_YkNm0K3t7wxGccYMleM6mJzB3Fun6a5jRJrYE0x29FFO1KwechrwThyn4TLPOmplts8ypZyhhByhDKd7tn2koxTofEH9iOHWL93nNBL5hBRK98cDsnQ-IgDVFD4zrXl3NfT5Xk5h9-Oguy9Hn7mbQ-fOAiLJxSzZVNfnZFlls",
-      alt: "Model wearing the deep wave extensions in natural sunlight",
+      alt: "Model wearing 22-inch silky straight long hair",
     },
   },
   {
-    name: "Premium Body Wave",
-    subtitle: "Lustrous natural flow",
-    price: "₦48,500",
-    lengths: ['20"', '24"'],
-    badge: { label: "BEST SELLER", tone: "secondary" },
-    primaryImage: {
+    name: 'Silky Straight (18")',
+    price: "₦1,270,000.00",
+    caption: "More Sizes Available",
+    image: {
+      src: "https://lh3.googleusercontent.com/aida-public/AB6AXuDaEcUE5_Bnx1dHCRDPZvNmDKJTm2IrsNEjosQwGA6B7sed7xiIHI7gkb0Atwn4ObqE14qHekQjAAfLwjFfocjQemWW0CkM9cMIUeTvXeABjxLpqpsu_FxWwShkyuSDxX0la3vDU5qWln6B3Di9t-DEnUsD1FSFaFyZ5199v2GZtWhLr3_eQXJoCHLy_ZJUmU-g4VJu7u-xdi43PBvJ6S_YY0mQqYVVp2gpP8iZbEMI5K4qfcAk6ZxB8md8Yqcmn7kqTw3G-peRvfU",
+      alt: "Model wearing 18-inch silky straight hair",
+    },
+  },
+  {
+    name: 'Body Wave (20")',
+    price: "₦1,189,000.00",
+    caption: "More Sizes Available",
+    image: {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuA-ptJMAbyOUw-frvgvp43yrgy1e5uPHM3tuxdtwor_Km0M8mctKhjFRvCULC5qAf5mrywm5z4PN0d_1n6DCWVLkpBJnyqMB6sHR_tTaBOI5rYjGr9AruLYK4UlAbtDEsx1JZgecD8n39ailqQxHpJixfZ4oHXsJvyQXhdcZBbhOdR7JP20zaFivIUu4ncbhbrllKNhociMPlzxqx2JKWWcbFfBKrw5uygsJzDZO8xUUGhxt7C2KXKh_w43e0G0uqoCaYmzW94Tgz0",
       alt: "Sleek body wave extensions in deep charcoal with subtle highlights",
     },
-    hoverImage: {
-      src: "https://lh3.googleusercontent.com/aida-public/AB6AXuD2h6Ux5CcX2EjJUBR_8f7Vpc7rNClQyNwBFHAH_wEVEhvDAZs0WniRfUtNC35CgZXOg62nHkSrN91sci53O8u4HQIfBkLaJRBWzuxMo5J2x7XssdUBChCTdHV5g_j4ndGMrtQfRzkj-UXqu98tkNiTYKyqB4YCdzMtgxqUxHuE0RgB1TlR-p5qQd40ijj8xzFHpTOgm42OauxMzqY_85jf18CkWjV5ZjYCIyd3nh_FQmau3SKp1a9toVpi-dlnADQPA6tZ9_PuHNc",
-      alt: "Model with long body wave hair in a bright upscale interior",
+  },
+  {
+    name: 'Deep Wave (18")',
+    price: "₦1,098,500.00",
+    caption: "More Sizes Available",
+    image: {
+      src: "https://lh3.googleusercontent.com/aida-public/AB6AXuC-tF7aSUlnITWgSgQpc2ZacZWfGy8-tCDYt02VB2dOkR1jZRc7QgVPc7OLUS9naEB3y2bJ8n0RuzsncmQYhkYli8lmmDr2v7ZFTEIKqxPaUi-dR9SWaHeV9iKIq2jzHunwxbiJbHgdUOLsabeO2ZFER_2s-ya-WKYUiW_qIn1fZyoBUKLAoBNxcLRhnS69sr-IwM2Yy_2TSNQtC10QWhY3SWr99Qt7NOqofGxOZ9FXoEbISpzzq9JTYVebAD6rFbRhNrbJTtWRn1M",
+      alt: "Glossy deep wave extensions with tight curls in espresso brown",
     },
   },
   {
-    name: "Afro Kinky Curly",
-    subtitle: "Authentic coily texture",
-    price: "₦55,000",
-    lengths: ['14"', '16"'],
-    primaryImage: {
+    name: 'Kinky Curly (22")',
+    price: "₦1,489,000.00",
+    caption: "More Sizes Available",
+    image: {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuCW8qxAiw1Blo25WfDtBiSmW40ZEg_wBz81lH53LtvyIyUZxS5I4BJsoisMrHuXyybeCSFNFeuZKOIQ9E02Bm14LUyOXzlErt9sepr8jpPNEGY_OlZtfQWqW7rMBUf7_kfG5j_8rRaMqcZleHoVgje5SlZnRLJieZJGtaR0EsJq5cG8Q3wWEM9--sEbCF41G7l__aW0WcdtmLcVVRzqjnw6GCBVeX_hm_tiTscu8dORpbxnkUTQjjRr45CQnEDVXIb4KusHeJ5h5qU",
       alt: "Kinky curly hair bundles with dense springy coils",
     },
-    hoverImage: {
-      src: "https://lh3.googleusercontent.com/aida-public/AB6AXuDaEcUE5_Bnx1dHCRDPZvNmDKJTm2IrsNEjosQwGA6B7sed7xiIHI7gkb0Atwn4ObqE14qHekQjAAfLwjFfocjQemWW0CkM9cMIUeTvXeABjxLpqpsu_FxWwShkyuSDxX0la3vDU5qWln6B3Di9t-DEnUsD1FSFaFyZ5199v2GZtWhLr3_eQXJoCHLy_ZJUmU-g4VJu7u-xdi43PBvJ6S_YY0mQqYVVp2gpP8iZbEMI5K4qfcAk6ZxB8md8Yqcmn7kqTw3G-peRvfU",
-      alt: "Model showcasing voluminous kinky curly extensions",
+  },
+  {
+    name: 'Curly Bob (14")',
+    price: "₦749,000.00",
+    caption: "More Sizes Available",
+    image: {
+      src: "https://lh3.googleusercontent.com/aida-public/AB6AXuAuB9dYzY4AO4KZujjYTTIpNOvBzZC6j9hpbczqopGNlYWUbOwqcisUjc5Ow64CfVzgsud-0RFXq0LlkJQWMlMAohVVctHhev1evcesiec4_17qz4b6y29Hz02Mvw3lAN_9NwU7mGOtx_TdAITwDS3OE-AOYAsjTe7K7qGlbrpqR9neIactbAYGRAk3Y5sQy0BMChGLsHEGLPfAa5jbI4a-6smv1uIkfyZtp7X5LRL5CZB6lUsWJpc1r8ye-ZYFmBpco9OAYtvmqhg",
+      alt: "Side-lit artistic portrait of curly hair extensions in a chic bob",
     },
   },
 ];
 
+const TEXTURES = ["STRAIGHT", "CURLY", "WAVES", "BANGS"];
+
 function ProductCard({ product }: { product: Product }) {
-  const badgeClass =
-    product.badge?.tone === "secondary"
-      ? "bg-secondary-container text-on-secondary-container"
-      : "bg-primary-container text-on-primary-container";
-
   return (
-    <article className="group relative flex flex-col gap-sm">
-      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-surface-container">
+    <article className="group cursor-pointer">
+      <div className="relative aspect-[3/4] overflow-hidden bg-surface-container-low mb-md">
         <Image
-          src={product.primaryImage.src}
-          alt={product.primaryImage.alt}
+          src={product.image.src}
+          alt={product.image.alt}
           fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          className="object-cover transition-opacity duration-300 group-hover:opacity-0"
+          sizes="(max-width: 768px) 50vw, 25vw"
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <Image
-          src={product.hoverImage.src}
-          alt={product.hoverImage.alt}
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-          className="object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-        />
-
+        <div className="absolute bottom-0 left-0 right-0 p-md">
+          <button
+            type="button"
+            className="w-full bg-white text-black py-3 font-label-caps text-xs tracking-widest shadow-lg hover:bg-surface-container-highest transition-colors"
+          >
+            QUICK ADD
+          </button>
+        </div>
         <button
           type="button"
-          aria-label={`Save ${product.name} to favorites`}
-          className="absolute top-md right-md material-symbols-outlined text-primary bg-white/80 p-xs rounded-full hover:bg-white transition-all"
+          aria-label={`Save ${product.name} to wishlist`}
+          className="absolute top-md right-md bg-white/80 p-2 rounded-full material-symbols-outlined text-[18px]"
         >
           favorite
         </button>
-
-        {product.badge && (
-          <span
-            className={`absolute top-md left-md ${badgeClass} px-sm py-1 rounded-full text-label-caps font-label-caps`}
-          >
-            {product.badge.label}
-          </span>
-        )}
-
-        <button
-          type="button"
-          className="absolute bottom-md left-md right-md bg-primary text-white py-sm rounded-lg font-label-caps text-label-caps tracking-widest opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          QUICK ADD
-        </button>
       </div>
-
-      <div className="flex flex-col pt-xs">
-        <div className="flex justify-between items-start gap-sm">
-          <h3 className="font-body-md text-body-md font-semibold text-primary">
-            {product.name}
-          </h3>
-          <span className="font-body-md text-body-md font-bold whitespace-nowrap">
-            {product.price}
-          </span>
-        </div>
-        <p className="text-body-sm text-on-surface-variant">
-          {product.subtitle}
+      <div className="text-center space-y-1">
+        <h3 className="font-body-md text-sm text-on-surface-variant uppercase tracking-wide">
+          {product.name}
+        </h3>
+        <p className="font-bold text-primary">{product.price}</p>
+        <p className="text-[10px] text-outline tracking-widest uppercase">
+          {product.caption}
         </p>
-        <div className="flex flex-wrap gap-xs mt-sm">
-          {product.lengths.map((length) => (
-            <span
-              key={length}
-              className="px-2 py-0.5 border border-outline-variant rounded-full text-[10px] font-bold"
-            >
-              {length}
-            </span>
-          ))}
-        </div>
       </div>
     </article>
   );
@@ -148,10 +126,38 @@ function ProductCard({ product }: { product: Product }) {
 
 export function ProductGrid() {
   return (
-    <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-xl px-lg pb-2xl">
-      {PRODUCTS.map((product) => (
-        <ProductCard key={product.name} product={product} />
-      ))}
+    <section className="px-lg mb-section">
+      <div className="text-center mb-xl">
+        <h2 className="font-display-lg text-headline-sm uppercase tracking-widest mb-md">
+          Choose Your Style
+        </h2>
+        <div className="flex justify-center items-center gap-md font-label-caps text-xs text-on-surface-variant">
+          {TEXTURES.map((texture, index) => (
+            <span key={texture} className="flex items-center gap-md">
+              {index > 0 && (
+                <span className="text-outline-variant" aria-hidden>
+                  |
+                </span>
+              )}
+              <button
+                type="button"
+                className={
+                  index === 0
+                    ? "border-b-2 border-primary text-primary pb-1"
+                    : "hover:text-primary transition-colors"
+                }
+              >
+                {texture}
+              </button>
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-xl">
+        {PRODUCTS.map((product) => (
+          <ProductCard key={product.name} product={product} />
+        ))}
+      </div>
     </section>
   );
 }

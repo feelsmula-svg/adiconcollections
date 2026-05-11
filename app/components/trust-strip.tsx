@@ -1,26 +1,50 @@
-const ITEMS = [
-  { icon: "verified_user", label: "100% VIRGIN HAIR" },
-  { icon: "local_shipping", label: "FREE DELIVERY" },
-  { icon: "assignment_return", label: "30-DAY RETURNS" },
-  { icon: "verified", label: "VERIFIED VENDOR" },
+interface PromoItem {
+  icon: string;
+  label: string;
+}
+
+const ITEMS: PromoItem[] = [
+  { icon: "local_fire_department", label: "SHOP NOW PAY LATER" },
+  { icon: "local_fire_department", label: "WE ACCEPT SHOPPAY INSTALLMENTS" },
+  { icon: "local_fire_department", label: "100% VIRGIN RAW HAIR" },
+  { icon: "local_fire_department", label: "WORLDWIDE SHIPPING" },
+  { icon: "local_fire_department", label: "30-DAY RETURNS" },
 ];
+
+function PromoRow({ ariaHidden }: { ariaHidden?: boolean }) {
+  return (
+    <ul
+      aria-hidden={ariaHidden}
+      className="flex shrink-0 items-center gap-2xl pr-2xl font-label-caps text-xs tracking-[0.25em] text-white"
+    >
+      {ITEMS.map((item, index) => (
+        <li
+          key={`${item.label}-${index}`}
+          className="flex items-center gap-md whitespace-nowrap"
+        >
+          <span
+            className="material-symbols-outlined filled text-[18px] text-white/70"
+            aria-hidden
+          >
+            {item.icon}
+          </span>
+          {item.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function TrustStrip() {
   return (
-    <section className="w-full bg-surface-container-low my-xl">
-      <ul className="max-w-[1200px] mx-auto flex flex-wrap items-center justify-around gap-md px-lg py-md">
-        {ITEMS.map((item) => (
-          <li
-            key={item.label}
-            className="flex items-center gap-xs font-label-caps text-label-caps text-on-surface-variant"
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              {item.icon}
-            </span>
-            {item.label}
-          </li>
-        ))}
-      </ul>
+    <section
+      aria-label="Brand promises"
+      className="w-full bg-black py-md mb-section overflow-hidden"
+    >
+      <div className="flex animate-marquee gap-2xl">
+        <PromoRow />
+        <PromoRow ariaHidden />
+      </div>
     </section>
   );
 }
