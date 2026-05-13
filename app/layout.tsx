@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Serif } from "next/font/google";
+import { CartShell } from "@/app/components/cart/cart-shell";
 import "./globals.css";
 
 const inter = Inter({
@@ -20,7 +21,7 @@ const notoSerif = Noto_Serif({
 export const metadata: Metadata = {
   title: "AdiCon Collections — Premium Raw Hair, Direct to You",
   description:
-    "100% virgin raw hair bundles, closures and styling. 30-day returns and Lagos same-day delivery.",
+    "100% virgin raw hair bundles, closures and styling. 30-day returns and free US shipping on orders over $150.",
 };
 
 export default function RootLayout({
@@ -40,7 +41,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-background text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
-        {children}
+        <CartShell>{children}</CartShell>
       </body>
     </html>
   );

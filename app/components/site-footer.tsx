@@ -1,3 +1,5 @@
+import { PaymentLogos } from "@/app/components/ui";
+
 interface FooterLink {
   label: string;
   href: string;
@@ -27,33 +29,6 @@ const COLUMNS: FooterColumn[] = [
       { label: "Terms & Conditions", href: "#" },
     ],
   },
-];
-
-interface PaymentBadge {
-  name: string;
-  label: string;
-  classes: string;
-}
-
-const PAYMENT_METHODS: PaymentBadge[] = [
-  { name: "Visa", label: "VISA", classes: "bg-[#1A1F71] text-white italic" },
-  {
-    name: "Mastercard",
-    label: "mc",
-    classes: "bg-white text-[#EB001B] lowercase",
-  },
-  {
-    name: "American Express",
-    label: "AMEX",
-    classes: "bg-[#006FCF] text-white",
-  },
-  { name: "Apple Pay", label: " Pay", classes: "bg-black text-white" },
-  {
-    name: "Discover",
-    label: "DISCOVER",
-    classes: "bg-white text-[#FF6000] text-[9px]",
-  },
-  { name: "Shop Pay", label: "shop", classes: "bg-[#5A31F4] text-white" },
 ];
 
 function InstagramIcon() {
@@ -188,17 +163,7 @@ export function SiteFooter() {
           Premium hair for the modern woman.
         </div>
 
-        <ul className="flex flex-wrap justify-center items-center gap-sm">
-          {PAYMENT_METHODS.map((method) => (
-            <li
-              key={method.name}
-              title={method.name}
-              className={`px-2 h-7 rounded-sm flex items-center justify-center text-[11px] font-bold tracking-tight shadow-sm min-w-[40px] ${method.classes}`}
-            >
-              {method.label}
-            </li>
-          ))}
-        </ul>
+        <PaymentLogos />
       </div>
     </footer>
   );

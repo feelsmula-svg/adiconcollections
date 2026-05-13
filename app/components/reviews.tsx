@@ -10,28 +10,28 @@ const REVIEWS: Review[] = [
   {
     quote:
       "The luster is unmatched. I've had my bundles for over two years and they still feel like day one. Truly a worthy investment.",
-    attribution: "— CHIDIMMA A., LAGOS",
+    attribution: "— JASMINE R., ATLANTA",
     avatar: {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuCa3c8CxhdSV8btZR26VXBR5YlfCRLycoEZFnEeneqyTWF20fhWf0M1mIjhsaa1VRqPEN33OcPsBAYyrWKzFEzkTiIkvsUnmMjghmIh37jiz-tkp9jKfP_qy0bA9R6gT2PvwlNX4tXic1LJLLNRjcuGV-ALN8PBt5sIo8-7UdZeRtRiOy8zU-aZr2hfQxQ1qlOZHBI8Q1ak27g3TM4_ppbUhcVpLYvid4RQbZOc1bPUd_gEb1DsyL6tvW9Wy9QmTb68iykFV-1qW9c",
-      alt: "Portrait of Chidimma A., a Lagos customer wearing premium straight extensions",
+      alt: "Portrait of Jasmine R., an Atlanta customer wearing premium straight extensions",
     },
   },
   {
     quote:
-      "AdiCon is my only source now. The delivery to Abuja was fast and the hair is so thick from top to bottom. No shedding!",
-    attribution: "— SARAH O., ABUJA",
+      "AdiCon is my only source now. Two-day shipping was lightning fast and the hair is so thick from top to bottom. No shedding!",
+    attribution: "— TASHA M., HOUSTON",
     avatar: {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBvRbS_IYAt1mV1rcXY1bnraeVwfgFpk6N7mfop4Ql_dyVKDcyYLVuwrE0t2cE1QKSXUw62qlx3XZvRFCulymqINfVRZPUL4moG_xBBLtimK0a9sQ2d4xZ7XJq9as1JEOclhPL8gQy0xz2l_wdqMUl9yF6nZ6MeLqlp_j_LCYDTyz7xaFypPeSTVSlKJeQx4su8rjB9KwVBf_lBzxtn7XC_hEzputPp0KdgQYfaYsnIEMUXFG3poEBIAbWf6tjinyaBArBw1dSyYXQ",
-      alt: "Portrait of Sarah O., an Abuja customer styled with deep wave hair",
+      alt: "Portrait of Tasha M., a Houston customer styled with deep wave hair",
     },
   },
   {
     quote:
-      "I love how natural the kinky straight texture looks. I blend it with my hair and everyone thinks it's mine. Best quality hair in Lagos.",
-    attribution: "— TITI L., LEKKI",
+      "I love how natural the kinky straight texture looks. I blend it with my hair and everyone thinks it's mine. Best quality hair I've ever owned.",
+    attribution: "— BRIANNA K., BROOKLYN",
     avatar: {
       src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBHS_1nwCb9Yw4M7IfYH3TLZ3WrKWwSKb1lj-Fjax_UtkE9R2oPuOcRXhjJXmvynE4TLZT2tBsa5cbUCFvNoTiUcLigGpY9wz12Qr98XPqAm7AbJuAdTvOmNw5F2itwUpLH18K-8-TlFdR0r-qnHLYMjp7ZyrcuGr0fJ1bdWDlsc2xKpBvaTWX2_DRCP4vp9zFzN_EJVYXtXYhnbJ71vurWskTFBHCdTa_ph-SjPfRVdEqf2yLaSkGgSaUBmgBiS6gPO4teZXyOXRw",
-      alt: "Portrait of Titi L., a Lekki customer wearing kinky curly extensions",
+      alt: "Portrait of Brianna K., a Brooklyn customer wearing kinky curly extensions",
     },
   },
 ];
