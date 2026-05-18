@@ -1,4 +1,3 @@
-import { BestSellers } from "./components/best-sellers";
 import { BundleDeals } from "./components/bundle-deals";
 import { Hero } from "./components/hero";
 import { ProductGrid } from "./components/product-grid";
@@ -17,7 +16,6 @@ export default function Home() {
         <Hero />
         <TrustStrip />
         <ShopByTexture />
-        <BestSellers />
         <ProductGrid />
         <BundleDeals />
         <UGCGrid />

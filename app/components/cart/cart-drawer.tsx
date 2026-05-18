@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCart } from "@/app/lib/cart/cart-context";
+import { useCartItemCount, useCartStore } from "@/app/lib/state/cart-store";
+import { useHydrated } from "@/app/lib/state/hydration";
 import {
   Box,
   Button,
@@ -19,8 +20,13 @@ import { CartSummary } from "./cart-summary";
 
 export function CartDrawer() {
   const router = useRouter();
-  const { isOpen, close, lines, itemCount } = useCart();
-  const hasItems = lines.length > 0;
+  const hydrated = useHydrated();
+  const isOpen = useCartStore((state) => state.isOpen);
+  const close = useCartStore((state) => state.close);
+  const lines = useCartStore((state) => state.lines);
+  const itemCountRaw = useCartItemCount();
+  const itemCount = hydrated ? itemCountRaw : 0;
+  const hasItems = hydrated && lines.length > 0;
   const itemLabel = itemCount === 1 ? "item" : "items";
 
   const onCheckout = () => {

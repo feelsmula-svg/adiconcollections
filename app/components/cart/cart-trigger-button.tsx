@@ -1,6 +1,7 @@
 "use client";
 
-import { useCart } from "@/app/lib/cart/cart-context";
+import { useCartItemCount, useCartStore } from "@/app/lib/state/cart-store";
+import { useHydrated } from "@/app/lib/state/hydration";
 import { Badge, Box, IconButton } from "@/app/components/ui";
 
 interface CartTriggerButtonProps {
@@ -14,7 +15,10 @@ export function CartTriggerButton({
   variant = "plain",
   className,
 }: CartTriggerButtonProps) {
-  const { open, itemCount } = useCart();
+  const open = useCartStore((state) => state.open);
+  const hydrated = useHydrated();
+  const itemCountRaw = useCartItemCount();
+  const itemCount = hydrated ? itemCountRaw : 0;
   const label =
     itemCount === 0
       ? "Open shopping bag"
@@ -30,7 +34,10 @@ export function CartTriggerButton({
         variant={variant}
       />
       {itemCount > 0 && (
-        <Box className="absolute -top-xs -right-xs pointer-events-none">
+        <Box
+          className="absolute -top-xs -right-xs pointer-events-none"
+          aria-live="polite"
+        >
           <Badge tone="primary" size="sm">
             {itemCount}
           </Badge>

@@ -1,9 +1,23 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
 import { useRouter } from "next/navigation";
-import { useCart } from "@/app/lib/cart/cart-context";
+import {
+  useCartStore,
+  useCartSubtotalCents,
+  useCartTaxCents,
+} from "@/app/lib/state/cart-store";
+import {
+  useCheckoutStore,
+  useIsCheckoutValid,
+  type ShippingFields,
+} from "@/app/lib/state/checkout-store";
+import { useHydrated } from "@/app/lib/state/hydration";
 import { formatPrice } from "@/app/lib/cart/format";
+import {
+  DELIVERY_COST_CENTS,
+  type DeliveryMethod,
+} from "@/app/lib/cart/constants";
 import {
   Box,
   Button,
@@ -24,31 +38,27 @@ import {
 } from "@/app/components/ui";
 import { StripePayment } from "./stripe-payment";
 
-type DeliveryMethod = "same-day" | "standard";
-
-const DELIVERY_COST_CENTS: Record<DeliveryMethod, number> = {
-  "same-day": 2499,
-  standard: 799,
-};
-
-const DISCOUNT_RATE = 0.05;
-
 export function CheckoutContent() {
-  const { lines } = useCart();
-  if (lines.length === 0) {
+  const hydrated = useHydrated();
+  const lines = useCartStore((state) => state.lines);
+  if (hydrated && lines.length === 0) {
     return <EmptyCheckout />;
+  }
+  if (!hydrated) {
+    return null;
   }
 
   return <CheckoutShell />;
 }
 
 function CheckoutShell() {
-  const { subtotalCents } = useCart();
-  const [delivery, setDelivery] = useState<DeliveryMethod>("same-day");
+  const subtotalCents = useCartSubtotalCents();
+  const taxCents = useCartTaxCents();
+  const delivery = useCheckoutStore((state) => state.delivery);
+  const isValid = useIsCheckoutValid();
 
   const shippingCents = DELIVERY_COST_CENTS[delivery];
-  const discountCents = Math.round(subtotalCents * DISCOUNT_RATE);
-  const totalCents = subtotalCents + shippingCents - discountCents;
+  const totalCents = subtotalCents + taxCents + shippingCents;
 
   return (
     <Container width="default">
@@ -58,16 +68,17 @@ function CheckoutShell() {
             <Stack gap="xl">
               <CheckoutProgress current={1} />
               <ShippingSection />
-              <DeliverySection value={delivery} onChange={setDelivery} />
-              <StripePayment amountCents={totalCents} />
+              <DeliverySection />
+              <StripePayment amountCents={totalCents} disabled={!isValid} />
               <TrustBadges />
             </Stack>
           </Box>
 
           <Box className="lg:col-span-5 mt-xl lg:mt-0 lg:sticky lg:top-md">
             <OrderSummary
+              subtotalCents={subtotalCents}
+              taxCents={taxCents}
               shippingCents={shippingCents}
-              discountCents={discountCents}
               totalCents={totalCents}
             />
           </Box>
@@ -124,6 +135,39 @@ function CheckoutProgress({ current }: ProgressProps) {
   );
 }
 
+interface ShippingFieldProps {
+  field: keyof ShippingFields;
+  label: string;
+  required?: boolean;
+  type?: string;
+  autoComplete?: string;
+  placeholder?: string;
+}
+
+function ShippingFieldInput({
+  field,
+  label,
+  required,
+  type = "text",
+  autoComplete,
+  placeholder,
+}: ShippingFieldProps) {
+  const value = useCheckoutStore((state) => state[field]);
+  const setField = useCheckoutStore((state) => state.setField);
+
+  return (
+    <FormField label={label} required={required}>
+      <TextField
+        type={type}
+        value={value}
+        onChange={(e) => setField(field, e.target.value)}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+      />
+    </FormField>
+  );
+}
+
 function ShippingSection() {
   return (
     <Card variant="elevated" padding="lg">
@@ -141,43 +185,77 @@ function ShippingSection() {
             Login for faster checkout
           </Text>
         </Row>
+        <ShippingFieldInput
+          field="email"
+          label="Email"
+          required
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.com"
+        />
         <Box className="grid grid-cols-1 sm:grid-cols-2 gap-md">
-          <FormField label="First name" required>
-            <TextField autoComplete="given-name" placeholder="Jasmine" />
-          </FormField>
-          <FormField label="Last name" required>
-            <TextField autoComplete="family-name" placeholder="Reed" />
-          </FormField>
-        </Box>
-        <FormField label="Street address" required>
-          <TextField
-            autoComplete="address-line1"
-            placeholder="123 Peachtree St NE"
+          <ShippingFieldInput
+            field="firstName"
+            label="First name"
+            required
+            autoComplete="given-name"
+            placeholder="Jasmine"
           />
-        </FormField>
-        <Box className="grid grid-cols-1 sm:grid-cols-2 gap-md">
-          <FormField label="City" required>
-            <TextField autoComplete="address-level2" placeholder="Atlanta" />
-          </FormField>
-          <FormField label="Phone number" required>
-            <TextField
-              type="tel"
-              autoComplete="tel"
-              placeholder="+1 (404) 555-0117"
-            />
-          </FormField>
+          <ShippingFieldInput
+            field="lastName"
+            label="Last name"
+            required
+            autoComplete="family-name"
+            placeholder="Reed"
+          />
         </Box>
+        <ShippingFieldInput
+          field="address"
+          label="Street address"
+          required
+          autoComplete="address-line1"
+          placeholder="123 Peachtree St NE"
+        />
+        <Box className="grid grid-cols-1 sm:grid-cols-3 gap-md">
+          <ShippingFieldInput
+            field="city"
+            label="City"
+            required
+            autoComplete="address-level2"
+            placeholder="Atlanta"
+          />
+          <ShippingFieldInput
+            field="stateRegion"
+            label="State"
+            required
+            autoComplete="address-level1"
+            placeholder="GA"
+          />
+          <ShippingFieldInput
+            field="zip"
+            label="ZIP"
+            required
+            autoComplete="postal-code"
+            placeholder="30303"
+          />
+        </Box>
+        <ShippingFieldInput
+          field="phone"
+          label="Phone number"
+          required
+          type="tel"
+          autoComplete="tel"
+          placeholder="+1 (404) 555-0117"
+        />
       </Stack>
     </Card>
   );
 }
 
-interface DeliverySectionProps {
-  value: DeliveryMethod;
-  onChange: (value: DeliveryMethod) => void;
-}
+function DeliverySection() {
+  const delivery = useCheckoutStore((state) => state.delivery);
+  const setDelivery = useCheckoutStore((state) => state.setDelivery);
 
-function DeliverySection({ value, onChange }: DeliverySectionProps) {
   return (
     <Card variant="elevated" padding="lg">
       <Stack gap="md">
@@ -193,8 +271,8 @@ function DeliverySection({ value, onChange }: DeliverySectionProps) {
           <RadioOption
             name="delivery"
             value="same-day"
-            checked={value === "same-day"}
-            onChange={(v) => onChange(v as DeliveryMethod)}
+            checked={delivery === "same-day"}
+            onChange={(v) => setDelivery(v as DeliveryMethod)}
             recommended="Recommended"
           >
             <Row justify="between" align="center" gap="sm">
@@ -218,8 +296,8 @@ function DeliverySection({ value, onChange }: DeliverySectionProps) {
           <RadioOption
             name="delivery"
             value="standard"
-            checked={value === "standard"}
-            onChange={(v) => onChange(v as DeliveryMethod)}
+            checked={delivery === "standard"}
+            onChange={(v) => setDelivery(v as DeliveryMethod)}
           >
             <Row justify="between" align="center" gap="sm">
               <Stack gap="xs" className="min-w-0 flex-1">
@@ -275,17 +353,19 @@ function TrustBadges() {
 }
 
 interface OrderSummaryProps {
+  subtotalCents: number;
+  taxCents: number;
   shippingCents: number;
-  discountCents: number;
   totalCents: number;
 }
 
 function OrderSummary({
+  subtotalCents,
+  taxCents,
   shippingCents,
-  discountCents,
   totalCents,
 }: OrderSummaryProps) {
-  const { lines, subtotalCents } = useCart();
+  const lines = useCartStore((state) => state.lines);
   return (
     <Card variant="tonal" padding="lg">
       <Stack gap="md">
@@ -355,12 +435,10 @@ function OrderSummary({
             <Text variant="body-sm">{formatPrice(shippingCents)}</Text>
           </Row>
           <Row justify="between">
-            <Text variant="body-sm" tone="muted" className="italic">
-              New member discount (5%)
+            <Text variant="body-sm" tone="muted">
+              Tax (8.25%)
             </Text>
-            <Text variant="body-sm" tone="primary" className="italic">
-              −{formatPrice(discountCents)}
-            </Text>
+            <Text variant="body-sm">{formatPrice(taxCents)}</Text>
           </Row>
         </Stack>
 
@@ -396,13 +474,14 @@ function OrderSummary({
 }
 
 function PromoCodeRow() {
-  const [code, setCode] = useState("");
+  const code = useCartStore((state) => state.promoCode);
+  const setPromoCode = useCartStore((state) => state.setPromoCode);
   return (
     <Row gap="sm">
       <TextField
         placeholder="Promo code"
         value={code}
-        onChange={(e) => setCode(e.target.value)}
+        onChange={(e) => setPromoCode(e.target.value)}
         aria-label="Promo code"
       />
       <Button

@@ -1,0 +1,391 @@
+import { Fragment } from "react";
+
+import { AccountShell } from "@/app/components/account/account-shell";
+import {
+  Badge,
+  Box,
+  Button,
+  Card,
+  Heading,
+  Icon,
+  Image,
+  LinkButton,
+  Row,
+  Stack,
+  Text,
+} from "@/app/components/ui";
+import { getSessionUser } from "@/app/lib/auth/server";
+import {
+  formatOrderDate,
+  getActiveShipment,
+  type OrderStatus,
+} from "@/app/lib/account/orders";
+
+const STATUS_LABEL: Record<OrderStatus, string> = {
+  processing: "Processing",
+  "in-transit": "In Transit",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+};
+
+const STATUS_INDEX: Record<OrderStatus, number> = {
+  processing: 1,
+  "in-transit": 2,
+  delivered: 3,
+  cancelled: -1,
+};
+
+const PROGRESS_STEPS: { key: string; label: string }[] = [
+  { key: "ordered", label: "Ordered" },
+  { key: "processing", label: "Processing" },
+  { key: "shipped", label: "Shipped" },
+  { key: "delivered", label: "Delivered" },
+];
+
+export const dynamic = "force-dynamic";
+
+export default async function AccountDashboardPage() {
+  const user = await getSessionUser();
+  if (!user) return null;
+
+  const shipment = await getActiveShipment();
+  const firstName = (user.name || user.email).split(/\s+/)[0];
+
+  return (
+    <AccountShell user={user} active="home">
+      <Stack gap="xs">
+        <Text
+          variant="label-caps"
+          tone="primary"
+          as="span"
+          className="tracking-[0.2em]"
+        >
+          Your Member Suite
+        </Text>
+        <Heading
+          level={1}
+          variant="display-lg"
+          size="headline-md"
+          className="md:text-headline-md lg:text-display-lg"
+        >
+          Welcome back, {firstName}
+        </Heading>
+        <Box className="max-w-[560px]">
+          <Text variant="body-md" tone="muted">
+            Track active shipments, redeem rewards, and manage your premium hair
+            collection — all in one place.
+          </Text>
+        </Box>
+      </Stack>
+
+      <Box className="grid grid-cols-1 md:grid-cols-5 gap-md">
+        <Card
+          variant="outlined"
+          padding="none"
+          rounded="2xl"
+          className="md:col-span-3 overflow-hidden relative"
+        >
+          <Box className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-secondary to-tertiary" />
+          <Stack gap="none">
+            <Row
+              gap="md"
+              align="center"
+              justify="between"
+              className="px-lg pt-lg pb-md"
+            >
+              <Row gap="sm" align="center">
+                <Text
+                  variant="label-caps"
+                  tone="muted"
+                  as="span"
+                  className="tracking-[0.18em]"
+                >
+                  Active Order
+                </Text>
+                <Badge tone="secondary" size="sm">
+                  {STATUS_LABEL[shipment?.status ?? "in-transit"]}
+                </Badge>
+              </Row>
+              <Text variant="body-sm" tone="muted" as="span">
+                {shipment?.reference ?? "—"}
+              </Text>
+            </Row>
+            <Row gap="md" align="center" className="px-lg">
+              <Box className="relative w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden bg-surface-container-high shrink-0">
+                <Image
+                  src="/products/super-double-drawn-28-burgundy-a.jpeg"
+                  alt="Silk Infusion Set"
+                  fill
+                  sizes="96px"
+                  className="object-cover"
+                />
+              </Box>
+              <Stack gap="xs" className="flex-1 min-w-0">
+                <Heading
+                  level={2}
+                  variant="headline-sm"
+                  size="body-lg"
+                  className="md:text-headline-sm"
+                >
+                  {shipment?.productName ?? "No active shipment"}
+                </Heading>
+                <Text variant="body-sm" tone="muted">
+                  Expected{" "}
+                  <Text as="span" variant="body-sm" className="font-semibold">
+                    {shipment?.expectedDelivery
+                      ? formatOrderDate(shipment.expectedDelivery)
+                      : "soon"}
+                  </Text>{" "}
+                  · Distribution centre
+                </Text>
+              </Stack>
+            </Row>
+            <Box className="px-lg pt-lg">
+              <ProgressTimeline status={shipment?.status ?? "in-transit"} />
+            </Box>
+            <Row gap="sm" wrap className="px-lg py-lg">
+              <Button
+                variant="primary"
+                size="sm"
+                caps={false}
+                className="rounded-full"
+              >
+                Track
+              </Button>
+              <LinkButton
+                href="/account/orders"
+                variant="ghost"
+                size="sm"
+                caps={false}
+                className="rounded-full"
+              >
+                View order →
+              </LinkButton>
+            </Row>
+          </Stack>
+        </Card>
+
+        <Box className="md:col-span-2 rounded-2xl bg-primary text-on-primary p-lg flex flex-col justify-between gap-md">
+          <Stack gap="sm">
+            <Row justify="between" align="center">
+              <Box className="w-9 h-9 rounded-full bg-on-primary/15 flex items-center justify-center">
+                <Icon name="redeem" filled className="text-on-primary text-lg" />
+              </Box>
+              <Text
+                variant="label-caps"
+                tone="on-primary"
+                as="span"
+                className="opacity-70 tracking-[0.18em]"
+              >
+                Rewards
+              </Text>
+            </Row>
+            <Stack gap="none">
+              <Heading
+                level={3}
+                variant="display-lg"
+                tone="on-primary"
+                size="headline-md"
+                className="md:text-headline-md lg:text-display-lg leading-none"
+              >
+                450
+              </Heading>
+              <Text
+                variant="body-sm"
+                tone="on-primary"
+                as="span"
+                className="opacity-80"
+              >
+                points to redeem
+              </Text>
+            </Stack>
+          </Stack>
+          <Button
+            variant="inverse"
+            size="sm"
+            fullWidth
+            caps={false}
+            className="rounded-full"
+          >
+            Redeem now
+          </Button>
+        </Box>
+      </Box>
+
+      <Box className="grid grid-cols-1 md:grid-cols-2 gap-md">
+        <Card variant="outlined" padding="lg" rounded="2xl">
+          <Stack gap="md">
+            <Row justify="between" align="center">
+              <Row gap="sm" align="center">
+                <Box className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center">
+                  <Icon
+                    name="local_shipping"
+                    filled
+                    className="text-on-secondary-container text-lg"
+                  />
+                </Box>
+                <Stack gap="none">
+                  <Text
+                    variant="label-caps"
+                    tone="muted"
+                    as="span"
+                    className="tracking-[0.18em]"
+                  >
+                    Default Shipping
+                  </Text>
+                  <Heading level={3} variant="headline-sm" size="body-lg">
+                    Home address
+                  </Heading>
+                </Stack>
+              </Row>
+              <Button variant="ghost" size="sm" caps={false}>
+                Edit
+              </Button>
+            </Row>
+            <Stack gap="xs" className="pl-[52px]">
+              <Text variant="body-sm" className="font-semibold">
+                {user.name || "Add a name"}
+              </Text>
+              <Text variant="body-sm" tone="muted">
+                1248 Editorial Way, Suite 400 · New York, NY 10012
+              </Text>
+            </Stack>
+          </Stack>
+        </Card>
+
+        <Card variant="outlined" padding="lg" rounded="2xl">
+          <Stack gap="md">
+            <Row justify="between" align="center">
+              <Row gap="sm" align="center">
+                <Box className="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center">
+                  <Icon
+                    name="credit_card"
+                    filled
+                    className="text-on-primary-container text-lg"
+                  />
+                </Box>
+                <Stack gap="none">
+                  <Text
+                    variant="label-caps"
+                    tone="muted"
+                    as="span"
+                    className="tracking-[0.18em]"
+                  >
+                    Payment Method
+                  </Text>
+                  <Heading level={3} variant="headline-sm" size="body-lg">
+                    Visa · 4429
+                  </Heading>
+                </Stack>
+              </Row>
+              <Button variant="ghost" size="sm" caps={false}>
+                Manage
+              </Button>
+            </Row>
+            <Row align="center" gap="sm" className="pl-[52px]">
+              <Badge tone="neutral" size="sm">
+                Primary
+              </Badge>
+              <Text variant="body-sm" tone="muted">
+                Expires 08/26
+              </Text>
+            </Row>
+          </Stack>
+        </Card>
+      </Box>
+
+      <Box className="rounded-2xl bg-surface-container p-lg md:p-xl">
+        <Row gap="md" align="start" wrap>
+          <Box className="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+            <Icon
+              name="tips_and_updates"
+              filled
+              className="text-on-secondary-container text-xl"
+            />
+          </Box>
+          <Stack gap="xs" className="flex-1 min-w-[220px]">
+            <Text
+              variant="label-caps"
+              tone="muted"
+              as="span"
+              className="tracking-[0.18em]"
+            >
+              Stylist&apos;s tip
+            </Text>
+            <Text variant="body-md" className="text-on-surface">
+              &ldquo;Preserving the integrity of your hair starts with
+              moisture-rich foundations. Our Silk Infusion serum locks in
+              hydration for up to 48 hours.&rdquo;
+            </Text>
+            <Text variant="body-sm" tone="muted">
+              — Anaya, AdiCon Senior Stylist
+            </Text>
+          </Stack>
+        </Row>
+      </Box>
+    </AccountShell>
+  );
+}
+
+interface ProgressTimelineProps {
+  status: OrderStatus;
+}
+
+function ProgressTimeline({ status }: ProgressTimelineProps) {
+  const currentIdx = STATUS_INDEX[status];
+  const isCancelled = status === "cancelled";
+
+  if (isCancelled) {
+    return (
+      <Row gap="sm" align="center">
+        <Icon name="cancel" filled className="text-error text-lg" />
+        <Text variant="body-sm" as="span" tone="error">
+          Order cancelled
+        </Text>
+      </Row>
+    );
+  }
+
+  return (
+    <Stack gap="xs" aria-label="Order progress">
+      <Row gap="xs" align="center" className="w-full">
+        {PROGRESS_STEPS.map((step, i) => {
+          const reached = i <= currentIdx;
+          const current = i === currentIdx;
+          return (
+            <Fragment key={step.key}>
+              <Box
+                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                  reached ? "bg-primary" : "bg-outline-variant"
+                } ${current ? "ring-4 ring-primary/15" : ""}`}
+              />
+              {i < PROGRESS_STEPS.length - 1 && (
+                <Box
+                  className={`h-px flex-1 ${
+                    i < currentIdx ? "bg-primary" : "bg-outline-variant"
+                  }`}
+                />
+              )}
+            </Fragment>
+          );
+        })}
+      </Row>
+      <Row gap="xs" align="start" justify="between" className="w-full">
+        {PROGRESS_STEPS.map((step, i) => (
+          <Text
+            key={step.key}
+            variant="label-caps"
+            as="span"
+            className={`text-[10px] tracking-[0.12em] ${
+              i <= currentIdx
+                ? "text-on-surface"
+                : "text-on-surface-variant opacity-60"
+            }`}
+          >
+            {step.label}
+          </Text>
+        ))}
+      </Row>
+    </Stack>
+  );
+}

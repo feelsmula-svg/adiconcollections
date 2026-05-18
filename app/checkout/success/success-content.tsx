@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCart } from "@/app/lib/cart/cart-context";
+import { useCartStore } from "@/app/lib/state/cart-store";
+import { useCheckoutStore } from "@/app/lib/state/checkout-store";
 import { getStripeClient } from "@/app/lib/stripe/client";
 import {
   Box,
@@ -26,7 +27,8 @@ interface Result {
 export function CheckoutSuccessContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const { clear } = useCart();
+  const clear = useCartStore((state) => state.clear);
+  const resetCheckout = useCheckoutStore((state) => state.reset);
   const [result, setResult] = useState<Result>({
     status: "loading",
     message: "Confirming your payment with Stripe…",
@@ -61,6 +63,7 @@ export function CheckoutSuccessContent() {
         switch (paymentIntent.status) {
           case "succeeded":
             clear();
+            resetCheckout();
             setResult({
               status: "succeeded",
               message: "Payment received. We're prepping your order now.",
@@ -96,7 +99,7 @@ export function CheckoutSuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [params, clear]);
+  }, [params, clear, resetCheckout]);
 
   const isError = result.status === "failed";
   const isPending = result.status === "loading" || result.status === "processing";

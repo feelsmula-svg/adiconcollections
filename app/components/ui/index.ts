@@ -25,3 +25,7 @@ export { Checkbox } from "./Checkbox";
 export { Select, type SelectOption } from "./Select";
 export { RangeSlider } from "./RangeSlider";
 export { PaymentLogos } from "./PaymentLogos";
+export { Avatar } from "./Avatar";
+export { DataTable, type DataTableColumn } from "./DataTable";
+export { NavList } from "./NavList";
+export { LinkButton } from "./LinkButton";

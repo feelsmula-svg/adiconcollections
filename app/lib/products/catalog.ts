@@ -1,11 +1,7 @@
 import type { CartProduct } from "@/app/lib/cart/types";
 
-export interface RankedProduct extends CartProduct {
-  rank: number;
-}
-
 export function allProducts(): CartProduct[] {
-  return [...BEST_SELLERS, ...FEATURED_PRODUCTS, ...ACCESSORIES];
+  return [...FEATURED_PRODUCTS, ...ACCESSORIES];
 }
 
 export function findProduct(id: string): CartProduct | undefined {
@@ -27,53 +23,6 @@ export function productsByKeywords(keywords: string[]): CartProduct[] {
 export function productsOnSale(maxCents: number): CartProduct[] {
   return allProducts().filter((p) => p.priceCents <= maxCents);
 }
-
-export const BEST_SELLERS: RankedProduct[] = [
-  {
-    id: "brazilian-body-wave-20",
-    rank: 1,
-    name: "Brazilian Body Wave Bundle",
-    description: 'Body Wave · 20"',
-    priceCents: 18_900,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAoeb3fKuu8Dtb70zQYGKO2T3DRvOIQWPoM667zl5UxVhRBUQC7Zo7e4Y2JGclRqD0P2PWqSgdTq_1EP1g4K1DxVWrls2QLlBcdObRylp8yhGt-DNOHpFrY7gxNcJj3udAGtmsjhRWznEaPQVUXjjgTpnKwrBxlKZ3q_Y_o2JflafdkUFCsNFf3AZfoGvTd8GeZW9Je6oGTrn-8_vJdMMKaosi-pwDmIVVDSZ_c0Yns6bir-nqgQTBpPeHqhfTBcrSt00qSIMbGnAM",
-    imageAlt: "Brazilian body wave hair bundle in espresso brown",
-    badge: { tone: "primary", label: "Bestseller" },
-  },
-  {
-    id: "cambodian-straight-18",
-    rank: 2,
-    name: "Premium Cambodian Straight",
-    description: 'Silky Straight · 18"',
-    priceCents: 16_900,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBUmlN5E6Lu2H7kiWBcut-VvHfI6cCyf-ChKUgfeHTceuSBHKQln-nkjn5pCGRdeNixBb2HDHAMjweWbfrNayPIVx_N3xXEYte-LgMHJfy73vAM752b6J_QASdtNFnLsG2QybXHmBD1Yv2zQ_hi4rzXKKDkAxKX6otA-T0YG0WF-gTxtQ4HwmoLh1uVOanBiu0a0aenDUK3xqdvX0uzjv-d9CWWZeffpM2j1X-neQjJRXqLMeAuYiT7CajtQIrZ5FNE-TqPXDu_LcQ",
-    imageAlt: "Premium raw straight hair bundle in deep mahogany",
-    badge: { tone: "primary", label: "Bestseller" },
-  },
-  {
-    id: "kinky-straight-ponytail-22",
-    rank: 3,
-    name: "Sleek Kinky-Straight Ponytail",
-    description: 'Kinky Straight · 22"',
-    priceCents: 13_900,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCU1wYHLGRxKC3iEjqjZl7_lKPLJvSgjeXSknIhaBqTQ0nRPXw2pqS-FceHdFRKLhlu5ULbDJbdtZpJHfzCTvYUG2wcpQsaoyITFoKLECG81KvqnXVx0ZdJAwdV81KSOIAztMjpDTwyRWrFSiCzSICJewEBaAP1O8e-sE0k3baDMji8wJ_VkwNUoH3rUcPzuw7HXTVeeXiJcdkhELAKX2YgIK35fEhDJ_kOoSxg80MQaevXiKs_Z8bMStq4Zm2imtkOJN1y3GjN_O0",
-    imageAlt: "Sleek kinky-straight hair styled into a polished ponytail",
-    badge: { tone: "primary", label: "Bestseller" },
-  },
-  {
-    id: "deep-wave-vacation-24",
-    rank: 4,
-    name: "Vacation Deep Wave Set",
-    description: 'Deep Wave · 24"',
-    priceCents: 22_900,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBLxHQ1th-UofgNJr-rYSTKNvbhSoJpzITu2TPl1CI5uatdTuIaAUlVA_TeZ9j6A_44ZepsQpAXFOfJOc8_8NUn4nAA7g3RGYTks9czpVzTxDujbAADHsnYY0lwq7kgqYs7N0KsDpkmC1dwGuuL-ep_pnc0DlYJVrMJCisVAXUDcMAhPBo-w9R1MBJsSTEUpqC8SlqDmzUeMgO989nmFlsExXuSL1k4aoJ7H3m4OfZszRz9yQwoXYk1P0xbDZ9nlwGb0j7rTrvGByk",
-    imageAlt: "Model on vacation wearing deep wave extensions in golden light",
-    badge: { tone: "primary", label: "Bestseller" },
-  },
-];
 
 export const FEATURED_PRODUCTS: CartProduct[] = [
   {
@@ -109,22 +58,24 @@ export const FEATURED_PRODUCTS: CartProduct[] = [
     imageAlt: "13x4 transparent lace Jerry curl wig in natural black, 22 inches",
   },
   {
-    id: "body-wave-20",
-    name: 'Body Wave (20")',
-    description: "More Sizes Available",
-    priceCents: 18_900,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuA-ptJMAbyOUw-frvgvp43yrgy1e5uPHM3tuxdtwor_Km0M8mctKhjFRvCULC5qAf5mrywm5z4PN0d_1n6DCWVLkpBJnyqMB6sHR_tTaBOI5rYjGr9AruLYK4UlAbtDEsx1JZgecD8n39ailqQxHpJixfZ4oHXsJvyQXhdcZBbhOdR7JP20zaFivIUu4ncbhbrllKNhociMPlzxqx2JKWWcbFfBKrw5uygsJzDZO8xUUGhxt7C2KXKh_w43e0G0uqoCaYmzW94Tgz0",
-    imageAlt: "Sleek body wave extensions in deep charcoal with subtle highlights",
+    id: "bone-straight-ombre-purple-12",
+    name: '4x4 HD Lace Bone Straight Wig with Bangs (12" Ombre Purple)',
+    description: "Raw Hair · Super Double Drawn · Bangs",
+    priceCents: 30_000,
+    imageSrc: "/products/bone-straight-ombre-purple-12-a.jpeg",
+    imageAlt:
+      "12-inch ombre purple bone straight wig with bangs and 4x4 HD lace closure",
+    badge: { tone: "secondary", label: "Luxury" },
   },
   {
-    id: "deep-wave-18",
-    name: 'Deep Wave (18")',
-    description: "More Sizes Available",
-    priceCents: 16_900,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuC-tF7aSUlnITWgSgQpc2ZacZWfGy8-tCDYt02VB2dOkR1jZRc7QgVPc7OLUS9naEB3y2bJ8n0RuzsncmQYhkYli8lmmDr2v7ZFTEIKqxPaUi-dR9SWaHeV9iKIq2jzHunwxbiJbHgdUOLsabeO2ZFER_2s-ya-WKYUiW_qIn1fZyoBUKLAoBNxcLRhnS69sr-IwM2Yy_2TSNQtC10QWhY3SWr99Qt7NOqofGxOZ9FXoEbISpzzq9JTYVebAD6rFbRhNrbJTtWRn1M",
-    imageAlt: "Glossy deep wave extensions with tight curls in espresso brown",
+    id: "bone-straight-brown-12",
+    name: '4x4 HD Lace Bone Straight Wig with Bangs (12" Brown)',
+    description: "Raw Hair · Super Double Drawn · Bangs",
+    priceCents: 30_000,
+    imageSrc: "/products/bone-straight-brown-12-a.jpeg",
+    imageAlt:
+      "12-inch brown bone straight wig with bangs and 4x4 HD lace closure",
+    badge: { tone: "secondary", label: "Luxury" },
   },
 ];
 

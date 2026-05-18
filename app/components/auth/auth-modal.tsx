@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import {
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import {
   Box,
   Button,
@@ -18,6 +22,7 @@ import {
   TextLink,
 } from "@/app/components/ui";
 import { useMediaQuery } from "@/app/lib/hooks/use-media-query";
+import { useAuthStore, type FieldErrors } from "@/app/lib/state/auth-store";
 
 type AuthView = "signin" | "signup" | "forgot";
 type ForgotStatus = "idle" | "sent";
@@ -58,25 +63,7 @@ export function AuthModal({
   initialView = "signin",
 }: AuthModalProps) {
   const [view, setView] = useState<AuthView>(initialView);
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotStatus, setForgotStatus] = useState<ForgotStatus>("idle");
   const isMobile = useMediaQuery("(max-width: 767px)");
-
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onClose();
-  };
-
-  const onForgotSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setForgotStatus("sent");
-  };
-
-  const goToSignIn = () => {
-    setForgotStatus("idle");
-    setForgotEmail("");
-    setView("signin");
-  };
 
   const copy = VIEW_COPY[view];
 
@@ -85,12 +72,7 @@ export function AuthModal({
       view={view}
       copy={copy}
       onViewChange={setView}
-      onSubmit={onSubmit}
-      onForgotSubmit={onForgotSubmit}
-      onBackToSignIn={goToSignIn}
-      forgotEmail={forgotEmail}
-      onForgotEmailChange={setForgotEmail}
-      forgotStatus={forgotStatus}
+      onSuccess={onClose}
     />
   );
 
@@ -144,27 +126,21 @@ interface AuthBodyProps {
   view: AuthView;
   copy: ViewCopy;
   onViewChange: (next: AuthView) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onForgotSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onBackToSignIn: () => void;
-  forgotEmail: string;
-  onForgotEmailChange: (value: string) => void;
-  forgotStatus: ForgotStatus;
+  onSuccess: () => void;
 }
 
-function AuthBody({
-  view,
-  copy,
-  onViewChange,
-  onSubmit,
-  onForgotSubmit,
-  onBackToSignIn,
-  forgotEmail,
-  onForgotEmailChange,
-  forgotStatus,
-}: AuthBodyProps) {
+function AuthBody({ view, copy, onViewChange, onSuccess }: AuthBodyProps) {
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotStatus, setForgotStatus] = useState<ForgotStatus>("idle");
+
   const isForgot = view === "forgot";
   const forgotSent = isForgot && forgotStatus === "sent";
+
+  const goToSignIn = () => {
+    setForgotStatus("idle");
+    setForgotEmail("");
+    onViewChange("signin");
+  };
 
   return (
     <Stack gap="lg" align="center" className="px-lg sm:px-xl pt-xl pb-lg">
@@ -219,16 +195,16 @@ function AuthBody({
 
       {view === "signin" && (
         <SignInForm
-          onSubmit={onSubmit}
+          onSuccess={onSuccess}
           onForgotPassword={() => onViewChange("forgot")}
         />
       )}
-      {view === "signup" && <SignUpForm onSubmit={onSubmit} />}
+      {view === "signup" && <SignUpForm onSuccess={onSuccess} />}
       {isForgot && !forgotSent && (
         <ForgotForm
           email={forgotEmail}
-          onEmailChange={onForgotEmailChange}
-          onSubmit={onForgotSubmit}
+          onEmailChange={setForgotEmail}
+          onSent={() => setForgotStatus("sent")}
         />
       )}
 
@@ -238,7 +214,7 @@ function AuthBody({
           variant="muted"
           onClick={(event) => {
             event.preventDefault();
-            onBackToSignIn();
+            goToSignIn();
           }}
         >
           Back to sign in
@@ -266,6 +242,8 @@ function AuthBody({
             variant="outline"
             size="md"
             fullWidth
+            disabled
+            title="Google sign-in not yet wired up"
             className="gap-sm normal-case tracking-normal"
           >
             <Icon name="google" className="text-xl" />
@@ -318,23 +296,77 @@ function TabButton({ active, onClick, children }: TabButtonProps) {
   );
 }
 
-interface FormProps {
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+interface FormError {
+  message: string | null;
+  fieldErrors: FieldErrors;
 }
 
-interface SignInFormProps extends FormProps {
+const EMPTY_ERROR: FormError = { message: null, fieldErrors: {} };
+
+function firstFieldError(
+  errors: FieldErrors,
+  key: string,
+): string | undefined {
+  const list = errors[key];
+  return Array.isArray(list) && list.length > 0 ? list[0] : undefined;
+}
+
+interface SignInFormProps {
+  onSuccess: () => void;
   onForgotPassword: () => void;
 }
 
-function SignInForm({ onSubmit, onForgotPassword }: SignInFormProps) {
+function SignInForm({ onSuccess, onForgotPassword }: SignInFormProps) {
+  const signIn = useAuthStore((s) => s.signIn);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<FormError>(EMPTY_ERROR);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(EMPTY_ERROR);
+    const result = await signIn({ email, password });
+    if (result.ok) {
+      onSuccess();
+      return;
+    }
+    setSubmitting(false);
+    setError({
+      message: result.error,
+      fieldErrors: result.fieldErrors ?? {},
+    });
+  };
+
   return (
-    <form onSubmit={onSubmit} className="w-full">
+    <form onSubmit={onSubmit} className="w-full" noValidate>
       <Stack gap="md">
-        <FormField label="Email address" required>
+        {error.message ? (
+          <Text
+            variant="body-sm"
+            tone="error"
+            role="alert"
+            className="text-[12px]"
+          >
+            {error.message}
+          </Text>
+        ) : null}
+
+        <FormField
+          label="Email address"
+          required
+          error={firstFieldError(error.fieldErrors, "email")}
+        >
           <TextField
             type="email"
             autoComplete="email"
             placeholder="e.g. grace@adicon.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            disabled={submitting}
+            required
           />
         </FormField>
 
@@ -364,34 +396,105 @@ function SignInForm({ onSubmit, onForgotPassword }: SignInFormProps) {
             type="password"
             autoComplete="current-password"
             placeholder="••••••••"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            disabled={submitting}
+            invalid={Boolean(firstFieldError(error.fieldErrors, "password"))}
+            required
           />
+          {firstFieldError(error.fieldErrors, "password") ? (
+            <Text variant="body-sm" tone="error" className="text-[11px]">
+              {firstFieldError(error.fieldErrors, "password")}
+            </Text>
+          ) : null}
         </Stack>
 
-        <Button type="submit" variant="primary" size="md" fullWidth>
-          Sign in to your account
+        <Button
+          type="submit"
+          variant="primary"
+          size="md"
+          fullWidth
+          disabled={submitting}
+        >
+          {submitting ? "Signing in…" : "Sign in to your account"}
         </Button>
       </Stack>
     </form>
   );
 }
 
-function SignUpForm({ onSubmit }: FormProps) {
+interface SignUpFormProps {
+  onSuccess: () => void;
+}
+
+function SignUpForm({ onSuccess }: SignUpFormProps) {
+  const signUp = useAuthStore((s) => s.signUp);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<FormError>(EMPTY_ERROR);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(EMPTY_ERROR);
+    const result = await signUp({ name, email, password });
+    if (result.ok) {
+      onSuccess();
+      return;
+    }
+    setSubmitting(false);
+    setError({
+      message: result.error,
+      fieldErrors: result.fieldErrors ?? {},
+    });
+  };
+
   return (
-    <form onSubmit={onSubmit} className="w-full">
+    <form onSubmit={onSubmit} className="w-full" noValidate>
       <Stack gap="md">
-        <FormField label="Full name" required>
+        {error.message ? (
+          <Text
+            variant="body-sm"
+            tone="error"
+            role="alert"
+            className="text-[12px]"
+          >
+            {error.message}
+          </Text>
+        ) : null}
+
+        <FormField
+          label="Full name"
+          required
+          error={firstFieldError(error.fieldErrors, "name")}
+        >
           <TextField
             type="text"
             autoComplete="name"
             placeholder="Grace Adeyemi"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            disabled={submitting}
+            required
           />
         </FormField>
 
-        <FormField label="Email address" required>
+        <FormField
+          label="Email address"
+          required
+          error={firstFieldError(error.fieldErrors, "email")}
+        >
           <TextField
             type="email"
             autoComplete="email"
             placeholder="e.g. grace@adicon.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            disabled={submitting}
+            required
           />
         </FormField>
 
@@ -399,44 +502,118 @@ function SignUpForm({ onSubmit }: FormProps) {
           label="Password"
           required
           hint="At least 8 characters with a number"
+          error={firstFieldError(error.fieldErrors, "password")}
         >
           <TextField
             type="password"
             autoComplete="new-password"
             placeholder="••••••••"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            disabled={submitting}
+            required
           />
         </FormField>
 
-        <Button type="submit" variant="primary" size="md" fullWidth>
-          Create my account
+        <Button
+          type="submit"
+          variant="primary"
+          size="md"
+          fullWidth
+          disabled={submitting}
+        >
+          {submitting ? "Creating account…" : "Create my account"}
         </Button>
       </Stack>
     </form>
   );
 }
 
-interface ForgotFormProps extends FormProps {
+interface ForgotFormProps {
   email: string;
   onEmailChange: (value: string) => void;
+  onSent: () => void;
 }
 
-function ForgotForm({ email, onEmailChange, onSubmit }: ForgotFormProps) {
+function ForgotForm({ email, onEmailChange, onSent }: ForgotFormProps) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<FormError>(EMPTY_ERROR);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(EMPTY_ERROR);
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+      if (res.ok) {
+        onSent();
+        return;
+      }
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+        fieldErrors?: FieldErrors;
+      } | null;
+      setError({
+        message: data?.error ?? "Could not send reset email. Please try again.",
+        fieldErrors: data?.fieldErrors ?? {},
+      });
+    } catch {
+      setError({
+        message: "Network error. Please try again.",
+        fieldErrors: {},
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <form onSubmit={onSubmit} className="w-full">
+    <form onSubmit={onSubmit} className="w-full" noValidate>
       <Stack gap="md">
-        <FormField label="Email address" required>
+        {error.message ? (
+          <Text
+            variant="body-sm"
+            tone="error"
+            role="alert"
+            className="text-[12px]"
+          >
+            {error.message}
+          </Text>
+        ) : null}
+
+        <FormField
+          label="Email address"
+          required
+          error={firstFieldError(error.fieldErrors, "email")}
+        >
           <TextField
             type="email"
             autoComplete="email"
             placeholder="e.g. grace@adicon.com"
             value={email}
             onChange={(event) => onEmailChange(event.target.value)}
+            disabled={submitting}
             required
           />
         </FormField>
 
-        <Button type="submit" variant="primary" size="md" fullWidth>
-          Send reset link
+        <Button
+          type="submit"
+          variant="primary"
+          size="md"
+          fullWidth
+          disabled={submitting}
+        >
+          {submitting ? "Sending…" : "Send reset link"}
         </Button>
       </Stack>
     </form>

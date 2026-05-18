@@ -1,6 +1,6 @@
 "use client";
 
-import { useCart } from "@/app/lib/cart/cart-context";
+import { useCartStore } from "@/app/lib/state/cart-store";
 import { formatCents } from "@/app/lib/cart/format";
 import type { CartLine } from "@/app/lib/cart/types";
 import {
@@ -23,7 +23,8 @@ interface CartItemProps {
 
 export function CartItem({ line }: CartItemProps) {
   const { product, quantity } = line;
-  const { setQuantity, removeItem } = useCart();
+  const setQuantity = useCartStore((state) => state.setQuantity);
+  const removeItem = useCartStore((state) => state.removeItem);
 
   return (
     <Card variant="elevated" padding="sm">

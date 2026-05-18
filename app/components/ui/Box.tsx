@@ -1,14 +1,17 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "./cn";
 
 interface BoxProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
 }
 
-export function Box({ className, children, ...rest }: BoxProps) {
+export const Box = forwardRef<HTMLDivElement, BoxProps>(function Box(
+  { className, children, ...rest },
+  ref,
+) {
   return (
-    <div className={cn(className)} {...rest}>
+    <div ref={ref} className={cn(className)} {...rest}>
       {children}
     </div>
   );
-}
+});

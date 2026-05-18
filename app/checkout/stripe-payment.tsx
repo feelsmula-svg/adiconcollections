@@ -18,14 +18,16 @@ import {
 
 interface StripePaymentProps {
   amountCents: number;
+  disabled?: boolean;
 }
 
-export function StripePayment({ amountCents }: StripePaymentProps) {
+export function StripePayment({ amountCents, disabled }: StripePaymentProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [intentError, setIntentError] = useState<string | null>(null);
   const intentIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (disabled) return;
     if (amountCents < 50) {
       setIntentError("Total is below Stripe's minimum charge ($0.50).");
       return;
@@ -80,7 +82,7 @@ export function StripePayment({ amountCents }: StripePaymentProps) {
     return () => {
       cancelled = true;
     };
-  }, [amountCents]);
+  }, [amountCents, disabled]);
 
   return (
     <Card variant="elevated" padding="lg">
@@ -97,15 +99,23 @@ export function StripePayment({ amountCents }: StripePaymentProps) {
           </Row>
         </Row>
 
-        {intentError && (
+        {disabled && (
+          <Box className="bg-surface-container text-on-surface-variant rounded-lg p-md">
+            <Text variant="body-sm">
+              Complete the shipping information above to enable payment.
+            </Text>
+          </Box>
+        )}
+
+        {!disabled && intentError && (
           <Box className="bg-error-container text-on-error-container rounded-lg p-md">
             <Text variant="body-sm">{intentError}</Text>
           </Box>
         )}
 
-        {!intentError && !clientSecret && <PaymentSkeleton />}
+        {!disabled && !intentError && !clientSecret && <PaymentSkeleton />}
 
-        {clientSecret && (
+        {!disabled && clientSecret && (
           <StripeElementsWrapper
             clientSecret={clientSecret}
             amountCents={amountCents}

@@ -32,6 +32,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
+  caps?: boolean;
   children?: ReactNode;
 }
 
@@ -39,6 +40,7 @@ export function Button({
   variant = "primary",
   size = "md",
   fullWidth,
+  caps = true,
   type = "button",
   className,
   children,
@@ -48,7 +50,10 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center font-label-caps uppercase tracking-[0.2em] transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed",
+        caps
+          ? "font-label-caps uppercase tracking-[0.2em]"
+          : "font-body-md tracking-normal",
         fullWidth && "w-full",
         VARIANT[variant],
         SIZE[size],

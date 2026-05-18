@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { type KeyboardEvent } from "react";
+import { useCartStore } from "@/app/lib/state/cart-store";
 import {
   Button,
   Icon,
@@ -11,7 +12,8 @@ import {
 } from "@/app/components/ui";
 
 export function CartPromoCode() {
-  const [code, setCode] = useState("");
+  const code = useCartStore((state) => state.promoCode);
+  const setPromoCode = useCartStore((state) => state.setPromoCode);
 
   const applyCode = () => {
     if (!code.trim()) return;
@@ -37,7 +39,7 @@ export function CartPromoCode() {
         <TextField
           placeholder="Enter code"
           value={code}
-          onChange={(e) => setCode(e.target.value)}
+          onChange={(e) => setPromoCode(e.target.value)}
           onKeyDown={onKeyDown}
           aria-label="Promo code"
           className="text-body-sm py-xs"

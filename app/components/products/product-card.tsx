@@ -1,6 +1,12 @@
 "use client";
 
-import { useCart } from "@/app/lib/cart/cart-context";
+import {
+  selectCartQuantityFor,
+  selectIsInCart,
+  useCartStore,
+} from "@/app/lib/state/cart-store";
+import { useWishlistStore } from "@/app/lib/state/wishlist-store";
+import { useHydrated } from "@/app/lib/state/hydration";
 import { formatPrice } from "@/app/lib/cart/format";
 import type { CartProduct } from "@/app/lib/cart/types";
 import {
@@ -33,12 +39,33 @@ export function ProductCard({
   ctaStyle = "primary",
   withWishlist,
 }: ProductCardProps) {
-  const { addItem, setQuantity, lines } = useCart();
-  const line = lines.find((l) => l.product.id === product.id);
-  const quantity = line?.quantity ?? 0;
-  const inCart = quantity > 0;
+  const hydrated = useHydrated();
+  const addItem = useCartStore((state) => state.addItem);
+  const setQuantity = useCartStore((state) => state.setQuantity);
+  const lines = useCartStore((state) => state.lines);
+  const inCartRaw = useCartStore(selectIsInCart(product.id));
+  const quantityRaw = useCartStore(selectCartQuantityFor(product.id));
+  const inCart = hydrated && inCartRaw;
+  const quantity = hydrated ? quantityRaw : 0;
+
+  const wishlisted = useWishlistStore((state) =>
+    state.ids.includes(product.id),
+  );
+  const toggleWishlist = useWishlistStore((state) => state.toggle);
+  const isWishlisted = hydrated && wishlisted;
 
   const href = `/products/${product.id}`;
+
+  const baseVariantLine = lines.find(
+    (line) =>
+      line.product.id === product.id ||
+      line.product.id.startsWith(`${product.id}--`),
+  );
+
+  const onStepperChange = (q: number) => {
+    if (!baseVariantLine) return;
+    setQuantity(baseVariantLine.product.id, q);
+  };
 
   return (
     <Stack gap="sm" className="group">
@@ -72,9 +99,16 @@ export function ProductCard({
           <Box className="absolute top-md right-md">
             <IconButton
               icon="favorite"
-              label={`Save ${product.name} to wishlist`}
+              filled={isWishlisted}
+              label={
+                isWishlisted
+                  ? `Remove ${product.name} from wishlist`
+                  : `Save ${product.name} to wishlist`
+              }
               variant="tonal"
               size="sm"
+              aria-pressed={isWishlisted}
+              onClick={() => toggleWishlist(product.id)}
               className="bg-surface/80"
             />
           </Box>
@@ -93,7 +127,7 @@ export function ProductCard({
             <QuantityStepper
               value={quantity}
               min={0}
-              onChange={(q) => setQuantity(product.id, q)}
+              onChange={onStepperChange}
               size="sm"
               fullWidth
               label={`Quantity of ${product.name} in bag`}

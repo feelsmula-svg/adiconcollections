@@ -1,11 +1,19 @@
 "use client";
 
-import { useCart } from "@/app/lib/cart/cart-context";
+import {
+  useCartItemCount,
+  useCartSubtotalCents,
+} from "@/app/lib/state/cart-store";
+import { useHydrated } from "@/app/lib/state/hydration";
 import { formatCents } from "@/app/lib/cart/format";
 import { Divider, Row, Stack, Text } from "@/app/components/ui";
 
 export function CartSummary() {
-  const { itemCount, subtotalCents, taxCents, totalCents } = useCart();
+  const hydrated = useHydrated();
+  const itemCountRaw = useCartItemCount();
+  const subtotalCentsRaw = useCartSubtotalCents();
+  const itemCount = hydrated ? itemCountRaw : 0;
+  const subtotalCents = hydrated ? subtotalCentsRaw : 0;
   const itemLabel = itemCount === 1 ? "item" : "items";
 
   return (
@@ -18,25 +26,19 @@ export function CartSummary() {
       </Row>
       <Row justify="between">
         <Text variant="body-sm" tone="muted">
-          Shipping
+          Shipping & tax
         </Text>
-        <Text variant="body-sm" tone="secondary" className="font-bold">
-          FREE
+        <Text variant="body-sm" tone="muted" className="italic">
+          Calculated at checkout
         </Text>
-      </Row>
-      <Row justify="between">
-        <Text variant="body-sm" tone="muted">
-          Taxes
-        </Text>
-        <Text variant="body-sm">{formatCents(taxCents)}</Text>
       </Row>
       <Divider />
       <Row justify="between" align="center">
         <Text variant="body-md" className="font-bold">
-          Total
+          Estimated subtotal
         </Text>
         <Text variant="body-md" tone="primary" className="font-bold">
-          {formatCents(totalCents)}
+          {formatCents(subtotalCents)}
         </Text>
       </Row>
     </Stack>

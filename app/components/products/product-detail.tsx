@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useCart } from "@/app/lib/cart/cart-context";
+import { useCartStore } from "@/app/lib/state/cart-store";
 import { formatPrice } from "@/app/lib/cart/format";
 import type { CartProduct, ProductLengthOption } from "@/app/lib/cart/types";
 import {
@@ -53,7 +53,8 @@ interface ProductDetailProps {
 }
 
 export function ProductDetail({ product }: ProductDetailProps) {
-  const { addItem, open: openCart } = useCart();
+  const addItem = useCartStore((state) => state.addItem);
+  const openCart = useCartStore((state) => state.open);
   const lengthOptions = useMemo<ProductLengthOption[]>(
     () =>
       product.lengthOptions && product.lengthOptions.length > 0
