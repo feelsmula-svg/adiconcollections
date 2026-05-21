@@ -1,6 +1,7 @@
 import "server-only";
 
 import bcrypt from "bcryptjs";
+import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 
@@ -12,6 +13,17 @@ const JWT_ISSUER = "adicon-collections";
 const JWT_AUDIENCE = "adicon-collections.session";
 const JWT_EXPIRES_IN = "7d";
 const BCRYPT_COST = 10;
+
+export const RESET_TOKEN_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+export function generateResetToken(): { plaintext: string; hash: string } {
+  const plaintext = randomBytes(32).toString("hex");
+  return { plaintext, hash: hashResetToken(plaintext) };
+}
+
+export function hashResetToken(plaintext: string): string {
+  return createHash("sha256").update(plaintext).digest("hex");
+}
 
 const DUMMY_HASH =
   "$2a$10$CwTycUXWue0Thq9StjUM0uJ8w7l6xL0fA7gqLDJqgKxJxq3y7e0R6";
@@ -31,7 +43,11 @@ export function getAuthSecret(): Uint8Array {
 }
 
 export async function signSession(payload: SessionPayload): Promise<string> {
-  return new SignJWT({ email: payload.email, name: payload.name })
+  return new SignJWT({
+    email: payload.email,
+    name: payload.name,
+    role: payload.role,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(payload.sub)
     .setIssuer(JWT_ISSUER)
@@ -49,10 +65,12 @@ export async function verifySession(token: string): Promise<SessionPayload> {
   if (typeof payload.sub !== "string") {
     throw new Error("Invalid session payload: missing subject");
   }
+  const role = payload.role === "admin" ? "admin" : "customer";
   return {
     sub: payload.sub,
     email: typeof payload.email === "string" ? payload.email : "",
     name: typeof payload.name === "string" ? payload.name : "",
+    role,
   };
 }
 
@@ -78,6 +96,7 @@ export function toPublicUser(user: UserRecord): PublicUser {
     id: user.id,
     email: user.email,
     name: user.name,
+    role: user.role,
     createdAt: user.createdAt,
   };
 }
@@ -94,4 +113,19 @@ export async function getSessionUser(): Promise<PublicUser | null> {
   } catch {
     return null;
   }
+}
+
+export class AdminAccessError extends Error {
+  constructor() {
+    super("Admin access required");
+    this.name = "AdminAccessError";
+  }
+}
+
+export async function requireAdmin(): Promise<PublicUser> {
+  const user = await getSessionUser();
+  if (!user || user.role !== "admin") {
+    throw new AdminAccessError();
+  }
+  return user;
 }

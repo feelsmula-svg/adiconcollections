@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Box,
   Divider,
@@ -15,6 +15,8 @@ import {
   TextLink,
   cn,
 } from "@/app/components/ui";
+import { useSession } from "@/app/lib/hooks/use-session";
+import { useAuthStore } from "@/app/lib/state/auth-store";
 import { AuthModal } from "./auth/auth-modal";
 
 interface NavItem {
@@ -35,7 +37,8 @@ const PRIMARY: NavItem[] = [
 
 type AccountAction =
   | { kind: "auth"; view: "signin" | "signup" }
-  | { kind: "link"; href: string };
+  | { kind: "link"; href: string }
+  | { kind: "signout" };
 
 interface AccountItem {
   label: string;
@@ -43,7 +46,7 @@ interface AccountItem {
   action: AccountAction;
 }
 
-const ACCOUNT: AccountItem[] = [
+const GUEST_ACCOUNT: AccountItem[] = [
   { label: "Sign In", icon: "person", action: { kind: "auth", view: "signin" } },
   {
     label: "Create an Account",
@@ -57,12 +60,91 @@ const ACCOUNT: AccountItem[] = [
   },
 ];
 
+const AUTHED_ACCOUNT: AccountItem[] = [
+  {
+    label: "Dashboard",
+    icon: "dashboard",
+    action: { kind: "link", href: "/account" },
+  },
+  {
+    label: "Order history",
+    icon: "receipt_long",
+    action: { kind: "link", href: "/account/orders" },
+  },
+  {
+    label: "My Wish List",
+    icon: "favorite",
+    action: { kind: "link", href: "/wishlist" },
+  },
+  {
+    label: "Help & support",
+    icon: "help",
+    action: { kind: "link", href: "/contact" },
+  },
+  { label: "Sign out", icon: "logout", action: { kind: "signout" } },
+];
+
+const AUTHED_ADMIN: AccountItem[] = [
+  {
+    label: "Admin dashboard",
+    icon: "home",
+    action: { kind: "link", href: "/admin" },
+  },
+  {
+    label: "Orders",
+    icon: "receipt_long",
+    action: { kind: "link", href: "/admin/orders" },
+  },
+  {
+    label: "Catalog",
+    icon: "inventory_2",
+    action: { kind: "link", href: "/admin/products" },
+  },
+  {
+    label: "Inventory",
+    icon: "warehouse",
+    action: { kind: "link", href: "/admin/inventory" },
+  },
+  {
+    label: "Customers",
+    icon: "group",
+    action: { kind: "link", href: "/admin/customers" },
+  },
+  {
+    label: "Marketing",
+    icon: "trending_up",
+    action: { kind: "link", href: "/admin/marketing" },
+  },
+  {
+    label: "Taxonomy",
+    icon: "category",
+    action: { kind: "link", href: "/admin/taxonomy" },
+  },
+  {
+    label: "Settings",
+    icon: "settings",
+    action: { kind: "link", href: "/admin/settings" },
+  },
+  { label: "Sign out", icon: "logout", action: { kind: "signout" } },
+];
+
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authView, setAuthView] = useState<"signin" | "signup">("signin");
+  const [signingOut, setSigningOut] = useState(false);
   const close = () => setOpen(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, status } = useSession();
+  const signOut = useAuthStore((s) => s.signOut);
+  const isAuthed = status === "authed" && !!user;
+  const isAdmin = isAuthed && user?.role === "admin";
+  const accountItems = !isAuthed
+    ? GUEST_ACCOUNT
+    : isAdmin
+      ? AUTHED_ADMIN
+      : AUTHED_ACCOUNT;
 
   const onAccountClick = (
     e: MouseEvent<HTMLAnchorElement>,
@@ -73,6 +155,15 @@ export function MobileMenu() {
       setAuthView(action.view);
       setAuthOpen(true);
       close();
+    } else if (action.kind === "signout") {
+      e.preventDefault();
+      if (signingOut) return;
+      setSigningOut(true);
+      void signOut().finally(() => {
+        setSigningOut(false);
+        close();
+        router.push("/");
+      });
     } else {
       close();
     }
@@ -142,20 +233,47 @@ export function MobileMenu() {
 
             <Box className="h-md" />
 
-            {ACCOUNT.map((item) => {
+            {isAuthed && user && (
+              <Box className="px-lg py-md bg-surface-container-low">
+                <Text
+                  variant="label-caps"
+                  tone="muted"
+                  as="span"
+                  className="block"
+                >
+                  {isAdmin ? "Signed in as admin" : "Signed in as"}
+                </Text>
+                <Text
+                  variant="body-md"
+                  as="span"
+                  className="font-semibold block truncate"
+                >
+                  {user.name || user.email}
+                </Text>
+              </Box>
+            )}
+
+            {accountItems.map((item) => {
               const href =
                 item.action.kind === "link" ? item.action.href : "#";
+              const isSignOut = item.action.kind === "signout";
               return (
                 <Box key={item.label}>
                   <TextLink
                     href={href}
                     variant="bare"
                     onClick={(e) => onAccountClick(e, item.action)}
-                    className="flex items-center gap-md px-lg py-md text-on-surface hover:bg-surface-container"
+                    aria-disabled={isSignOut && signingOut}
+                    className={cn(
+                      "flex items-center gap-md px-lg py-md hover:bg-surface-container",
+                      isSignOut
+                        ? "text-on-surface-variant"
+                        : "text-on-surface",
+                    )}
                   >
                     <Icon name={item.icon} className="text-xl" />
                     <Text as="span" variant="body-md">
-                      {item.label}
+                      {isSignOut && signingOut ? "Signing out…" : item.label}
                     </Text>
                   </TextLink>
                   <Divider />

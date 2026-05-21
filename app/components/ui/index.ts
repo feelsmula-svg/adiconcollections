@@ -10,6 +10,7 @@ export { Button } from "./Button";
 export { Icon } from "./Icon";
 export { IconButton } from "./IconButton";
 export { Badge } from "./Badge";
+export { BarChart, type BarChartDatum } from "./BarChart";
 export { TextField } from "./TextField";
 export { Textarea } from "./Textarea";
 export { FormField } from "./FormField";
@@ -26,6 +27,18 @@ export { Select, type SelectOption } from "./Select";
 export { RangeSlider } from "./RangeSlider";
 export { PaymentLogos } from "./PaymentLogos";
 export { Avatar } from "./Avatar";
-export { DataTable, type DataTableColumn } from "./DataTable";
+export {
+  DataTable,
+  Pagination,
+  type DataTableColumn,
+  type DataTablePagination,
+} from "./DataTable";
 export { NavList } from "./NavList";
 export { LinkButton } from "./LinkButton";
+export { ChipRail } from "./ChipRail";
+export { Tabs } from "./Tabs";
+export { FileInput } from "./FileInput";
+export { ProductThumb } from "./ProductThumb";
+export { ErrorBanner } from "./ErrorBanner";
+export { EmptyState } from "./EmptyState";
+export { SocialIconLink } from "./SocialIconLink";

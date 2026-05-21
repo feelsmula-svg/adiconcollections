@@ -1,4 +1,6 @@
-import { PaymentLogos } from "@/app/components/ui";
+import { PaymentLogos, SocialIconLink, TextLink } from "@/app/components/ui";
+
+const INSTAGRAM_URL = "https://www.instagram.com/adiconcollections";
 
 interface FooterLink {
   label: string;
@@ -14,19 +16,19 @@ const COLUMNS: FooterColumn[] = [
   {
     title: "SHOP",
     links: [
-      { label: "Bestsellers", href: "#" },
-      { label: "Sale", href: "#" },
-      { label: "Wigs", href: "#" },
-      { label: "Hair Extensions", href: "#" },
+      { label: "Bestsellers", href: "/shop" },
+      { label: "Sale", href: "/sale" },
+      { label: "Wigs", href: "/wigs" },
+      { label: "Hair Extensions", href: "/bundles" },
     ],
   },
   {
     title: "INFORMATION",
     links: [
-      { label: "Privacy Policy", href: "#" },
-      { label: "Refund Policy", href: "#" },
-      { label: "Shipping Policy", href: "#" },
-      { label: "Terms & Conditions", href: "#" },
+      { label: "Privacy Policy", href: "/legal/privacy-policy" },
+      { label: "Refund Policy", href: "/legal/refund-policy" },
+      { label: "Shipping Policy", href: "/legal/shipping-policy" },
+      { label: "Terms & Conditions", href: "/legal/terms" },
     ],
   },
 ];
@@ -64,9 +66,13 @@ function FooterLinkList({ links }: { links: FooterLink[] }) {
     <ul className="space-y-sm font-body-sm opacity-60">
       {links.map((link) => (
         <li key={link.label}>
-          <a href={link.href} className="hover:opacity-100 transition-opacity">
+          <TextLink
+            href={link.href}
+            variant="bare"
+            className="hover:opacity-100 transition-opacity"
+          >
             {link.label}
-          </a>
+          </TextLink>
         </li>
       ))}
     </ul>
@@ -140,20 +146,23 @@ export function SiteFooter() {
               </button>
             </form>
             <div className="flex gap-md pt-sm">
-              <a
-                href="#"
-                aria-label="Follow on Instagram"
-                className="w-10 h-10 rounded-full border border-white/30 flex items-center justify-center hover:bg-white hover:text-black transition-all"
+              <SocialIconLink
+                href={INSTAGRAM_URL}
+                label="Follow AdiCon Collections on Instagram"
+                tone="light"
+                size="md"
               >
                 <InstagramIcon />
-              </a>
-              <a
-                href="#"
-                aria-label="Follow on TikTok"
-                className="w-10 h-10 rounded-full border border-white/30 flex items-center justify-center hover:bg-white hover:text-black transition-all"
+              </SocialIconLink>
+              <button
+                type="button"
+                aria-label="TikTok — coming soon"
+                title="TikTok — coming soon"
+                disabled
+                className="w-10 h-10 rounded-full border border-white/30 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <TikTokIcon />
-              </a>
+              </button>
             </div>
           </div>
         </div>

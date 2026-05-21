@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   useState,
   type FormEvent,
@@ -259,11 +260,11 @@ function AuthBody({ view, copy, onViewChange, onSuccess }: AuthBodyProps) {
             className="text-[12px] px-md"
           >
             By continuing, you agree to AdiCon&apos;s{" "}
-            <TextLink href="#" variant="default">
+            <TextLink href="/legal/terms" variant="default">
               Terms of Service
             </TextLink>{" "}
             and{" "}
-            <TextLink href="#" variant="default">
+            <TextLink href="/legal/privacy-policy" variant="default">
               Privacy Policy
             </TextLink>
             .
@@ -317,6 +318,7 @@ interface SignInFormProps {
 }
 
 function SignInForm({ onSuccess, onForgotPassword }: SignInFormProps) {
+  const router = useRouter();
   const signIn = useAuthStore((s) => s.signIn);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -331,6 +333,10 @@ function SignInForm({ onSuccess, onForgotPassword }: SignInFormProps) {
     const result = await signIn({ email, password });
     if (result.ok) {
       onSuccess();
+      if (result.user.role === "admin") {
+        router.push("/admin");
+      }
+      router.refresh();
       return;
     }
     setSubmitting(false);
@@ -428,6 +434,7 @@ interface SignUpFormProps {
 }
 
 function SignUpForm({ onSuccess }: SignUpFormProps) {
+  const router = useRouter();
   const signUp = useAuthStore((s) => s.signUp);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -443,6 +450,10 @@ function SignUpForm({ onSuccess }: SignUpFormProps) {
     const result = await signUp({ name, email, password });
     if (result.ok) {
       onSuccess();
+      if (result.user.role === "admin") {
+        router.push("/admin");
+      }
+      router.refresh();
       return;
     }
     setSubmitting(false);

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { LinkButton } from "@/app/components/ui";
 
 const MODEL_LEFT =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuBJIrDCbKHj1lNWjlz2XTnjJTDqVrUvoJ0NP60Nk1aOVjZ55br3avfOpNxc5hUEKJM_JCMjUWu0FDDYKlEsx_hKbfrFN6ClMQKeUZKR6sNgmsMbB7F0jLMJoZxDzRzcHOA5ZPsSiQ1Tl3BALH-3U0ZMo9VBZXGnWcKRAEZd4vFFGQkjtPA7-_QVP8XXD8MfniWKE6pYGGREAPpMfqivuBQ6qhaGd8oN7IoUNBsmgT4185cMERKmpDkVJKTIPd2XJr0Aqmmb3yL6aAU";
@@ -80,12 +81,15 @@ export function Hero() {
             </h1>
           </div>
 
-          <button
-            type="button"
-            className="block w-full bg-white text-black mt-sm py-md md:py-lg font-label-caps tracking-[0.3em] text-xs md:text-sm uppercase hover:bg-primary-fixed transition-colors duration-300"
+          <LinkButton
+            href="/shop"
+            variant="inverse"
+            size="md"
+            fullWidth
+            className="mt-sm py-md md:py-lg text-xs md:text-sm tracking-[0.3em]"
           >
             Shop Now
-          </button>
+          </LinkButton>
         </div>
       </div>
     </section>

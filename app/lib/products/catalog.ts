@@ -26,6 +26,141 @@ export function productsOnSale(maxCents: number): CartProduct[] {
 
 export const FEATURED_PRODUCTS: CartProduct[] = [
   {
+    id: "hd-curl-frontal-13x5",
+    name: "13x5 HD Lace Curl Frontal",
+    description: "100% Raw Vietnamese Single Donor Hair · Curl Tips",
+    priceCents: 8_500,
+    imageSrc: "/products/hd-curl-frontal-13x5-a.jpeg",
+    imageAlt:
+      "13x5 HD lace frontal in natural black with bouncy curled ends tipped in burgundy",
+    badge: { tone: "secondary", label: "Luxury" },
+    lengthOptions: [
+      { length: '14"', priceCents: 8_500 },
+      { length: '16"', priceCents: 9_500 },
+      { length: '18"', priceCents: 10_500 },
+      { length: '20"', priceCents: 12_500 },
+      { length: '22"', priceCents: 14_000 },
+      { length: '24"', priceCents: 16_000 },
+    ],
+  },
+  {
+    id: "hd-straight-frontal-13x5",
+    name: "13x5 HD Lace Straight Frontal",
+    description: "100% Raw Vietnamese Single Donor Hair · Bone Straight",
+    priceCents: 8_000,
+    imageSrc: "/products/hd-straight-frontal-13x5-a.jpeg",
+    imageAlt:
+      "Natural black 13x5 HD lace straight frontal with sleek silky strands laid flat on a marble surface",
+    badge: { tone: "secondary", label: "Luxury" },
+    lengthOptions: [
+      { length: '14"', priceCents: 8_000 },
+      { length: '16"', priceCents: 9_000 },
+      { length: '18"', priceCents: 10_000 },
+      { length: '20"', priceCents: 12_000 },
+      { length: '22"', priceCents: 13_500 },
+      { length: '24"', priceCents: 15_500 },
+    ],
+  },
+  {
+    id: "hd-kinky-straight-closure-5x5",
+    name: "5x5 HD Lace Kinky Straight Closure",
+    description: "100% Raw Vietnamese Single Donor Hair · Kinky Straight",
+    priceCents: 7_000,
+    imageSrc: "/products/hd-kinky-straight-closure-5x5-a.jpeg",
+    imageAlt:
+      "Natural black 5x5 HD lace kinky straight closure with crimped, textured strands held against a leafy green backdrop",
+    badge: { tone: "secondary", label: "Luxury" },
+    lengthOptions: [
+      { length: '14"', priceCents: 7_000 },
+      { length: '16"', priceCents: 8_000 },
+      { length: '18"', priceCents: 9_000 },
+      { length: '20"', priceCents: 11_000 },
+      { length: '22"', priceCents: 12_500 },
+      { length: '24"', priceCents: 14_500 },
+    ],
+  },
+  {
+    id: "hd-straight-closure-5x5",
+    name: "5x5 HD Lace Straight Closure",
+    description: "100% Raw Vietnamese Single Donor Hair · Bone Straight",
+    priceCents: 7_000,
+    imageSrc: "/products/hd-straight-closure-5x5-a.jpeg",
+    imageAlt:
+      "Natural black 5x5 HD lace straight closure with sleek silky strands held up against a soft grey backdrop",
+    badge: { tone: "secondary", label: "Luxury" },
+    lengthOptions: [
+      { length: '14"', priceCents: 7_000 },
+      { length: '16"', priceCents: 8_000 },
+      { length: '18"', priceCents: 9_000 },
+      { length: '20"', priceCents: 11_000 },
+      { length: '22"', priceCents: 12_500 },
+      { length: '24"', priceCents: 14_500 },
+    ],
+  },
+  {
+    id: "hd-body-wave-closure-5x5",
+    name: "5x5 HD Lace Body Wave Closure",
+    description: "100% Raw Vietnamese Single Donor Hair · Body Wave",
+    priceCents: 7_000,
+    imageSrc: "/products/hd-body-wave-closure-5x5-a.jpeg",
+    imageAlt:
+      "Natural black 5x5 HD lace body wave closure with loose flowing waves held up against a green leaf backdrop",
+    badge: { tone: "secondary", label: "Luxury" },
+    lengthOptions: [
+      { length: '14"', priceCents: 7_000 },
+      { length: '16"', priceCents: 8_000 },
+      { length: '18"', priceCents: 9_000 },
+      { length: '20"', priceCents: 11_000 },
+      { length: '22"', priceCents: 12_500 },
+      { length: '24"', priceCents: 14_500 },
+    ],
+  },
+  {
+    id: "sdd-bone-straight-bob-bangs",
+    name: "SDD Bone Straight Bob Wig with Bangs",
+    description: "100% Raw Human Hair · Super Double Drawn · Bob · Bangs",
+    priceCents: 23_000,
+    imageSrc: "/products/sdd-bone-straight-bob-bangs-a.jpeg",
+    imageAlt:
+      "Sleek natural black bone straight bob wig with full bangs, fine center parting and glossy ends",
+    badge: { tone: "secondary", label: "Luxury" },
+    lengthOptions: [
+      { length: '6"', priceCents: 23_000 },
+      { length: '8"', priceCents: 25_000 },
+    ],
+  },
+  {
+    id: "sdd-jerry-curl-wig",
+    name: "SDD Jerry Curl Lace Front Wig",
+    description: "100% Raw Human Hair · Super Double Drawn · Jerry Curl",
+    priceCents: 25_000,
+    imageSrc: "/products/sdd-jerry-curl-a.jpeg",
+    imageAlt:
+      "Voluminous natural black jerry curl lace front wig with a defined kinky-curly texture on a styling mannequin",
+    badge: { tone: "secondary", label: "Luxury" },
+    lengthOptions: [
+      { length: '18"', priceCents: 25_000 },
+      { length: '20"', priceCents: 28_000 },
+    ],
+  },
+  {
+    id: "sdd-yaki-hair",
+    name: "SDD Yaki Hair Lace Front Wig",
+    description: "100% Human Hair · Super Double Drawn · Yaki Texture",
+    priceCents: 28_000,
+    imageSrc: "/products/sdd-yaki-hair-a.jpeg",
+    imageAlt:
+      "Natural black SDD yaki-textured lace front wig with soft body waves on a styling mannequin",
+    badge: { tone: "secondary", label: "Luxury" },
+    lengthOptions: [
+      { length: '20"', priceCents: 28_000 },
+      { length: '22"', priceCents: 32_000 },
+      { length: '24"', priceCents: 36_000 },
+      { length: '26"', priceCents: 42_000 },
+      { length: '28"', priceCents: 47_000 },
+    ],
+  },
+  {
     id: "super-double-drawn-ombre",
     name: "5x5 HD Lace Bone Straight Wig (Ombre Brown)",
     description: "Raw Hair · Super Double Drawn",
@@ -79,85 +214,4 @@ export const FEATURED_PRODUCTS: CartProduct[] = [
   },
 ];
 
-export const ACCESSORIES: CartProduct[] = [
-  {
-    id: "sculpting-brush",
-    name: "The Sculpting Brush",
-    description: "Mahogany handle · Boar bristles",
-    priceCents: 6_800,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDFnMQ7oONN5IolZi2dYCEDMg5ts3cIijaK99obwYwrQI4t6enMbkK7KMLmbgW90Q0-a98XmyjX_lg7QnToRMxxjQ4p9vZeRb5n0CN9OFNeEpGAevDV0SzqOKkGGxuZtc94V2ooQzvdCEBoPQFJLyo5iHC2OuvyuIDrwTWdzoUfQbw5O1HeKJh35oqV4oE_y11uJEJxjkk7DzVPjZXo-poCWeFyCqp6RZa3F9tHNn6BWWSlVkDiRpx9EH1H7EebEXOb-FPQJUnWfv4",
-    imageAlt:
-      "Professional-grade mahogany wood hairbrush on a warm cream stone surface",
-    badge: { tone: "primary", label: "New" },
-  },
-  {
-    id: "mulberry-silk-trio",
-    name: "Mulberry Silk Trio",
-    description: "Set of 3 · 100% silk",
-    priceCents: 4_500,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAMZ-tgWO-MA2i9fkupxD1PCTG4pe58VBiYbMONp0ECEXnLcWCWGCCuWhEj9ZcJw0NI7b6w66LVFRemLIwtChLY9nd60hz-lXA4J0cLaaM4yJutlQIXtqQweJRk6BA9w7QW4w09vpOWSCcgaxSwb4VPfqTbIIc1wf3cjMMX70XXA_XpfdhBqiStyrieO1PHXwhzfeKxkhnDzAX8wyHYmVi23m8PUUMaZhuYAUFDCmBnMjhHXpTAs2_hMZu51SetSWMxwir-A5dT5Tc",
-    imageAlt: "Luxury silk hair scrunchies in mocha, caramel and cream tones",
-  },
-  {
-    id: "ionic-flow-dryer",
-    name: "Ionic Flow Dryer",
-    description: "Pro grade · Ionic technology",
-    priceCents: 21_000,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCJgNBggVeUOMXUasyAZQEjcChsfz0X0F-Klk20mTxYRvkhH_zHO_yfYNp_dQauVPK1oKKOi-dH9uZwMNZ3u_zDPZG5I00pMYnAOA4ElbGDq9TSTOQFzwBbJzfw6XlhnO3h1AVAlE4WbXINHTl76J60kUb2SQU8PTs0ayO8iFjcB4awvLwWzla-F0AkkPW3hDVRVThcznbX0dEWjJMqopGUsAzCAjdKuAhf-m7yd0X7ni6GtaBoiBGqiSaJ3xXvW1qBCbCfBxolf5w",
-    imageAlt:
-      "Matte-finish professional hair dryer in charcoal with rose gold accents",
-  },
-  {
-    id: "precision-clip-set",
-    name: "Precision Clip Set",
-    description: "Set of 4 · Tortoise resin",
-    priceCents: 3_200,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBtv0-US9pGYdd1EHA20XTJYm1AfRvVaFypiS6GnWHQHKphiBAYp2nLQYd-qRh5eyySL3_dwQjen68iceIm3m_fFo9oGuT7gvAnHnQLagugTl05R0h8-v2PBzuOqNAqBLnlB2dmbzJO57sX1zTvS58fre1oTBWURp28Df0U2t2sX_rNJ6wSapqmNC2Sw6t50yUsKW3L3GqMvpS6btqzhjv6yGBgrQo2ST6KG3_u_2jGteDOD5PZiLLpBpFB4_HJVfqorRT1uLntv7w",
-    imageAlt:
-      "Four minimalist styling clips in amber and tortoiseshell on a porcelain tray",
-    badge: { tone: "secondary", label: "Bestseller" },
-  },
-  {
-    id: "sandalwood-detangler",
-    name: "Sandalwood Detangler",
-    description: "Wide-tooth · Hand-carved",
-    priceCents: 3_800,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBMHyRaaD4SmGmBl-bFWxZViMMsQ0y_w4HSFxCU75ukDiY4gtmn3JuWM2mlITRKDtnLBaRBG9y6d1jYSoeO9p4aEgoO9ED-oSGoZsPu_2r6Wi3oyiQi2fMg6N3l_t6nHV2cGt3VZrkdiI57bFzdUTU7u2D3f2CroyyxtJVOlDOETsOJe0vbG7IGkMv1Ih6zDnRSCUy2AUFMY3jPfG0vbl0TeIYds41iXrIEEROQUjGbUe_OZlQGe2q-4y-r6zjXaSeq0zvAfq_hDa4",
-    imageAlt: "Hand-carved sandalwood wide-tooth comb on a soft cream linen surface",
-  },
-  {
-    id: "ceramic-styler-pro",
-    name: "Ceramic Styler Pro",
-    description: "Salon grade · Ceramic plates",
-    priceCents: 18_500,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBKjxfptuMEJ58_gq000azlKJ6yM1eyopxj7D58ot1tSj-yMLVVJFW-6PdvqL1pAGi34HSxFfyFfL3uplMJPuMTbvcGdIs5crwBlzf7TOhlo29rwP88g2IIS9qAmYA1AabZgn9CF9AjPqGjDXQpJkse1gOeXVGSrVw_IRYrRGWzJO6lwps-USM2CvICYlC42Nt32NKPtTk24vrpIKnns6nCp9a6iCzJfHwFEJkqeJU4a6rRAGqvz6E7ICc8PMB_opUVFpu_vtq9Vjk",
-    imageAlt:
-      "High-end ceramic flat iron in cream finish on draped mahogany silk",
-  },
-  {
-    id: "beauty-sleep-set",
-    name: "Beauty Sleep Set",
-    description: "Silk pillowcase + scrunchie",
-    priceCents: 9_500,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuA5HuWVJqWK0joy-AG6LaEySS1hDjU-2nr-HfIA5AobVF_2Iq4Wfltwh1-EXeAbz1N0lE69twMmQgHgEDNkQBN9sJS-FDtuycnbA7gfBuiFI7fxDoMAfbrLzzYpwfUZPsctDLpAEuF7aCgcxWifnOjWD37LkOqVU0ooKq9HRy_DaZm7I7hv_EH7YxK_926U0IGidJopJqoHSqcUaWW3IxK71aRTdfmGgb0rr-g_1OTLrTarM4syhIed2T3JwzjmG6Ac6o3wYkHrj9U",
-    imageAlt:
-      "Champagne gold silk pillowcases folded on a minimalist wooden bench",
-  },
-  {
-    id: "texture-mist-kit",
-    name: "Texture Mist Kit",
-    description: "3-piece styling set",
-    priceCents: 5_400,
-    imageSrc:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBADgk4ZGZM5W98Jnb32oljmMmkPz3V3uinI9XPrQz_-izeBA7Bm5CcGEvNRFb_LiCb_Tg4AjNdMI9cPdjSFA0XSNx7vMQdjbWUL1s2o9Z08kHkrEQO9XvezpK0EZDyEIDwWxJBxEeysYddKOFTMK7fKrm-vdJ6b0m4jsRhaW447ajszkGOfBDhQTg1ADWg1xANJDvYRO08YJngM67OGY1DdCH5XlmrR7MbP1FIEP-mSkaUs0PQJLIMjiKH5_c6dn9SE6IyyBCgzFI",
-    imageAlt:
-      "Minimalist hair mist bottles with black pumps on warm beige background",
-  },
-];
+export const ACCESSORIES: CartProduct[] = [];

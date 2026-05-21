@@ -3,15 +3,17 @@ import { SiteFooter } from "@/app/components/site-footer";
 import { SiteHeader } from "@/app/components/site-header";
 import { StickyActions } from "@/app/components/sticky-actions";
 import { CollectionContent } from "@/app/components/products/collection-content";
-import { productsByKeywords } from "@/app/lib/products/catalog";
+import { getStorefrontProductsByCategory } from "@/app/lib/products/storefront";
 
 export const metadata: Metadata = {
   title: "Bundles — AdiCon Collections",
   description: "Premium raw-hair bundles and curated multi-piece sets.",
 };
 
-export default function BundlesPage() {
-  const products = productsByKeywords([
+export const dynamic = "force-dynamic";
+
+export default async function BundlesPage() {
+  const products = await getStorefrontProductsByCategory("bundles", [
     "bundle",
     "set",
     "wave",

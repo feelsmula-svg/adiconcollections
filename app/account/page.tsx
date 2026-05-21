@@ -1,10 +1,12 @@
 import { Fragment } from "react";
 
 import { AccountShell } from "@/app/components/account/account-shell";
+import { DefaultShippingCard } from "@/app/components/account/default-shipping-card";
+import { PaymentMethodCard } from "@/app/components/account/payment-method-card";
+import { RedeemButton } from "@/app/components/account/redeem-button";
 import {
   Badge,
   Box,
-  Button,
   Card,
   Heading,
   Icon,
@@ -144,16 +146,25 @@ export default async function AccountDashboardPage() {
               <ProgressTimeline status={shipment?.status ?? "in-transit"} />
             </Box>
             <Row gap="sm" wrap className="px-lg py-lg">
-              <Button
+              <LinkButton
+                href={
+                  shipment
+                    ? `/account/orders/${shipment.id}`
+                    : "/account/orders"
+                }
                 variant="primary"
                 size="sm"
                 caps={false}
                 className="rounded-full"
               >
                 Track
-              </Button>
+              </LinkButton>
               <LinkButton
-                href="/account/orders"
+                href={
+                  shipment
+                    ? `/account/orders/${shipment.id}`
+                    : "/account/orders"
+                }
                 variant="ghost"
                 size="sm"
                 caps={false}
@@ -200,98 +211,17 @@ export default async function AccountDashboardPage() {
               </Text>
             </Stack>
           </Stack>
-          <Button
+          <RedeemButton
             variant="inverse"
-            size="sm"
             fullWidth
-            caps={false}
             className="rounded-full"
-          >
-            Redeem now
-          </Button>
+          />
         </Box>
       </Box>
 
       <Box className="grid grid-cols-1 md:grid-cols-2 gap-md">
-        <Card variant="outlined" padding="lg" rounded="2xl">
-          <Stack gap="md">
-            <Row justify="between" align="center">
-              <Row gap="sm" align="center">
-                <Box className="w-9 h-9 rounded-full bg-secondary-container flex items-center justify-center">
-                  <Icon
-                    name="local_shipping"
-                    filled
-                    className="text-on-secondary-container text-lg"
-                  />
-                </Box>
-                <Stack gap="none">
-                  <Text
-                    variant="label-caps"
-                    tone="muted"
-                    as="span"
-                    className="tracking-[0.18em]"
-                  >
-                    Default Shipping
-                  </Text>
-                  <Heading level={3} variant="headline-sm" size="body-lg">
-                    Home address
-                  </Heading>
-                </Stack>
-              </Row>
-              <Button variant="ghost" size="sm" caps={false}>
-                Edit
-              </Button>
-            </Row>
-            <Stack gap="xs" className="pl-[52px]">
-              <Text variant="body-sm" className="font-semibold">
-                {user.name || "Add a name"}
-              </Text>
-              <Text variant="body-sm" tone="muted">
-                1248 Editorial Way, Suite 400 · New York, NY 10012
-              </Text>
-            </Stack>
-          </Stack>
-        </Card>
-
-        <Card variant="outlined" padding="lg" rounded="2xl">
-          <Stack gap="md">
-            <Row justify="between" align="center">
-              <Row gap="sm" align="center">
-                <Box className="w-9 h-9 rounded-full bg-primary-container flex items-center justify-center">
-                  <Icon
-                    name="credit_card"
-                    filled
-                    className="text-on-primary-container text-lg"
-                  />
-                </Box>
-                <Stack gap="none">
-                  <Text
-                    variant="label-caps"
-                    tone="muted"
-                    as="span"
-                    className="tracking-[0.18em]"
-                  >
-                    Payment Method
-                  </Text>
-                  <Heading level={3} variant="headline-sm" size="body-lg">
-                    Visa · 4429
-                  </Heading>
-                </Stack>
-              </Row>
-              <Button variant="ghost" size="sm" caps={false}>
-                Manage
-              </Button>
-            </Row>
-            <Row align="center" gap="sm" className="pl-[52px]">
-              <Badge tone="neutral" size="sm">
-                Primary
-              </Badge>
-              <Text variant="body-sm" tone="muted">
-                Expires 08/26
-              </Text>
-            </Row>
-          </Stack>
-        </Card>
+        <DefaultShippingCard fallbackName={user.name} />
+        <PaymentMethodCard />
       </Box>
 
       <Box className="rounded-2xl bg-surface-container p-lg md:p-xl">

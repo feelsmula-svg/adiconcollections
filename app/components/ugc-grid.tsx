@@ -1,4 +1,7 @@
 import Image from "next/image";
+import { LinkButton } from "@/app/components/ui";
+
+const INSTAGRAM_URL = "https://www.instagram.com/adiconcollections";
 
 interface UGCPost {
   src: string;
@@ -52,12 +55,17 @@ export function UGCGrid() {
         ))}
       </div>
       <div className="flex justify-center mt-xl">
-        <a
-          href="#"
-          className="bg-primary text-white px-xl py-md font-label-caps tracking-widest hover:opacity-90 transition-opacity"
+        <LinkButton
+          href={INSTAGRAM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="primary"
+          size="md"
+          title="Follow AdiCon Collections on Instagram"
+          className="tracking-widest"
         >
-          FOLLOW US ON IG
-        </a>
+          Follow us on IG
+        </LinkButton>
       </div>
     </section>
   );

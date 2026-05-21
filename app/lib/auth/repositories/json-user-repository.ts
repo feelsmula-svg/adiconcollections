@@ -10,9 +10,10 @@ import path from "node:path";
 
 import type {
   CreateUserInput,
+  ListUsersFilters,
   UserRepository,
 } from "../user-repository";
-import type { UserRecord } from "../types";
+import type { UserRecord, UserRole } from "../types";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILE_PATH = path.join(DATA_DIR, "users.json");
@@ -39,6 +40,21 @@ export class JsonUserRepository implements UserRepository {
     });
   }
 
+  async list(filters: ListUsersFilters = {}): Promise<UserRecord[]> {
+    return this.withLock(async () => {
+      const { users } = await readFile();
+      const q = filters.q?.trim().toLowerCase();
+      return users.filter((user) => {
+        if (filters.role && user.role !== filters.role) return false;
+        if (q) {
+          const haystack = `${user.email} ${user.name}`.toLowerCase();
+          if (!haystack.includes(q)) return false;
+        }
+        return true;
+      });
+    });
+  }
+
   async create(input: CreateUserInput): Promise<UserRecord> {
     return this.withLock(async () => {
       const data = await readFile();
@@ -50,12 +66,46 @@ export class JsonUserRepository implements UserRepository {
         id: randomUUID(),
         email,
         name: input.name.trim(),
+        role: input.role ?? "customer",
         passwordHash: input.passwordHash,
         createdAt: new Date().toISOString(),
       };
       data.users.push(record);
       await writeFile(data);
       return record;
+    });
+  }
+
+  async updatePassword(
+    id: string,
+    passwordHash: string,
+  ): Promise<UserRecord | null> {
+    return this.withLock(async () => {
+      const data = await readFile();
+      const index = data.users.findIndex((u) => u.id === id);
+      if (index === -1) return null;
+      const updated: UserRecord = {
+        ...data.users[index],
+        passwordHash,
+      };
+      data.users[index] = updated;
+      await writeFile(data);
+      return updated;
+    });
+  }
+
+  async updateRole(id: string, role: UserRole): Promise<UserRecord | null> {
+    return this.withLock(async () => {
+      const data = await readFile();
+      const index = data.users.findIndex((u) => u.id === id);
+      if (index === -1) return null;
+      const updated: UserRecord = {
+        ...data.users[index],
+        role,
+      };
+      data.users[index] = updated;
+      await writeFile(data);
+      return updated;
     });
   }
 
@@ -89,7 +139,11 @@ async function readFile(): Promise<FileShape> {
     if (!parsed || !Array.isArray(parsed.users)) {
       return { users: [] };
     }
-    return { users: parsed.users };
+    const users = parsed.users.map((u) => ({
+      ...u,
+      role: (u as { role?: UserRole }).role ?? "customer",
+    })) as UserRecord[];
+    return { users };
   } catch (error: unknown) {
     if (isNodeError(error) && error.code === "ENOENT") {
       return { users: [] };

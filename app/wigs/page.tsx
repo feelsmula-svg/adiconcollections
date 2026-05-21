@@ -3,7 +3,7 @@ import { SiteFooter } from "@/app/components/site-footer";
 import { SiteHeader } from "@/app/components/site-header";
 import { StickyActions } from "@/app/components/sticky-actions";
 import { CollectionContent } from "@/app/components/products/collection-content";
-import { productsByKeywords } from "@/app/lib/products/catalog";
+import { getStorefrontProductsByCategory } from "@/app/lib/products/storefront";
 
 export const metadata: Metadata = {
   title: "Wigs — AdiCon Collections",
@@ -11,8 +11,10 @@ export const metadata: Metadata = {
     "Luxury raw-hair wigs — blunt cuts, bangs, bobs, ponytails and more.",
 };
 
-export default function WigsPage() {
-  const products = productsByKeywords([
+export const dynamic = "force-dynamic";
+
+export default async function WigsPage() {
+  const products = await getStorefrontProductsByCategory("wigs", [
     "wig",
     "blunt",
     "bangs",

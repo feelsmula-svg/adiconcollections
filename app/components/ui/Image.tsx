@@ -23,16 +23,25 @@ interface ImageProps extends NextImageProps {
   fit?: Fit;
 }
 
+function isDataUrl(src: NextImageProps["src"]): boolean {
+  return typeof src === "string" && src.startsWith("data:");
+}
+
 export function Image({
   rounded = "none",
   fit = "cover",
   className,
   alt,
+  unoptimized,
+  src,
   ...rest
 }: ImageProps) {
   return (
     <NextImage
       alt={alt}
+      src={src}
+      // next/image can't run its optimizer on data URLs, so render them as-is.
+      unoptimized={unoptimized ?? isDataUrl(src)}
       className={cn(FIT[fit], ROUNDED[rounded], className)}
       {...rest}
     />

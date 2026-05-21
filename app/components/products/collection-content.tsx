@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
+  Badge,
   Box,
   Button,
   Checkbox,
   Container,
+  Drawer,
   Heading,
   Icon,
   IconButton,
@@ -32,12 +35,17 @@ const LENGTHS: Array<{ id: LengthBucket; label: string }> = [
   { id: "30+", label: '30"+' },
 ];
 
-const TEXTURES: Array<{ id: string; label: string }> = [
-  { id: "silky-straight", label: "Silky Straight" },
-  { id: "body-wave", label: "Body Wave" },
-  { id: "kinky-curly", label: "Kinky Curly" },
-  { id: "kinky-straight", label: "Kinky Straight" },
-  { id: "deep-wave", label: "Deep Wave" },
+interface TextureOption {
+  id: string;
+  label: string;
+  keywords: string[];
+}
+
+const TEXTURES: TextureOption[] = [
+  { id: "straight", label: "Straight", keywords: ["straight"] },
+  { id: "curly", label: "Curly", keywords: ["curl", "curly", "curls"] },
+  { id: "wavy", label: "Wavy", keywords: ["wave", "wavy"] },
+  { id: "bangs", label: "With Bangs", keywords: ["bangs", "fringe"] },
 ];
 
 const SORT_OPTIONS = [
@@ -46,24 +54,31 @@ const SORT_OPTIONS = [
   { value: "price-desc", label: "PRICE: HIGH TO LOW" },
 ];
 
-function lengthInBucket(
-  description: string | undefined,
-  bucket: LengthBucket,
-): boolean {
-  const match = (description ?? "").match(/(\d+)"/);
-  if (!match) return false;
-  const len = parseInt(match[1], 10);
-  if (bucket === "30+") return len >= 30;
+function extractInches(...sources: Array<string | undefined>): number[] {
+  const out: number[] = [];
+  for (const source of sources) {
+    if (!source) continue;
+    const matches = source.matchAll(/(\d+)"/g);
+    for (const m of matches) out.push(parseInt(m[1], 10));
+  }
+  return out;
+}
+
+function lengthInBucket(product: CartProduct, bucket: LengthBucket): boolean {
+  const lengths = extractInches(product.name, product.description);
+  if (lengths.length === 0) return false;
+  if (bucket === "30+") return lengths.some((len) => len >= 30);
   const [min, max] = bucket.split("-").map(Number);
-  return len >= min && len <= max;
+  return lengths.some((len) => len >= min && len <= max);
 }
 
 function matchesTextures(product: CartProduct, ids: string[]): boolean {
   if (ids.length === 0) return true;
   const haystack = `${product.name} ${product.description ?? ""}`.toLowerCase();
   return ids.some((id) => {
-    const label = TEXTURES.find((t) => t.id === id)?.label.toLowerCase() ?? "";
-    return haystack.includes(label);
+    const option = TEXTURES.find((t) => t.id === id);
+    if (!option) return false;
+    return option.keywords.some((kw) => haystack.includes(kw));
   });
 }
 
@@ -84,11 +99,38 @@ export function CollectionContent({
   emptyTitle = "No products yet in this collection",
   emptyDescription = "Check back soon — we&apos;re curating new pieces.",
 }: CollectionContentProps) {
+  const priceCap = Math.max(
+    1000,
+    ...products.map((p) => Math.ceil(p.priceCents / 100)),
+  );
+
+  const searchParams = useSearchParams();
+  const urlQuery = (searchParams?.get("q") ?? "").trim();
+
   const [sort, setSort] = useState<SortKey>("featured");
   const [length, setLength] = useState<LengthBucket | null>(null);
   const [textures, setTextures] = useState<string[]>([]);
-  const [maxPrice, setMaxPrice] = useState(500);
+  const [maxPrice, setMaxPrice] = useState(priceCap);
   const [page, setPage] = useState(1);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(urlQuery);
+
+  useEffect(() => {
+    setSearchQuery(urlQuery);
+  }, [urlQuery]);
+
+  const activeFilterCount =
+    (length ? 1 : 0) +
+    textures.length +
+    (maxPrice < priceCap ? 1 : 0) +
+    (searchQuery.trim().length > 0 ? 1 : 0);
+
+  const clearFilters = () => {
+    setLength(null);
+    setTextures([]);
+    setMaxPrice(priceCap);
+    setSearchQuery("");
+  };
 
   const toggleTexture = (id: string) => {
     setTextures((prev) =>
@@ -96,10 +138,24 @@ export function CollectionContent({
     );
   };
 
+  const searchTokens = useMemo(
+    () =>
+      searchQuery
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean),
+    [searchQuery],
+  );
+
   const filtered = products.filter((p) => {
     if (p.priceCents > maxPrice * 100) return false;
-    if (length && !lengthInBucket(p.description, length)) return false;
+    if (length && !lengthInBucket(p, length)) return false;
     if (!matchesTextures(p, textures)) return false;
+    if (searchTokens.length > 0) {
+      const haystack = `${p.name} ${p.description ?? ""}`.toLowerCase();
+      if (!searchTokens.every((token) => haystack.includes(token))) return false;
+    }
     return true;
   });
 
@@ -113,7 +169,7 @@ export function CollectionContent({
 
   useEffect(() => {
     setPage(1);
-  }, [length, textures, maxPrice, sort]);
+  }, [length, textures, maxPrice, sort, searchQuery]);
 
   const safePage = Math.min(page, totalPages);
   const visible = sorted.slice(
@@ -169,23 +225,125 @@ export function CollectionContent({
             onSortChange={setSort}
           />
           <Box className="grid grid-cols-1 lg:grid-cols-[14rem_1fr] gap-xl items-start">
-            <CollectionFilters
-              length={length}
-              onLengthChange={setLength}
-              textures={textures}
-              onToggleTexture={toggleTexture}
-              maxPrice={maxPrice}
-              onMaxPriceChange={setMaxPrice}
-            />
-            <Stack gap="xl">
-              <CollectionGrid products={visible} />
-              <CollectionPagination
-                page={safePage}
-                totalPages={totalPages}
-                onPageChange={setPage}
+            <Box className="hidden lg:block">
+              <CollectionFilters
+                length={length}
+                onLengthChange={setLength}
+                textures={textures}
+                onToggleTexture={toggleTexture}
+                maxPrice={maxPrice}
+                priceCap={priceCap}
+                onMaxPriceChange={setMaxPrice}
               />
+            </Box>
+            <Stack gap="md">
+              <Row
+                justify="between"
+                align="center"
+                className="lg:hidden"
+                gap="sm"
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  caps={false}
+                  className="rounded-full"
+                  aria-haspopup="dialog"
+                  aria-expanded={filterDrawerOpen}
+                  onClick={() => setFilterDrawerOpen(true)}
+                >
+                  <Icon name="tune" className="text-lg mr-xs" />
+                  Filter
+                  {activeFilterCount > 0 ? (
+                    <Badge
+                      tone="primary"
+                      size="sm"
+                      className="ml-xs"
+                    >
+                      {activeFilterCount}
+                    </Badge>
+                  ) : null}
+                </Button>
+                <Text variant="body-sm" tone="muted">
+                  {filtered.length} item
+                  {filtered.length === 1 ? "" : "s"}
+                </Text>
+              </Row>
+              {filtered.length === 0 ? (
+                <EmptyFiltered onClear={clearFilters} />
+              ) : (
+                <>
+                  <CollectionGrid products={visible} />
+                  <CollectionPagination
+                    page={safePage}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                  />
+                </>
+              )}
             </Stack>
           </Box>
+
+          <Drawer
+            open={filterDrawerOpen}
+            onClose={() => setFilterDrawerOpen(false)}
+            anchor="left"
+            width="sm"
+            ariaLabel="Filter products"
+          >
+            <Row
+              justify="between"
+              align="center"
+              className="px-lg py-md border-b border-outline-variant bg-surface shrink-0"
+            >
+              <Heading level={2} variant="headline-sm">
+                Filter
+              </Heading>
+              <IconButton
+                icon="close"
+                label="Close filters"
+                size="sm"
+                variant="plain"
+                onClick={() => setFilterDrawerOpen(false)}
+              />
+            </Row>
+            <Box className="flex-1 overflow-y-auto bg-surface px-lg py-lg">
+              <CollectionFilters
+                length={length}
+                onLengthChange={setLength}
+                textures={textures}
+                onToggleTexture={toggleTexture}
+                maxPrice={maxPrice}
+                priceCap={priceCap}
+                onMaxPriceChange={setMaxPrice}
+              />
+            </Box>
+            <Row
+              justify="between"
+              gap="sm"
+              className="px-lg py-md border-t border-outline-variant bg-surface-container-low shrink-0"
+            >
+              <Button
+                variant="ghost"
+                size="sm"
+                caps={false}
+                onClick={clearFilters}
+                disabled={activeFilterCount === 0}
+              >
+                Clear all
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                caps={false}
+                className="rounded-full"
+                onClick={() => setFilterDrawerOpen(false)}
+              >
+                Show {filtered.length} item
+                {filtered.length === 1 ? "" : "s"}
+              </Button>
+            </Row>
+          </Drawer>
         </Stack>
       </Section>
     </Container>
@@ -262,6 +420,7 @@ interface CollectionFiltersProps {
   textures: string[];
   onToggleTexture: (id: string) => void;
   maxPrice: number;
+  priceCap: number;
   onMaxPriceChange: (value: number) => void;
 }
 
@@ -271,6 +430,7 @@ function CollectionFilters({
   textures,
   onToggleTexture,
   maxPrice,
+  priceCap,
   onMaxPriceChange,
 }: CollectionFiltersProps) {
   return (
@@ -311,7 +471,7 @@ function CollectionFilters({
         <Stack gap="xs">
           <RangeSlider
             min={0}
-            max={1000}
+            max={priceCap}
             step={10}
             value={maxPrice}
             onChange={(e) => onMaxPriceChange(Number(e.target.value))}
@@ -377,8 +537,45 @@ function CollectionGrid({ products }: { products: CartProduct[] }) {
   return (
     <Box className="grid grid-cols-2 lg:grid-cols-4 gap-md">
       {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
+        <ProductCard key={product.id} product={product} withWishlist />
       ))}
+    </Box>
+  );
+}
+
+interface EmptyFilteredProps {
+  onClear: () => void;
+}
+
+function EmptyFiltered({ onClear }: EmptyFilteredProps) {
+  return (
+    <Box className="rounded-2xl border border-dashed border-outline-variant p-2xl">
+      <Stack gap="sm" align="center" className="text-center">
+        <Box className="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center">
+          <Icon
+            name="search_off"
+            className="text-on-surface-variant text-2xl"
+          />
+        </Box>
+        <Heading level={3} variant="headline-sm" size="body-lg">
+          No products match your filters
+        </Heading>
+        <Box className="max-w-[360px]">
+          <Text variant="body-sm" tone="muted">
+            Try clearing a filter or widening your price range to see more
+            pieces from the collection.
+          </Text>
+        </Box>
+        <Button
+          variant="primary"
+          size="sm"
+          caps={false}
+          className="rounded-full"
+          onClick={onClear}
+        >
+          Clear filters
+        </Button>
+      </Stack>
     </Box>
   );
 }

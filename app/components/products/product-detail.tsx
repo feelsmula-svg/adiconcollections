@@ -98,7 +98,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
               Home
             </TextLink>
             <Icon name="chevron_right" className="text-sm text-outline-variant" />
-            <TextLink href="/" variant="muted" className="text-body-sm">
+            <TextLink href="/shop" variant="muted" className="text-body-sm">
               Shop
             </TextLink>
             <Icon name="chevron_right" className="text-sm text-outline-variant" />
@@ -108,10 +108,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
           </Row>
 
           <Box className="grid grid-cols-1 lg:grid-cols-12 gap-xl items-start">
-            <Box className="lg:col-span-7">
+            <Box className="lg:col-span-6">
               <ProductGallery product={product} />
             </Box>
-            <Box className="lg:col-span-5 lg:sticky lg:top-md">
+            <Box className="lg:col-span-6 lg:sticky lg:top-[120px]">
               <PurchasePanel
                 product={product}
                 lengthOptions={lengthOptions}
@@ -134,13 +134,14 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
 function ProductGallery({ product }: { product: CartProduct }) {
   return (
-    <Stack gap="md">
-      <Box className="relative aspect-[4/5] rounded-xl overflow-hidden border border-outline-variant bg-surface-container-low">
+    <Box className="w-full max-w-[340px] sm:max-w-[420px] lg:max-w-[560px] mx-auto lg:mx-0">
+      <Box className="relative aspect-square rounded-2xl overflow-hidden border border-outline-variant bg-surface-container-low">
         <Image
           src={product.imageSrc}
           alt={product.imageAlt}
           fill
-          sizes="(min-width: 1024px) 60vw, 100vw"
+          sizes="(min-width: 1024px) 560px, 100vw"
+          className="object-cover"
         />
         {product.badge && (
           <Box className="absolute top-md left-md">
@@ -148,22 +149,7 @@ function ProductGallery({ product }: { product: CartProduct }) {
           </Box>
         )}
       </Box>
-      <Row gap="md">
-        {[0, 1, 2].map((i) => (
-          <Box
-            key={i}
-            className="flex-1 relative aspect-square rounded-xl overflow-hidden border border-outline-variant bg-surface-container-low"
-          >
-            <Image
-              src={product.imageSrc}
-              alt={product.imageAlt}
-              fill
-              sizes="200px"
-            />
-          </Box>
-        ))}
-      </Row>
-    </Stack>
+    </Box>
   );
 }
 
@@ -237,7 +223,7 @@ function PurchasePanel({
             Select length
           </Text>
           <TextLink
-            href="#"
+            href="/contact"
             variant="default"
             className="text-body-sm underline"
           >

@@ -34,6 +34,16 @@ export const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
 
+export const resetPasswordSchema = z.object({
+  token: z
+    .string()
+    .trim()
+    .min(32, "Invalid reset token")
+    .max(128, "Invalid reset token"),
+  password: passwordSchema,
+});
+
 export type SignupInput = z.infer<typeof signupSchema>;
 export type SigninInput = z.infer<typeof signinSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

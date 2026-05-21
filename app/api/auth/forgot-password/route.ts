@@ -1,12 +1,15 @@
-import { randomBytes } from "node:crypto";
-
 import { NextResponse } from "next/server";
 
 import { forgotPasswordSchema } from "@/app/lib/auth/schemas";
+import { getResetTokenRepository } from "@/app/lib/auth/reset-token-repository";
+import {
+  generateResetToken,
+  RESET_TOKEN_TTL_MS,
+} from "@/app/lib/auth/server";
 import { getUserRepository } from "@/app/lib/auth/user-repository";
 
 // TODO: rate-limit POST /api/auth/forgot-password (e.g. 3 req/min/IP).
-// TODO: persist reset tokens (table `password_resets`) once a real DB exists.
+// TODO: send a real transactional email (Resend / SES / Postmark) with the reset URL.
 
 export async function POST(request: Request) {
   if (!isJson(request)) {
@@ -36,21 +39,34 @@ export async function POST(request: Request) {
 
   // Always respond 200 regardless of whether the user exists — no enumeration.
   try {
-    if (process.env.NODE_ENV !== "production") {
-      const repo = await getUserRepository();
-      const user = await repo.findByEmail(parsed.data.email);
-      if (user) {
-        const token = randomBytes(32).toString("hex");
-        const url = new URL(request.url);
-        const origin = `${url.protocol}//${url.host}`;
+    const userRepo = await getUserRepository();
+    const user = await userRepo.findByEmail(parsed.data.email);
+    if (user) {
+      const tokenRepo = await getResetTokenRepository();
+      const { plaintext, hash } = generateResetToken();
+      const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS).toISOString();
+      await tokenRepo.create({
+        tokenHash: hash,
+        userId: user.id,
+        email: user.email,
+        expiresAt,
+      });
+
+      const url = new URL(request.url);
+      const origin = `${url.protocol}//${url.host}`;
+      const resetUrl = `${origin}/auth/reset?token=${plaintext}`;
+
+      if (process.env.NODE_ENV !== "production") {
         console.warn(
-          `[auth/forgot-password] DEV reset link for ${user.email}: ${origin}/auth/reset?token=${token}`,
+          `[auth/forgot-password] DEV reset link for ${user.email}: ${resetUrl}`,
         );
       }
+      // TODO: send email here. e.g. await sendResetEmail(user.email, resetUrl).
+      void resetUrl;
     }
   } catch (error: unknown) {
     const message =
-      error instanceof Error ? error.message : "forgot-password lookup failed";
+      error instanceof Error ? error.message : "forgot-password failed";
     console.error("[auth/forgot-password] error:", message);
   }
 

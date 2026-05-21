@@ -1,15 +1,7 @@
 import type { ReactNode } from "react";
-import {
-  Avatar,
-  Box,
-  Button,
-  Card,
-  NavList,
-  Row,
-  Stack,
-  Text,
-} from "@/app/components/ui";
+import { Box, NavList, Stack, Text } from "@/app/components/ui";
 import type { PublicUser } from "@/app/lib/auth/types";
+import { MemberCard } from "./member-card";
 
 interface NavEntry {
   href: string;
@@ -48,15 +40,12 @@ interface AccountShellProps {
 }
 
 export function AccountShell({ user, active, children }: AccountShellProps) {
-  const initials = getInitials(user);
-  const displayName = user.name || user.email.split("@")[0];
-
   return (
-    <Box className="max-w-[1280px] mx-auto w-full flex">
+    <Box className="max-w-[1280px] mx-auto w-full flex items-start">
       <Box
         role="complementary"
         aria-label="Account navigation"
-        className="hidden lg:flex flex-col w-[260px] shrink-0 px-lg py-2xl gap-xl border-r border-outline-variant"
+        className="hidden lg:flex flex-col w-[260px] shrink-0 px-lg py-2xl gap-xl border-r border-outline-variant lg:sticky lg:top-[112px] lg:self-start lg:max-h-[calc(100vh-112px)] lg:overflow-y-auto"
       >
         <Stack gap="md">
           <Text
@@ -83,41 +72,10 @@ export function AccountShell({ user, active, children }: AccountShellProps) {
         </NavList>
 
         <Box className="mt-auto">
-          <Card variant="tonal" padding="lg" rounded="2xl">
-            <Row gap="md" align="center" className="mb-md">
-              <Avatar
-                initials={initials}
-                size="md"
-                tone="primary"
-                label={`Signed in as ${user.name || user.email}`}
-              />
-              <Stack gap="none" className="min-w-0">
-                <Text
-                  variant="body-md"
-                  as="span"
-                  className="font-semibold truncate"
-                >
-                  {displayName}
-                </Text>
-                <Text
-                  variant="body-sm"
-                  tone="muted"
-                  as="span"
-                  className="truncate"
-                >
-                  Premium Member
-                </Text>
-              </Stack>
-            </Row>
-            <Button
-              variant="primary"
-              size="sm"
-              fullWidth
-              className="rounded-full"
-            >
-              View Cart
-            </Button>
-          </Card>
+          <MemberCard
+            fallbackName={user.name}
+            fallbackEmail={user.email}
+          />
         </Box>
       </Box>
 
@@ -128,13 +86,4 @@ export function AccountShell({ user, active, children }: AccountShellProps) {
       </Box>
     </Box>
   );
-}
-
-function getInitials(user: PublicUser): string {
-  const source = (user.name || user.email).trim();
-  if (!source) return "•";
-  const parts = source.split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return source.slice(0, 2).toUpperCase();
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 }

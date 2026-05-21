@@ -1,15 +1,7 @@
 import { AccountShell } from "@/app/components/account/account-shell";
-import {
-  Badge,
-  Box,
-  Button,
-  Card,
-  Heading,
-  IconButton,
-  Row,
-  Stack,
-  Text,
-} from "@/app/components/ui";
+import { AddressBookSection } from "@/app/components/account/address-book-section";
+import { PersonalDetailsSection } from "@/app/components/account/personal-details-section";
+import { Box, Heading, Stack, Text } from "@/app/components/ui";
 import { getSessionUser } from "@/app/lib/auth/server";
 
 export const dynamic = "force-dynamic";
@@ -45,137 +37,8 @@ export default async function AccountProfilePage() {
         </Box>
       </Stack>
 
-      <Stack gap="lg">
-        <Row
-          justify="between"
-          align="end"
-          className="pb-sm border-b border-outline-variant"
-        >
-          <Heading
-            level={2}
-            variant="headline-md"
-            size="headline-sm"
-            className="md:text-headline-md"
-          >
-            Personal Details
-          </Heading>
-          <Button variant="ghost" size="sm" caps={false}>
-            Edit profile
-          </Button>
-        </Row>
-        <Box className="grid grid-cols-1 md:grid-cols-3 gap-lg">
-          <DetailField label="Full name" value={user.name || "Not added"} />
-          <DetailField label="Email address" value={user.email} />
-          <DetailField label="Phone number" value="+1 (555) 012-3456" />
-        </Box>
-      </Stack>
-
-      <Stack gap="lg">
-        <Row
-          justify="between"
-          align="end"
-          className="pb-sm border-b border-outline-variant"
-        >
-          <Heading
-            level={2}
-            variant="headline-md"
-            size="headline-sm"
-            className="md:text-headline-md"
-          >
-            Address Book
-          </Heading>
-          <Button variant="ghost" size="sm" caps={false}>
-            + Add new
-          </Button>
-        </Row>
-        <Box className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-          <AddressCard
-            label="Default shipping"
-            name={user.name || "—"}
-            lines={[
-              "1248 Editorial Way, Suite 400",
-              "New York, NY 10012",
-              "United States",
-            ]}
-          />
-          <AddressCard
-            label="Default billing"
-            name={user.name || "—"}
-            lines={[
-              "1248 Editorial Way, Suite 400",
-              "New York, NY 10012",
-              "United States",
-            ]}
-          />
-        </Box>
-      </Stack>
+      <PersonalDetailsSection name={user.name} email={user.email} />
+      <AddressBookSection />
     </AccountShell>
-  );
-}
-
-interface DetailFieldProps {
-  label: string;
-  value: string;
-}
-
-function DetailField({ label, value }: DetailFieldProps) {
-  return (
-    <Stack gap="xs">
-      <Text
-        variant="label-caps"
-        tone="muted"
-        as="span"
-        className="tracking-[0.18em]"
-      >
-        {label}
-      </Text>
-      <Text variant="body-lg" className="text-on-surface">
-        {value}
-      </Text>
-    </Stack>
-  );
-}
-
-interface AddressCardProps {
-  label: string;
-  name: string;
-  lines: string[];
-}
-
-function AddressCard({ label, name, lines }: AddressCardProps) {
-  return (
-    <Card variant="outlined" padding="lg" rounded="2xl">
-      <Stack gap="md">
-        <Row justify="between" align="center">
-          <Badge tone="neutral" size="sm">
-            {label}
-          </Badge>
-          <Row gap="xs" align="center">
-            <IconButton
-              icon="edit"
-              label={`Edit ${label}`}
-              size="sm"
-              variant="plain"
-            />
-            <IconButton
-              icon="delete"
-              label={`Remove ${label}`}
-              size="sm"
-              variant="plain"
-            />
-          </Row>
-        </Row>
-        <Stack gap="xs">
-          <Text variant="body-md" className="font-semibold">
-            {name}
-          </Text>
-          {lines.map((line) => (
-            <Text key={line} variant="body-md" tone="muted">
-              {line}
-            </Text>
-          ))}
-        </Stack>
-      </Stack>
-    </Card>
   );
 }

@@ -7,8 +7,13 @@ import { SiteHeader } from "./components/site-header";
 import { StickyActions } from "./components/sticky-actions";
 import { TrustStrip } from "./components/trust-strip";
 import { UGCGrid } from "./components/ugc-grid";
+import { getFeaturedStorefrontProducts } from "./lib/products/storefront";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const featuredProducts = await getFeaturedStorefrontProducts();
+
   return (
     <>
       <SiteHeader />
@@ -16,7 +21,7 @@ export default function Home() {
         <Hero />
         <TrustStrip />
         <ShopByTexture />
-        <ProductGrid />
+        <ProductGrid products={featuredProducts} />
         <BundleDeals />
         <UGCGrid />
       </main>

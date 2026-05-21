@@ -1,86 +1,76 @@
-export type OrderStatus =
-  | "processing"
-  | "in-transit"
-  | "delivered"
-  | "cancelled";
+import "server-only";
 
-export interface OrderSummary {
-  id: string;
-  reference: string;
-  placedAt: string;
-  status: OrderStatus;
-  total: number;
-  productName: string;
-  expectedDelivery?: string;
-  imageUrl?: string;
+import { getSessionUser } from "@/app/lib/auth/server";
+import { getOrderRepository } from "@/app/lib/orders/order-repository";
+import type {
+  OrderDetail,
+  OrderRecord,
+  OrderSummary,
+} from "@/app/lib/orders/types";
+
+export {
+  formatCurrency,
+  formatOrderDate,
+  formatOrderTimestamp,
+} from "@/app/lib/orders/format";
+
+export type {
+  OrderStatus,
+  OrderSummary,
+  OrderItem,
+  OrderAddress,
+  OrderPayment,
+  OrderTotals,
+  TrackingStep,
+  TrackingStepKey,
+  TrackingStepStatus,
+  OrderDetail,
+} from "@/app/lib/orders/types";
+
+function toSummary(order: OrderDetail): OrderSummary {
+  return {
+    id: order.id,
+    reference: order.reference,
+    placedAt: order.placedAt,
+    status: order.status,
+    total: order.total,
+    productName: order.productName,
+    expectedDelivery: order.expectedDelivery,
+    imageUrl: order.imageUrl,
+  };
 }
 
-const MOCK_ORDERS: OrderSummary[] = [
-  {
-    id: "AD-98421",
-    reference: "#AD-98421",
-    placedAt: "2024-10-12",
-    status: "processing",
-    total: 124.0,
-    productName: "Silk Infusion Bundle",
-  },
-  {
-    id: "AD-97210",
-    reference: "#AD-97210",
-    placedAt: "2024-09-28",
-    status: "delivered",
-    total: 86.5,
-    productName: "Body Wave 18\" Bundle",
-  },
-  {
-    id: "AD-95112",
-    reference: "#AD-95112",
-    placedAt: "2024-08-15",
-    status: "delivered",
-    total: 210.0,
-    productName: "Closure Trio Set",
-  },
-  {
-    id: "AD-92001",
-    reference: "#AD-92001",
-    placedAt: "2024-07-02",
-    status: "cancelled",
-    total: 45.0,
-    productName: "Bone Straight 12\"",
-  },
-];
-
-const ACTIVE_SHIPMENT: OrderSummary = {
-  id: "AC-92834",
-  reference: "#AC-92834",
-  placedAt: "2024-10-16",
-  status: "in-transit",
-  total: 248.0,
-  productName: "Silk Infusion Set",
-  expectedDelivery: "2024-10-24",
-};
-
 export async function listOrders(): Promise<OrderSummary[]> {
-  return MOCK_ORDERS;
+  const user = await getSessionUser();
+  if (!user) return [];
+  const repo = await getOrderRepository();
+  const records = await repo.list({ userId: user.id });
+  return records.map(toSummary);
+}
+
+export async function listOrderRecords(): Promise<OrderRecord[]> {
+  const user = await getSessionUser();
+  if (!user) return [];
+  const repo = await getOrderRepository();
+  return repo.list({ userId: user.id });
 }
 
 export async function getActiveShipment(): Promise<OrderSummary | null> {
-  return ACTIVE_SHIPMENT;
+  const user = await getSessionUser();
+  if (!user) return null;
+  const repo = await getOrderRepository();
+  const active = await repo.findActiveForUser(user.id);
+  if (!active) return null;
+  if (active.status !== "in-transit") return null;
+  return toSummary(active);
 }
 
-export function formatOrderDate(value: string): string {
-  const date = new Date(value);
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(value);
+export async function getOrderById(id: string): Promise<OrderDetail | null> {
+  const user = await getSessionUser();
+  if (!user) return null;
+  const repo = await getOrderRepository();
+  const order = await repo.findById(id);
+  if (!order) return null;
+  if (user.role !== "admin" && order.userId !== user.id) return null;
+  return order;
 }

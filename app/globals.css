@@ -18,6 +18,9 @@
   --radius-2xl: 1rem;
   --radius-full: 9999px;
 
+  /* ---- Aspect ratios (drives aspect-*) ---- */
+  --aspect-product: 4 / 5;
+
   /* ---- Brand color system (Material 3 cream/mahogany) ---- */
   --color-primary: #6c2f00;
   --color-on-primary: #ffffff;

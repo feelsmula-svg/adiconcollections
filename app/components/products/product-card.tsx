@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
   selectCartQuantityFor,
   selectIsInCart,
@@ -8,15 +9,20 @@ import {
 import { useWishlistStore } from "@/app/lib/state/wishlist-store";
 import { useHydrated } from "@/app/lib/state/hydration";
 import { formatPrice } from "@/app/lib/cart/format";
-import type { CartProduct } from "@/app/lib/cart/types";
+import type {
+  CartProduct,
+  ProductLengthOption,
+} from "@/app/lib/cart/types";
 import {
   Badge,
   Box,
   Button,
   Heading,
+  Icon,
   IconButton,
   Image,
   QuantityStepper,
+  Row,
   Stack,
   Text,
   TextLink,
@@ -32,10 +38,37 @@ interface ProductCardProps {
   withWishlist?: boolean;
 }
 
+const DEFAULT_LENGTHS: ProductLengthOption[] = [
+  { length: '18"', priceCents: 0 },
+  { length: '20"', priceCents: 0 },
+  { length: '22"', priceCents: 0 },
+  { length: '24"', priceCents: 0 },
+];
+
+function pickDefaultLength(
+  options: ProductLengthOption[],
+  description?: string,
+): string {
+  if (description) {
+    const match = description.match(/(\d+)"/);
+    if (match) {
+      const fromDesc = `${match[1]}"`;
+      const hit = options.find((o) => o.length === fromDesc);
+      if (hit) return hit.length;
+    }
+  }
+  return options[0]?.length ?? DEFAULT_LENGTHS[1].length;
+}
+
+function variantId(productId: string, length: string): string {
+  const digits = length.replace(/\D+/g, "");
+  return digits ? `${productId}--${digits}` : productId;
+}
+
 export function ProductCard({
   product,
   rank,
-  ctaLabel = "Add to bag",
+  ctaLabel = "Quick add",
   ctaStyle = "primary",
   withWishlist,
 }: ProductCardProps) {
@@ -67,10 +100,56 @@ export function ProductCard({
     setQuantity(baseVariantLine.product.id, q);
   };
 
+  const hasVariants = (product.lengthOptions?.length ?? 0) > 0;
+  const lengthOptions = useMemo<ProductLengthOption[]>(
+    () =>
+      product.lengthOptions && product.lengthOptions.length > 0
+        ? product.lengthOptions
+        : DEFAULT_LENGTHS,
+    [product.lengthOptions],
+  );
+
+  const [isQuickAdding, setIsQuickAdding] = useState(false);
+  const [selectedLength, setSelectedLength] = useState<string>(() =>
+    pickDefaultLength(lengthOptions, product.description),
+  );
+  const [pendingQuantity, setPendingQuantity] = useState<number>(1);
+
+  const openQuickAdd = () => {
+    setSelectedLength(pickDefaultLength(lengthOptions, product.description));
+    setPendingQuantity(1);
+    setIsQuickAdding(true);
+  };
+
+  const cancelQuickAdd = () => setIsQuickAdding(false);
+
+  const confirmQuickAdd = () => {
+    if (hasVariants) {
+      const opt =
+        lengthOptions.find((o) => o.length === selectedLength) ??
+        lengthOptions[0];
+      const variantProduct: CartProduct = {
+        ...product,
+        id: variantId(product.id, opt.length),
+        name: `${product.name} — ${opt.length}`,
+        priceCents: opt.priceCents || product.priceCents,
+      };
+      addItem(variantProduct, pendingQuantity);
+    } else {
+      addItem(product, pendingQuantity);
+    }
+    setIsQuickAdding(false);
+  };
+
   return (
-    <Stack gap="sm" className="group">
-      <Box className="relative aspect-square overflow-hidden bg-surface-container-low rounded-lg">
-        <TextLink href={href} variant="bare" aria-label={product.name}>
+    <Stack gap="sm" className="group h-full">
+      <Box className="relative aspect-product overflow-hidden bg-surface-container-low rounded-lg">
+        <TextLink
+          href={href}
+          variant="bare"
+          aria-label={product.name}
+          className="absolute inset-0 block"
+        >
           <Image
             src={product.imageSrc}
             alt={product.imageAlt}
@@ -81,8 +160,10 @@ export function ProductCard({
         </TextLink>
 
         {product.badge && (
-          <Box className="absolute top-md left-md pointer-events-none">
-            <Badge tone={product.badge.tone}>{product.badge.label}</Badge>
+          <Box className="absolute top-sm left-sm sm:top-md sm:left-md pointer-events-none">
+            <Badge tone={product.badge.tone} size="sm">
+              {product.badge.label}
+            </Badge>
           </Box>
         )}
 
@@ -96,7 +177,7 @@ export function ProductCard({
         )}
 
         {withWishlist && !inCart && (
-          <Box className="absolute top-md right-md">
+          <Box className="absolute top-sm right-sm sm:top-md sm:right-md">
             <IconButton
               icon="favorite"
               filled={isWishlisted}
@@ -114,16 +195,73 @@ export function ProductCard({
           </Box>
         )}
 
-        {inCart && (
-          <Box className="absolute top-md right-md pointer-events-none">
+        {inCart && !isQuickAdding && (
+          <Box className="absolute top-sm right-sm sm:top-md sm:right-md pointer-events-none">
             <Badge tone="primary" size="sm">
               In bag
             </Badge>
           </Box>
         )}
 
-        <Box className="absolute bottom-sm left-sm right-sm">
-          {inCart ? (
+        {isQuickAdding && (
+          <Box
+            role="dialog"
+            aria-label={`Quick add ${product.name}`}
+            className="absolute inset-0 bg-surface/85 backdrop-blur-sm px-sm pt-sm pb-2xl sm:px-md sm:pt-md sm:pb-3xl flex items-center justify-center overflow-y-auto"
+          >
+            <Stack gap="xs" align="stretch" className="w-full sm:gap-sm">
+              {hasVariants && (
+                <Stack gap="xs" align="center">
+                  <Text
+                    variant="label-caps"
+                    tone="muted"
+                    align="center"
+                    className="font-bold"
+                  >
+                    Select length
+                  </Text>
+                  <Stack gap="xs" align="stretch" className="w-full">
+                    {lengthOptions.map((opt) => (
+                      <Button
+                        key={opt.length}
+                        variant={
+                          opt.length === selectedLength ? "primary" : "outline"
+                        }
+                        size="sm"
+                        fullWidth
+                        caps={false}
+                        onClick={() => setSelectedLength(opt.length)}
+                        className="rounded-full text-label-caps sm:text-body-sm leading-none"
+                      >
+                        {opt.length}
+                      </Button>
+                    ))}
+                  </Stack>
+                </Stack>
+              )}
+              <Stack gap="xs" align="center">
+                <Text
+                  variant="label-caps"
+                  tone="muted"
+                  align="center"
+                  className="font-bold"
+                >
+                  Quantity
+                </Text>
+                <QuantityStepper
+                  value={pendingQuantity}
+                  min={1}
+                  onChange={setPendingQuantity}
+                  size="sm"
+                  label={`Quantity of ${product.name}`}
+                />
+              </Stack>
+            </Stack>
+          </Box>
+        )}
+
+        <Box className="absolute bottom-sm left-sm right-sm sm:bottom-md sm:left-md sm:right-md">
+          {inCart && !isQuickAdding ? (
             <QuantityStepper
               value={quantity}
               min={0}
@@ -132,14 +270,39 @@ export function ProductCard({
               fullWidth
               label={`Quantity of ${product.name} in bag`}
             />
+          ) : isQuickAdding ? (
+            <Row gap="xs" className="sm:gap-sm">
+              <Button
+                variant="outline"
+                size="sm"
+                fullWidth
+                caps={false}
+                onClick={cancelQuickAdd}
+                className="rounded-full uppercase font-label-caps tracking-wider whitespace-nowrap bg-surface/90 px-sm sm:px-md text-label-caps sm:text-body-sm leading-none"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant={ctaStyle === "inverse" ? "inverse" : "primary"}
+                size="sm"
+                fullWidth
+                caps={false}
+                onClick={confirmQuickAdd}
+                className="rounded-full uppercase font-label-caps tracking-wider whitespace-nowrap px-sm sm:px-md text-label-caps sm:text-body-sm leading-none"
+              >
+                Add
+              </Button>
+            </Row>
           ) : (
             <Button
               variant={ctaStyle === "inverse" ? "inverse" : "primary"}
               size="sm"
               fullWidth
-              onClick={() => addItem(product)}
-              className="tracking-[0.12em]"
+              caps={false}
+              onClick={openQuickAdd}
+              className="gap-xs rounded-full uppercase font-label-caps tracking-wider whitespace-nowrap shadow-sm hover:shadow-md hover:-translate-y-px transition-all duration-300 px-sm sm:px-md text-label-caps sm:text-body-sm leading-none"
             >
+              <Icon name="shopping_bag" className="text-sm" />
               {ctaLabel}
             </Button>
           )}
@@ -151,14 +314,25 @@ export function ProductCard({
           <Heading
             level={3}
             variant="headline-sm"
-            size="body-sm"
-            className="font-normal tracking-wide uppercase text-on-surface-variant"
+            size="label-caps"
+            className="font-medium uppercase text-on-surface-variant"
           >
             {product.name}
           </Heading>
-          <Text variant="body-sm" tone="primary" className="font-bold">
+          <Text variant="label-caps" tone="primary" className="font-bold">
             {formatPrice(product.priceCents)}
           </Text>
+          {hasVariants && (
+            <Text
+              variant="body-sm"
+              size="label-caps"
+              tone="muted"
+              align="center"
+              className="opacity-70"
+            >
+              More sizes available
+            </Text>
+          )}
         </Stack>
       </TextLink>
     </Stack>

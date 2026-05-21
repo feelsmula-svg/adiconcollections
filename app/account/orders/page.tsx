@@ -1,13 +1,12 @@
 import { Fragment } from "react";
 
 import { AccountShell } from "@/app/components/account/account-shell";
+import { OrdersList } from "@/app/components/account/orders-list";
+import { RedeemButton } from "@/app/components/account/redeem-button";
 import {
   Badge,
   Box,
-  Button,
   Card,
-  DataTable,
-  type DataTableColumn,
   Heading,
   Icon,
   Image,
@@ -15,43 +14,24 @@ import {
   Row,
   Stack,
   Text,
-  TextLink,
 } from "@/app/components/ui";
 import { getSessionUser } from "@/app/lib/auth/server";
 import {
-  formatCurrency,
   formatOrderDate,
   getActiveShipment,
+  listOrderRecords,
   listOrders,
   type OrderStatus,
-  type OrderSummary,
 } from "@/app/lib/account/orders";
+import {
+  ORDER_STATUS_INDEX,
+  ORDER_STATUS_LABEL,
+  ORDER_STATUS_TONE,
+} from "@/app/lib/orders/format";
+import { recentCustomerPrompts } from "@/app/lib/orders/system-prompts";
+import { SystemPromptFeed } from "@/app/components/orders/system-prompt-feed";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_LABEL: Record<OrderStatus, string> = {
-  processing: "Processing",
-  "in-transit": "In Transit",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-};
-
-const STATUS_TONE: Record<
-  OrderStatus,
-  "primary" | "secondary" | "neutral" | "error" | "tertiary"
-> = {
-  processing: "secondary",
-  "in-transit": "secondary",
-  delivered: "neutral",
-  cancelled: "error",
-};
-
-const STATUS_INDEX: Record<OrderStatus, number> = {
-  processing: 1,
-  "in-transit": 2,
-  delivered: 3,
-  cancelled: -1,
-};
 
 const PROGRESS_STEPS: { key: string; label: string }[] = [
   { key: "ordered", label: "Ordered" },
@@ -64,64 +44,12 @@ export default async function OrderHistoryPage() {
   const user = await getSessionUser();
   if (!user) return null;
 
-  const [orders, shipment] = await Promise.all([
+  const [orders, shipment, orderRecords] = await Promise.all([
     listOrders(),
     getActiveShipment(),
+    listOrderRecords(),
   ]);
-
-  const columns: DataTableColumn<OrderSummary>[] = [
-    {
-      key: "id",
-      header: "Order",
-      render: (order) => (
-        <Stack gap="none">
-          <Text variant="body-md" className="font-semibold" as="span">
-            {order.reference}
-          </Text>
-          <Text variant="body-sm" tone="muted" as="span">
-            {order.productName}
-          </Text>
-        </Stack>
-      ),
-    },
-    {
-      key: "date",
-      header: "Date",
-      render: (order) => (
-        <Text variant="body-sm" tone="muted" as="span">
-          {formatOrderDate(order.placedAt)}
-        </Text>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (order) => (
-        <Badge tone={STATUS_TONE[order.status]} size="sm">
-          {STATUS_LABEL[order.status]}
-        </Badge>
-      ),
-    },
-    {
-      key: "total",
-      header: "Total",
-      render: (order) => (
-        <Text variant="body-md" as="span" className="font-semibold">
-          {formatCurrency(order.total)}
-        </Text>
-      ),
-    },
-    {
-      key: "actions",
-      header: "",
-      align: "end",
-      render: () => (
-        <TextLink href="/account/orders" variant="default">
-          Details →
-        </TextLink>
-      ),
-    },
-  ];
+  const recentUpdates = recentCustomerPrompts(orderRecords, 6);
 
   return (
     <AccountShell user={user} active="orders">
@@ -174,8 +102,11 @@ export default async function OrderHistoryPage() {
                 >
                   Active Shipment
                 </Text>
-                <Badge tone="secondary" size="sm">
-                  {STATUS_LABEL[shipment?.status ?? "in-transit"]}
+                <Badge
+                  tone={ORDER_STATUS_TONE[shipment?.status ?? "in-transit"]}
+                  size="sm"
+                >
+                  {ORDER_STATUS_LABEL[shipment?.status ?? "in-transit"]}
                 </Badge>
               </Row>
               <Text variant="body-sm" tone="muted" as="span">
@@ -216,22 +147,28 @@ export default async function OrderHistoryPage() {
               <ProgressTimeline status={shipment?.status ?? "in-transit"} />
             </Box>
             <Row gap="sm" wrap className="px-lg py-lg">
-              <Button
+              <LinkButton
+                href={
+                  shipment
+                    ? `/account/orders/${shipment.id}`
+                    : "/account/orders"
+                }
                 variant="primary"
                 size="sm"
                 caps={false}
                 className="rounded-full"
               >
                 Track shipment
-              </Button>
-              <Button
+              </LinkButton>
+              <LinkButton
+                href="/contact"
                 variant="ghost"
                 size="sm"
                 caps={false}
                 className="rounded-full"
               >
                 Contact concierge →
-              </Button>
+              </LinkButton>
             </Row>
           </Stack>
         </Card>
@@ -275,59 +212,16 @@ export default async function OrderHistoryPage() {
               </Text>
             </Stack>
           </Stack>
-          <Button
+          <RedeemButton
             variant="inverse"
-            size="sm"
             fullWidth
-            caps={false}
             className="rounded-full"
-          >
-            Redeem now
-          </Button>
+          />
         </Box>
       </Box>
 
-      <Card variant="outlined" padding="none" rounded="2xl">
-        <Box className="px-lg py-md md:px-xl md:py-lg border-b border-outline-variant">
-          <Row justify="between" align="center" gap="sm">
-            <Stack gap="none" className="min-w-0">
-              <Heading level={2} variant="headline-sm" size="body-lg">
-                All Orders
-              </Heading>
-              <Text variant="body-sm" tone="muted">
-                {orders.length} order{orders.length === 1 ? "" : "s"} on record
-              </Text>
-            </Stack>
-            <Row gap="xs" align="center" className="shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                caps={false}
-                className="rounded-full gap-xs"
-                aria-label="Filter orders"
-              >
-                <Icon name="filter_list" className="text-lg" />
-                <Text as="span" variant="body-sm" className="hidden sm:inline">
-                  Filter
-                </Text>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                caps={false}
-                className="rounded-full gap-xs"
-                aria-label="Export orders"
-              >
-                <Icon name="download" className="text-lg" />
-                <Text as="span" variant="body-sm" className="hidden sm:inline">
-                  Export
-                </Text>
-              </Button>
-            </Row>
-          </Row>
-        </Box>
-
-        {orders.length === 0 ? (
+      {orders.length === 0 ? (
+        <Card variant="outlined" padding="none" rounded="2xl">
           <Box className="p-2xl">
             <Stack gap="sm" align="center">
               <Icon name="receipt_long" className="text-primary text-3xl" />
@@ -342,30 +236,18 @@ export default async function OrderHistoryPage() {
               </LinkButton>
             </Stack>
           </Box>
-        ) : (
-          <>
-            <Box className="hidden md:block">
-              <DataTable
-                columns={columns}
-                rows={orders}
-                rowKey={(order) => order.id}
-                caption="Order history"
-              />
-            </Box>
-            <Stack gap="none" className="md:hidden divide-y divide-outline-variant">
-              {orders.map((order) => (
-                <OrderRow key={order.id} order={order} />
-              ))}
-            </Stack>
-          </>
-        )}
+        </Card>
+      ) : (
+        <OrdersList orders={orders} />
+      )}
 
-        <Box className="border-t border-outline-variant px-lg py-md flex justify-center">
-          <Button variant="ghost" size="sm" caps={false}>
-            Load more orders
-          </Button>
-        </Box>
-      </Card>
+      <SystemPromptFeed
+        title="Recent updates"
+        emptyMessage="Nothing new right now — we'll post here whenever we update an order."
+        prompts={recentUpdates}
+        showOrderReference
+        hrefBuilder={(prompt) => `/account/orders/${prompt.orderId}`}
+      />
 
       <Box className="grid grid-cols-1 md:grid-cols-2 gap-md">
         <Box className="rounded-2xl bg-surface-container p-lg">
@@ -421,51 +303,12 @@ export default async function OrderHistoryPage() {
   );
 }
 
-interface OrderRowProps {
-  order: OrderSummary;
-}
-
-function OrderRow({ order }: OrderRowProps) {
-  return (
-    <Box className="px-lg py-md">
-      <Stack gap="sm">
-        <Row justify="between" align="center" gap="sm">
-          <Stack gap="none" className="min-w-0 flex-1">
-            <Text variant="body-md" className="font-semibold truncate" as="span">
-              {order.reference}
-            </Text>
-            <Text variant="body-sm" tone="muted" className="truncate" as="span">
-              {order.productName}
-            </Text>
-          </Stack>
-          <Badge tone={STATUS_TONE[order.status]} size="sm">
-            {STATUS_LABEL[order.status]}
-          </Badge>
-        </Row>
-        <Row justify="between" align="center" gap="sm">
-          <Text variant="body-sm" tone="muted" as="span">
-            {formatOrderDate(order.placedAt)}
-          </Text>
-          <Row gap="md" align="center">
-            <Text variant="body-md" as="span" className="font-semibold">
-              {formatCurrency(order.total)}
-            </Text>
-            <TextLink href="/account/orders" variant="default">
-              Details →
-            </TextLink>
-          </Row>
-        </Row>
-      </Stack>
-    </Box>
-  );
-}
-
 interface ProgressTimelineProps {
   status: OrderStatus;
 }
 
 function ProgressTimeline({ status }: ProgressTimelineProps) {
-  const currentIdx = STATUS_INDEX[status];
+  const currentIdx = ORDER_STATUS_INDEX[status];
   const isCancelled = status === "cancelled";
 
   if (isCancelled) {
