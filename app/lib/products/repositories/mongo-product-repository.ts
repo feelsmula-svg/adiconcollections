@@ -1,0 +1,128 @@
+import "server-only";
+
+import { randomUUID } from "node:crypto";
+import type { Collection, Document } from "mongodb";
+
+import { getDb } from "@/app/lib/db/mongo";
+import { sanitiseMongoRegex } from "@/app/lib/db/mongo-search";
+
+import type {
+  CreateProductInput,
+  ProductRepository,
+  UpdateProductInput,
+} from "../product-repository";
+import type { ListProductsFilters, ProductRecord } from "../types";
+
+const COLLECTION = "products";
+
+async function collection(): Promise<Collection<ProductRecord & Document>> {
+  const db = await getDb();
+  const coll = db.collection<ProductRecord & Document>(COLLECTION);
+  await coll.createIndex({ id: 1 }, { unique: true });
+  return coll;
+}
+
+function strip(record: ProductRecord & { _id?: unknown }): ProductRecord {
+  const { _id, ...rest } = record;
+  void _id;
+  return rest;
+}
+
+export class MongoProductRepository implements ProductRepository {
+  async list(filters: ListProductsFilters = {}): Promise<ProductRecord[]> {
+    const coll = await collection();
+    const query: Record<string, unknown> = {};
+    if (filters.category) query.category = filters.category;
+    if (typeof filters.featured === "boolean") query.featured = filters.featured;
+    if (filters.q?.trim()) {
+      const q = sanitiseMongoRegex(filters.q.trim());
+      query.$or = [
+        { name: { $regex: q, $options: "i" } },
+        { type: { $regex: q, $options: "i" } },
+        { description: { $regex: q, $options: "i" } },
+      ];
+    }
+    const docs = await coll
+      .find(query)
+      .sort({ createdAt: -1 })
+      .toArray();
+    return docs.map(strip);
+  }
+
+  async findById(id: string): Promise<ProductRecord | null> {
+    const coll = await collection();
+    const doc = await coll.findOne({ id });
+    return doc ? strip(doc) : null;
+  }
+
+  async create(input: CreateProductInput): Promise<ProductRecord> {
+    const coll = await collection();
+    const now = new Date().toISOString();
+    const trimmedImages = input.images?.map((src) => src.trim()).filter(
+      (src) => src.length > 0,
+    );
+    const primaryImage = (trimmedImages?.[0] ?? input.imageUrl).trim();
+    const record: ProductRecord = {
+      id: randomUUID(),
+      name: input.name.trim(),
+      description: input.description.trim(),
+      category: input.category,
+      type: input.type.trim(),
+      priceCents: input.priceCents,
+      imageUrl: primaryImage,
+      images:
+        trimmedImages && trimmedImages.length > 0
+          ? trimmedImages
+          : primaryImage
+            ? [primaryImage]
+            : undefined,
+      stock: input.stock,
+      featured: input.featured ?? false,
+      badge: input.badge,
+      lengthOptions: input.lengthOptions,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await coll.insertOne(record);
+    return record;
+  }
+
+  async update(
+    id: string,
+    input: UpdateProductInput,
+  ): Promise<ProductRecord | null> {
+    const coll = await collection();
+    const existing = await coll.findOne({ id });
+    if (!existing) return null;
+    const existingRecord = strip(existing);
+    const inputImages = input.images?.map((src) => src.trim()).filter(
+      (src) => src.length > 0,
+    );
+    const nextImages = inputImages ?? existingRecord.images;
+    const nextPrimary =
+      input.imageUrl?.trim() ?? nextImages?.[0] ?? existingRecord.imageUrl;
+    const updated: ProductRecord = {
+      ...existingRecord,
+      name: input.name?.trim() ?? existingRecord.name,
+      description: input.description?.trim() ?? existingRecord.description,
+      category: input.category ?? existingRecord.category,
+      type: input.type?.trim() ?? existingRecord.type,
+      priceCents: input.priceCents ?? existingRecord.priceCents,
+      imageUrl: nextPrimary,
+      images: nextImages,
+      stock: input.stock ?? existingRecord.stock,
+      featured: input.featured ?? existingRecord.featured,
+      badge: input.badge ?? existingRecord.badge,
+      lengthOptions: input.lengthOptions ?? existingRecord.lengthOptions,
+      updatedAt: new Date().toISOString(),
+    };
+    await coll.replaceOne({ id }, updated);
+    return updated;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const coll = await collection();
+    const result = await coll.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+}

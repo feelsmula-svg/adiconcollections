@@ -50,15 +50,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: INVALID_TOKEN }, { status: 400 });
     }
 
+    // Consume the token BEFORE doing anything else. If the password update
+    // later fails, the user simply requests a new reset link — that is far
+    // better than leaving a still-valid token around if the consume step
+    // ever fails after a successful password change.
+    await tokenRepo.consume(tokenHash);
+
     const userRepo = await getUserRepository();
     const passwordHash = await hashPassword(parsed.data.password);
     const updated = await userRepo.updatePassword(record.userId, passwordHash);
     if (!updated) {
-      // user was deleted between token issue and reset
-      await tokenRepo.consume(tokenHash);
+      // User was deleted between token issue and reset.
       return NextResponse.json({ error: INVALID_TOKEN }, { status: 400 });
     }
-    await tokenRepo.consume(tokenHash);
+
+    // Invalidate any other active reset tokens for this user — if two reset
+    // links were issued in quick succession, only one can ever be used.
+    await tokenRepo.consumeAllForUser(record.userId);
 
     // Sign the user in immediately so they land back in their account.
     const sessionToken = await signSession({

@@ -45,13 +45,55 @@ const CONTACT_CARDS: ContactCard[] = [
 export function ContactContent() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
+    if (submitting) return;
+    setErrorMessage(null);
+    if (
+      !name.trim() ||
+      !email.trim() ||
+      !subject.trim() ||
+      !body.trim()
+    ) {
+      setErrorMessage("Please fill in every field.");
+      return;
+    }
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      const response = await fetch("/api/contact/messages", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ name, email, subject, body }),
+      });
+      const data = (await response.json().catch(() => null)) as {
+        error?: string;
+      } | null;
+      if (!response.ok) {
+        setErrorMessage(
+          data?.error ?? "Could not send your message. Please try again.",
+        );
+        setSubmitting(false);
+        return;
+      }
       setSubmitted(true);
-    }, 600);
+      setName("");
+      setEmail("");
+      setSubject("");
+      setBody("");
+    } catch {
+      setErrorMessage("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -136,19 +178,54 @@ export function ContactContent() {
                       Send a message
                     </Heading>
                     <Row gap="md" wrap>
-                      <FormField label="Name" required className="flex-1 min-w-[180px]">
-                        <TextField autoComplete="name" />
+                      <FormField
+                        label="Name"
+                        required
+                        className="flex-1 min-w-[180px]"
+                      >
+                        <TextField
+                          autoComplete="name"
+                          value={name}
+                          onChange={(event) => setName(event.target.value)}
+                          disabled={submitting}
+                        />
                       </FormField>
-                      <FormField label="Email" required className="flex-1 min-w-[180px]">
-                        <TextField type="email" autoComplete="email" />
+                      <FormField
+                        label="Email"
+                        required
+                        className="flex-1 min-w-[180px]"
+                      >
+                        <TextField
+                          type="email"
+                          autoComplete="email"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          disabled={submitting}
+                        />
                       </FormField>
                     </Row>
                     <FormField label="Subject" required>
-                      <TextField placeholder="How can we help?" />
+                      <TextField
+                        placeholder="How can we help?"
+                        value={subject}
+                        onChange={(event) => setSubject(event.target.value)}
+                        disabled={submitting}
+                      />
                     </FormField>
                     <FormField label="Message" required>
-                      <Textarea rows={5} placeholder="Tell us a bit more…" />
+                      <Textarea
+                        rows={5}
+                        placeholder="Tell us a bit more…"
+                        value={body}
+                        onChange={(event) => setBody(event.target.value)}
+                        disabled={submitting}
+                      />
                     </FormField>
+                    {errorMessage ? (
+                      <Text variant="body-sm" tone="error">
+                        {errorMessage}
+                      </Text>
+                    ) : null}
                     <Button
                       variant="primary"
                       size="md"

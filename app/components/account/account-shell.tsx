@@ -30,7 +30,7 @@ const NAV_ENTRIES: NavEntry[] = [
     label: "Wishlist",
     icon: "favorite",
   },
-  { key: "help", href: "/contact", label: "Help", icon: "help" },
+  { key: "help", href: "/account/help", label: "Help", icon: "help" },
 ];
 
 interface AccountShellProps {

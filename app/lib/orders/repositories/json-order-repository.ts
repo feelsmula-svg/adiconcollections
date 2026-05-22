@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 
 import {
+  DELIVERY_METHOD_DAYS,
   TRACKING_STEP_KEYS,
   TRACKING_STEP_LABELS,
   TRACKING_STEP_TO_STATUS,
@@ -25,6 +26,7 @@ import type {
 import type {
   AdvanceStageInput,
   CancelOrderInput,
+  CreateOrderInput,
   OrderRepository,
   RestoreOrderInput,
   UpdateExpectedDeliveryInput,
@@ -150,6 +152,120 @@ export class JsonOrderRepository implements OrderRepository {
         )
         .sort((a, b) => (a.placedAt < b.placedAt ? 1 : -1));
       return active[0] ?? null;
+    });
+  }
+
+  async findByPaymentIntent(
+    paymentIntentId: string,
+  ): Promise<OrderRecord | null> {
+    return this.withLock(async () => {
+      const { orders } = await readFile();
+      return (
+        orders.find((order) => order.paymentIntentId === paymentIntentId) ??
+        null
+      );
+    });
+  }
+
+  async updateTotalsByPaymentIntent(
+    paymentIntentId: string,
+    input: { totals: OrderRecord["totals"] },
+  ): Promise<OrderRecord | null> {
+    return this.withLock(async () => {
+      const data = await readFile();
+      const index = data.orders.findIndex(
+        (order) => order.paymentIntentId === paymentIntentId,
+      );
+      if (index === -1) return null;
+      const next: OrderRecord = {
+        ...data.orders[index],
+        totals: input.totals,
+        total: input.totals.total,
+      };
+      data.orders[index] = next;
+      await writeFile(data);
+      return next;
+    });
+  }
+
+  async create(input: CreateOrderInput): Promise<OrderRecord> {
+    return this.withLock(async () => {
+      const data = await readFile();
+      const existing = data.orders.find(
+        (order) => order.paymentIntentId === input.paymentIntentId,
+      );
+      if (existing) return existing;
+
+      const placedAt = nowIso();
+      const tracking: TrackingStep[] = TRACKING_STEP_KEYS.map((key, index) => {
+        if (index === 0) {
+          return {
+            key,
+            label: TRACKING_STEP_LABELS[key],
+            status: "complete" as TrackingStepStatus,
+            timestamp: placedAt,
+          };
+        }
+        if (index === 1) {
+          return {
+            key,
+            label: TRACKING_STEP_LABELS[key],
+            status: "current" as TrackingStepStatus,
+            timestamp: placedAt,
+          };
+        }
+        return {
+          key,
+          label: TRACKING_STEP_LABELS[key],
+          status: "upcoming" as TrackingStepStatus,
+        };
+      });
+
+      const productName =
+        input.items.length === 0
+          ? "Order"
+          : input.items.length === 1
+            ? input.items[0].name
+            : `${input.items[0].name} + ${input.items.length - 1} more`;
+
+      const reference = `#AC-${Math.floor(10000 + Math.random() * 89999)}`;
+
+      const expectedDate = new Date(placedAt);
+      expectedDate.setDate(
+        expectedDate.getDate() + DELIVERY_METHOD_DAYS[input.deliveryMethod],
+      );
+      const expectedDelivery = expectedDate.toISOString().slice(0, 10);
+
+      const record: OrderRecord = {
+        id: randomUUID(),
+        reference,
+        placedAt,
+        status: "processing",
+        total: input.totals.total,
+        productName,
+        imageUrl: input.items[0]?.imageUrl,
+        expectedDelivery,
+        userId: input.userId,
+        customerName: input.customerName,
+        customerEmail: input.customerEmail,
+        items: input.items,
+        shippingAddress: input.shippingAddress,
+        payment: input.payment,
+        totals: input.totals,
+        tracking,
+        requiresSignature: false,
+        paymentIntentId: input.paymentIntentId,
+        deliveryMethod: input.deliveryMethod,
+        activity: appendActivity(undefined, {
+          actorEmail: input.customerEmail,
+          kind: "placed",
+          message: "Order placed",
+          timestamp: placedAt,
+        }),
+      };
+      data.orders.push(record);
+      await writeFile(data);
+      return record;
     });
   }
 

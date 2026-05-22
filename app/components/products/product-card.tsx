@@ -6,7 +6,7 @@ import {
   selectIsInCart,
   useCartStore,
 } from "@/app/lib/state/cart-store";
-import { useWishlistStore } from "@/app/lib/state/wishlist-store";
+import { useWishlist } from "@/app/lib/wishlist/wishlist-context";
 import { useHydrated } from "@/app/lib/state/hydration";
 import { formatPrice } from "@/app/lib/cart/format";
 import type {
@@ -81,11 +81,10 @@ export function ProductCard({
   const inCart = hydrated && inCartRaw;
   const quantity = hydrated ? quantityRaw : 0;
 
-  const wishlisted = useWishlistStore((state) =>
-    state.ids.includes(product.id),
-  );
-  const toggleWishlist = useWishlistStore((state) => state.toggle);
-  const isWishlisted = hydrated && wishlisted;
+  const wishlist = useWishlist();
+  const isWishlisted = wishlist.isWishlisted(product.id);
+  const toggleWishlist = wishlist.toggle;
+  const wishlistAvailable = wishlist.isAuthenticated;
 
   const href = `/products/${product.id}`;
 
@@ -176,7 +175,7 @@ export function ProductCard({
           </Text>
         )}
 
-        {withWishlist && !inCart && (
+        {withWishlist && wishlistAvailable && !inCart && (
           <Box className="absolute top-sm right-sm sm:top-md sm:right-md">
             <IconButton
               icon="favorite"

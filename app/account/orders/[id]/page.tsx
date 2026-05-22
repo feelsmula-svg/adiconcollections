@@ -29,6 +29,10 @@ import {
   type OrderStatus,
   type TrackingStep,
 } from "@/app/lib/account/orders";
+import {
+  DELIVERY_METHOD_LABEL,
+  type OrderDeliveryMethod,
+} from "@/app/lib/orders/types";
 import { customerPromptsFor } from "@/app/lib/orders/system-prompts";
 import { SystemPromptFeed } from "@/app/components/orders/system-prompt-feed";
 
@@ -167,6 +171,47 @@ export default async function OrderDetailPage({
         </Stack>
 
         <Stack gap="md">
+          <Card variant="outlined" padding="lg" rounded="2xl">
+            <Stack gap="md">
+              <Text
+                variant="label-caps"
+                tone="muted"
+                as="span"
+                className="tracking-[0.18em]"
+              >
+                Delivery
+              </Text>
+              <Stack gap="xs">
+                <Row gap="sm" align="center">
+                  <Icon
+                    name="local_shipping"
+                    filled
+                    className="text-primary text-lg"
+                  />
+                  <Text variant="body-md" className="font-semibold">
+                    {order.deliveryMethod
+                      ? DELIVERY_METHOD_LABEL[
+                          order.deliveryMethod as OrderDeliveryMethod
+                        ]
+                      : "Standard"}
+                  </Text>
+                </Row>
+                <Text variant="body-sm" tone="muted">
+                  Expected{" "}
+                  <Text
+                    as="span"
+                    variant="body-sm"
+                    className="font-semibold text-on-surface"
+                  >
+                    {order.expectedDelivery
+                      ? formatOrderDate(order.expectedDelivery)
+                      : "—"}
+                  </Text>
+                </Text>
+              </Stack>
+            </Stack>
+          </Card>
+
           <Card variant="outlined" padding="lg" rounded="2xl">
             <Stack gap="md">
               <Text

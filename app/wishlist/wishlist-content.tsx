@@ -2,10 +2,10 @@
 
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useWishlistStore } from "@/app/lib/state/wishlist-store";
-import { useHydrated } from "@/app/lib/state/hydration";
-import { findProduct } from "@/app/lib/products/catalog";
+
+import { useWishlist } from "@/app/lib/wishlist/wishlist-context";
 import { ProductCard } from "@/app/components/products/product-card";
+import type { CartProduct } from "@/app/lib/cart/types";
 import {
   Box,
   Button,
@@ -15,19 +15,25 @@ import {
   Text,
 } from "@/app/components/ui";
 
-export function WishlistContent() {
+interface WishlistContentProps {
+  initialProducts: CartProduct[];
+  isAuthenticated: boolean;
+}
+
+export function WishlistContent({
+  initialProducts,
+  isAuthenticated,
+}: WishlistContentProps) {
   const router = useRouter();
-  const hydrated = useHydrated();
-  const ids = useWishlistStore((state) => state.ids);
+  const { ids } = useWishlist();
 
   const products = useMemo(() => {
-    if (!hydrated) return [];
-    return ids
-      .map((id) => findProduct(id))
-      .filter((p): p is NonNullable<typeof p> => Boolean(p));
-  }, [hydrated, ids]);
+    if (!isAuthenticated) return [];
+    if (ids.size === 0) return [];
+    return initialProducts.filter((product) => ids.has(product.id));
+  }, [initialProducts, ids, isAuthenticated]);
 
-  const isEmpty = hydrated && products.length === 0;
+  const isEmpty = products.length === 0;
   const count = products.length;
 
   return (
@@ -53,7 +59,7 @@ export function WishlistContent() {
           <Text variant="body-md" tone="muted">
             Save pieces from the collection to revisit later. We&apos;ll keep
             them here for whenever you&apos;re ready.
-            {hydrated && count > 0 ? (
+            {count > 0 ? (
               <Text as="span" variant="body-md" className="font-semibold">
                 {" "}
                 · {count} piece{count === 1 ? "" : "s"} saved
@@ -78,12 +84,15 @@ export function WishlistContent() {
               size="body-lg"
               className="md:text-headline-sm"
             >
-              Your wish list is empty
+              {isAuthenticated
+                ? "Your wish list is empty"
+                : "Sign in to save pieces"}
             </Heading>
             <Box className="max-w-[360px]">
               <Text variant="body-sm" tone="muted">
-                Tap the heart on any piece to save it here — it&apos;ll be
-                waiting for you when you&apos;re ready.
+                {isAuthenticated
+                  ? "Tap the heart on any piece to save it here — it’ll be waiting for you when you’re ready."
+                  : "Create an account or sign in to save pieces to your wish list across devices."}
               </Text>
             </Box>
             <Box className="pt-xs">

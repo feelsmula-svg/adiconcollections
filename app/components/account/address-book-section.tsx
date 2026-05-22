@@ -13,23 +13,18 @@ import {
   Stack,
   Text,
 } from "@/app/components/ui";
-import {
-  useAddressStore,
-  type Address,
-} from "@/app/lib/state/address-store";
-import { useHydrated } from "@/app/lib/state/hydration";
+import type { AddressRecord } from "@/app/lib/addresses/types";
 import { AddressFormModal } from "./address-form-modal";
 import { DeleteAddressModal } from "./delete-address-modal";
 
-export function AddressBookSection() {
-  const hydrated = useHydrated();
-  const addresses = useAddressStore((state) => state.addresses);
+interface AddressBookSectionProps {
+  addresses: AddressRecord[];
+}
 
+export function AddressBookSection({ addresses }: AddressBookSectionProps) {
   const [addOpen, setAddOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Address | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Address | null>(null);
-
-  const list = hydrated ? addresses : [];
+  const [editTarget, setEditTarget] = useState<AddressRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AddressRecord | null>(null);
 
   return (
     <>
@@ -56,11 +51,11 @@ export function AddressBookSection() {
             + Add new
           </Button>
         </Row>
-        {list.length === 0 ? (
+        {addresses.length === 0 ? (
           <EmptyAddresses onAdd={() => setAddOpen(true)} />
         ) : (
           <Box className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-            {list.map((address) => (
+            {addresses.map((address) => (
               <AddressCard
                 key={address.id}
                 address={address}
@@ -93,7 +88,7 @@ export function AddressBookSection() {
 }
 
 interface AddressCardProps {
-  address: Address;
+  address: AddressRecord;
   onEdit: () => void;
   onDelete: () => void;
 }

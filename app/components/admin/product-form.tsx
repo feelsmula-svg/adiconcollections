@@ -12,6 +12,7 @@ import {
   FileInput,
   FormField,
   Heading,
+  IconButton,
   Modal,
   ProductThumb,
   Row,
@@ -29,6 +30,7 @@ import type {
 import type { CategoryRecord, HairType } from "@/app/lib/taxonomy/types";
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_IMAGES = 8;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -60,15 +62,36 @@ interface ProductFormProps {
   categories: CategoryRecord[];
 }
 
+interface LengthRow {
+  uiKey: string;
+  length: string;
+  priceDollars: string;
+}
+
 interface FormState {
   name: string;
   description: string;
   category: ProductCategory;
   type: string;
   priceDollars: string;
-  imageUrl: string;
+  images: string[];
   stock: string;
   featured: boolean;
+  lengthOptions: LengthRow[];
+}
+
+function makeLengthRow(initial?: {
+  length: string;
+  priceCents: number;
+}): LengthRow {
+  return {
+    uiKey: `len-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    length: initial?.length ?? "",
+    priceDollars:
+      initial && initial.priceCents > 0
+        ? (initial.priceCents / 100).toFixed(2)
+        : "",
+  };
 }
 
 function toInitialState(
@@ -82,20 +105,28 @@ function toInitialState(
       category: defaultCategory,
       type: "",
       priceDollars: "",
-      imageUrl: "",
+      images: [],
       stock: "0",
       featured: false,
+      lengthOptions: [],
     };
   }
+  const images =
+    initial.images && initial.images.length > 0
+      ? [...initial.images]
+      : initial.imageUrl
+        ? [initial.imageUrl]
+        : [];
   return {
     name: initial.name,
     description: initial.description,
     category: initial.category,
     type: initial.type,
     priceDollars: (initial.priceCents / 100).toFixed(2),
-    imageUrl: initial.imageUrl,
+    images,
     stock: String(initial.stock),
     featured: initial.featured,
+    lengthOptions: (initial.lengthOptions ?? []).map(makeLengthRow),
   };
 }
 
@@ -119,8 +150,16 @@ export function ProductForm({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [imageReading, setImageReading] = useState(false);
 
+  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setState((prev) => ({ ...prev, [key]: value }));
+  }
+
   async function handleImageSelected(file: File | null) {
     if (!file) return;
+    if (state.images.length >= MAX_IMAGES) {
+      setError(`You can upload up to ${MAX_IMAGES} images per product.`);
+      return;
+    }
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
       setError("Image must be JPG, PNG, WEBP, or GIF.");
       return;
@@ -137,7 +176,7 @@ export function ProductForm({
     setImageReading(true);
     try {
       const dataUrl = await readFileAsDataUrl(file);
-      update("imageUrl", dataUrl);
+      setState((prev) => ({ ...prev, images: [...prev.images, dataUrl] }));
     } catch (caught: unknown) {
       const message =
         caught instanceof Error ? caught.message : "Could not read image";
@@ -147,20 +186,64 @@ export function ProductForm({
     }
   }
 
+  function removeImage(index: number) {
+    setState((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  }
+
+  function moveImage(index: number, direction: -1 | 1) {
+    setState((prev) => {
+      const next = [...prev.images];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target]!, next[index]!];
+      return { ...prev, images: next };
+    });
+  }
+
+  function addLengthRow() {
+    setState((prev) => ({
+      ...prev,
+      lengthOptions: [...prev.lengthOptions, makeLengthRow()],
+    }));
+  }
+
+  function updateLengthRow(
+    uiKey: string,
+    field: "length" | "priceDollars",
+    value: string,
+  ) {
+    setState((prev) => ({
+      ...prev,
+      lengthOptions: prev.lengthOptions.map((row) =>
+        row.uiKey === uiKey ? { ...row, [field]: value } : row,
+      ),
+    }));
+  }
+
+  function removeLengthRow(uiKey: string) {
+    setState((prev) => ({
+      ...prev,
+      lengthOptions: prev.lengthOptions.filter((row) => row.uiKey !== uiKey),
+    }));
+  }
+
   const typeOptionsForCategory = hairTypes.filter(
     (type) => type.category === state.category,
   );
+  const typeRequired = typeOptionsForCategory.length > 0;
   const typeOptions: SelectOption[] = [
-    { value: "", label: "Select a type…" },
+    {
+      value: "",
+      label: typeRequired ? "Select a type…" : "Not applicable",
+    },
     ...typeOptionsForCategory.map((type) => ({
       value: type.slug,
       label: type.label,
     })),
   ];
-
-  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setState((prev) => ({ ...prev, [key]: value }));
-  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -179,10 +262,30 @@ export function ProductForm({
       setSaving(false);
       return;
     }
-    if (!state.imageUrl) {
-      setError("Upload a product image before saving.");
+    if (state.images.length === 0) {
+      setError("Upload at least one product image before saving.");
       setSaving(false);
       return;
+    }
+
+    const lengthOptions: { length: string; priceCents: number }[] = [];
+    for (const row of state.lengthOptions) {
+      const trimmedLabel = row.length.trim();
+      if (trimmedLabel.length === 0 && row.priceDollars.trim().length === 0) {
+        continue; // skip empty rows
+      }
+      if (trimmedLabel.length === 0) {
+        setError('Each length row needs a label (e.g. 18").');
+        setSaving(false);
+        return;
+      }
+      const cents = Math.round(Number(row.priceDollars) * 100);
+      if (!Number.isFinite(cents) || cents < 0) {
+        setError(`Length "${trimmedLabel}" needs a valid price.`);
+        setSaving(false);
+        return;
+      }
+      lengthOptions.push({ length: trimmedLabel, priceCents: cents });
     }
 
     const payload = {
@@ -191,9 +294,10 @@ export function ProductForm({
       category: state.category,
       type: state.type,
       priceCents,
-      imageUrl: state.imageUrl,
+      images: state.images,
       stock,
       featured: state.featured,
+      ...(lengthOptions.length > 0 ? { lengthOptions } : {}),
     };
 
     try {
@@ -259,9 +363,9 @@ export function ProductForm({
               {mode === "create" ? "Upload product" : "Edit product"}
             </Heading>
             <Text variant="body-sm" tone="muted">
-              Fill in the details below. Upload a product image from your
-              computer — it&apos;s saved with the product as base64, no external
-              hosting needed.
+              Fill in the details below. Upload up to {MAX_IMAGES} images per
+              product. The first image is the cover everywhere; the rest appear
+              in the product gallery.
             </Text>
           </Stack>
 
@@ -284,115 +388,253 @@ export function ProductForm({
             />
           </FormField>
 
-          <Row gap="md" className="flex-wrap">
-            <Box className="flex-1 min-w-[220px]">
-              <FormField
-                label="Category"
-                required
-                hint={
-                  categoryOptions.length === 0
-                    ? "No categories yet — add one in Taxonomy."
-                    : "Edit categories in Taxonomy."
-                }
-              >
-                <Select
-                  options={categoryOptions}
-                  value={state.category}
-                  onChange={(event) => update("category", event.target.value)}
-                />
-              </FormField>
-            </Box>
-            <Box className="flex-1 min-w-[220px]">
-              <FormField
-                label="Type"
-                required
-                hint={
-                  typeOptionsForCategory.length === 0
-                    ? "No types yet for this category — add one in Hair Types."
-                    : "Pick a hair type from the taxonomy."
-                }
-              >
-                <Select
-                  options={typeOptions}
-                  value={state.type}
-                  onChange={(event) => update("type", event.target.value)}
-                  required
-                />
-              </FormField>
-            </Box>
-          </Row>
+          <Box className="grid grid-cols-1 md:grid-cols-2 items-start gap-md">
+            <FormField
+              label="Category"
+              required
+              hint={
+                categoryOptions.length === 0
+                  ? "No categories yet — add one in Taxonomy."
+                  : "Edit categories in Taxonomy."
+              }
+            >
+              <Select
+                options={categoryOptions}
+                value={state.category}
+                onChange={(event) => update("category", event.target.value)}
+              />
+            </FormField>
+            <FormField
+              label="Type"
+              required={typeRequired}
+              hint={
+                typeRequired
+                  ? "Pick a hair type from the taxonomy."
+                  : "This category has no hair types — leave blank."
+              }
+            >
+              <Select
+                options={typeOptions}
+                value={state.type}
+                onChange={(event) => update("type", event.target.value)}
+                required={typeRequired}
+                disabled={!typeRequired}
+              />
+            </FormField>
+          </Box>
 
-          <Row gap="md" className="flex-wrap">
-            <Box className="flex-1 min-w-[180px]">
-              <FormField label="Price (USD)" required hint="Decimal dollars">
-                <TextField
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={state.priceDollars}
-                  placeholder="725.00"
-                  onChange={(event) =>
-                    update("priceDollars", event.target.value)
-                  }
-                  required
-                />
-              </FormField>
-            </Box>
-            <Box className="flex-1 min-w-[180px]">
-              <FormField label="Stock" required>
-                <TextField
-                  type="number"
-                  step="1"
-                  min="0"
-                  value={state.stock}
-                  placeholder="0"
-                  onChange={(event) => update("stock", event.target.value)}
-                  required
-                />
-              </FormField>
-            </Box>
-          </Row>
+          <Box className="grid grid-cols-1 md:grid-cols-2 items-start gap-md">
+            <FormField
+              label="Base price (USD)"
+              required
+              hint="Used when the product has no length variants."
+            >
+              <TextField
+                type="number"
+                step="0.01"
+                min="0"
+                value={state.priceDollars}
+                placeholder="725.00"
+                onChange={(event) =>
+                  update("priceDollars", event.target.value)
+                }
+                required
+              />
+            </FormField>
+            <FormField
+              label="Stock"
+              required
+              hint="Units available right now."
+            >
+              <TextField
+                type="number"
+                step="1"
+                min="0"
+                value={state.stock}
+                placeholder="0"
+                onChange={(event) => update("stock", event.target.value)}
+                required
+              />
+            </FormField>
+          </Box>
 
-          <FormField
-            label="Product image"
-            required
-            hint={`JPG, PNG, WEBP, or GIF up to ${humanBytes(MAX_IMAGE_BYTES)}. Uploaded images are stored as base64 with the product.`}
-          >
-            <Row gap="sm" align="center" className="flex-wrap">
+          <Stack gap="sm">
+            <Row justify="between" align="center" wrap gap="sm">
+              <Stack gap="none">
+                <Heading level={3} variant="headline-sm" size="body-lg">
+                  Product images
+                </Heading>
+                <Text variant="body-sm" tone="muted">
+                  JPG, PNG, WEBP, or GIF up to {humanBytes(MAX_IMAGE_BYTES)}{" "}
+                  each. {state.images.length}/{MAX_IMAGES} uploaded.
+                </Text>
+              </Stack>
               <FileInput
                 accept={ACCEPTED_IMAGE_TYPES.join(",")}
-                disabled={saving || imageReading}
+                disabled={
+                  saving || imageReading || state.images.length >= MAX_IMAGES
+                }
                 onFileSelected={handleImageSelected}
               >
                 {imageReading
                   ? "Reading…"
-                  : state.imageUrl
-                    ? "Replace image"
-                    : "Choose image"}
+                  : state.images.length === 0
+                    ? "Choose first image"
+                    : "+ Add image"}
               </FileInput>
-              {state.imageUrl ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  caps={false}
-                  size="sm"
-                  disabled={saving || imageReading}
-                  onClick={() => update("imageUrl", "")}
-                >
-                  Remove
-                </Button>
-              ) : null}
             </Row>
-          </FormField>
 
-          {state.imageUrl ? (
-            <ProductThumb
-              src={state.imageUrl}
-              alt="Preview"
-              size="xl"
-              rounded="xl"
-            />
-          ) : null}
+            {state.images.length === 0 ? (
+              <Box className="rounded-xl border border-dashed border-outline-variant p-lg">
+                <Stack gap="xs" align="center" className="text-center">
+                  <Text variant="body-sm" tone="muted">
+                    No images yet. Upload at least one to publish this product.
+                  </Text>
+                </Stack>
+              </Box>
+            ) : (
+              <Box className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-sm">
+                {state.images.map((src, index) => (
+                  <Box
+                    key={`${src.slice(0, 32)}-${index}`}
+                    className="rounded-xl border border-outline-variant bg-surface-container-lowest p-sm"
+                  >
+                    <Stack gap="xs">
+                      <Box className="relative">
+                        <ProductThumb
+                          src={src}
+                          alt={`Product image ${index + 1}`}
+                          size="lg"
+                          rounded="lg"
+                        />
+                        {index === 0 ? (
+                          <Box className="absolute top-1 left-1 px-xs py-[2px] rounded-full bg-primary text-on-primary text-[10px] font-semibold tracking-[0.14em] uppercase">
+                            Cover
+                          </Box>
+                        ) : null}
+                      </Box>
+                      <Row gap="xs" justify="between" align="center">
+                        <Row gap="xs" align="center">
+                          <IconButton
+                            icon="arrow_back"
+                            label="Move left"
+                            size="sm"
+                            variant="plain"
+                            onClick={() => moveImage(index, -1)}
+                            disabled={saving || index === 0}
+                          />
+                          <IconButton
+                            icon="arrow_forward"
+                            label="Move right"
+                            size="sm"
+                            variant="plain"
+                            onClick={() => moveImage(index, 1)}
+                            disabled={
+                              saving || index === state.images.length - 1
+                            }
+                          />
+                        </Row>
+                        <IconButton
+                          icon="delete"
+                          label="Remove image"
+                          size="sm"
+                          variant="plain"
+                          onClick={() => removeImage(index)}
+                          disabled={saving}
+                        />
+                      </Row>
+                    </Stack>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Stack>
+
+          <Stack gap="sm">
+            <Row justify="between" align="center" wrap gap="sm">
+              <Stack gap="none">
+                <Heading level={3} variant="headline-sm" size="body-lg">
+                  Length & price variants
+                </Heading>
+                <Text variant="body-sm" tone="muted">
+                  Optional. Add a row for each length you sell this product in
+                  (e.g. 16&quot;, 18&quot;) with its price. Leave empty if the
+                  product comes in a single length only.
+                </Text>
+              </Stack>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                caps={false}
+                onClick={addLengthRow}
+                disabled={saving || state.lengthOptions.length >= 20}
+              >
+                + Add length
+              </Button>
+            </Row>
+
+            {state.lengthOptions.length === 0 ? (
+              <Box className="rounded-xl border border-dashed border-outline-variant p-md">
+                <Text variant="body-sm" tone="muted">
+                  No length variants. The base price above is used at checkout.
+                </Text>
+              </Box>
+            ) : (
+              <Stack gap="xs">
+                {state.lengthOptions.map((row) => (
+                  <Box
+                    key={row.uiKey}
+                    className="rounded-xl border border-outline-variant bg-surface-container-lowest p-sm"
+                  >
+                    <Box className="grid grid-cols-[1fr_1fr_auto] items-end gap-sm">
+                      <FormField label="Length">
+                        <TextField
+                          value={row.length}
+                          placeholder='18"'
+                          onChange={(event) =>
+                            updateLengthRow(
+                              row.uiKey,
+                              "length",
+                              event.target.value,
+                            )
+                          }
+                          disabled={saving}
+                        />
+                      </FormField>
+                      <FormField label="Price (USD)">
+                        <TextField
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={row.priceDollars}
+                          placeholder="125.00"
+                          onChange={(event) =>
+                            updateLengthRow(
+                              row.uiKey,
+                              "priceDollars",
+                              event.target.value,
+                            )
+                          }
+                          disabled={saving}
+                        />
+                      </FormField>
+                      <Box className="pb-xs">
+                        <IconButton
+                          icon="delete"
+                          label={`Remove length ${row.length || "row"}`}
+                          size="sm"
+                          variant="plain"
+                          onClick={() => removeLengthRow(row.uiKey)}
+                          disabled={saving}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+          </Stack>
 
           <Checkbox
             checked={state.featured}

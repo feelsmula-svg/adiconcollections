@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+  type FormEvent,
+} from "react";
+import { useRouter } from "next/navigation";
 
 import {
   Box,
@@ -18,10 +25,10 @@ import {
   TextField,
 } from "@/app/components/ui";
 import {
-  useAddressStore,
-  type Address,
-  type AddressInput,
-} from "@/app/lib/state/address-store";
+  createAddress,
+  updateAddress,
+} from "@/app/lib/addresses/actions";
+import type { AddressRecord } from "@/app/lib/addresses/types";
 import { ModalStepper, type ModalStep } from "./modal-stepper";
 
 const COUNTRY_OPTIONS = [
@@ -40,7 +47,20 @@ const STEPS: ModalStep[] = [
   { key: "defaults", label: "Make it default" },
 ];
 
-const EMPTY_DRAFT: AddressInput = {
+interface DraftAddress {
+  name: string;
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  postal: string;
+  country: string;
+  phone: string;
+  isDefaultShipping: boolean;
+  isDefaultBilling: boolean;
+}
+
+const EMPTY_DRAFT: DraftAddress = {
   name: "",
   line1: "",
   line2: "",
@@ -53,11 +73,27 @@ const EMPTY_DRAFT: AddressInput = {
   isDefaultBilling: false,
 };
 
+function fromRecord(record: AddressRecord): DraftAddress {
+  return {
+    name: record.name,
+    line1: record.line1,
+    line2: record.line2 ?? "",
+    city: record.city,
+    state: record.state,
+    postal: record.postal,
+    country: record.country,
+    phone: record.phone ?? "",
+    isDefaultShipping: record.isDefaultShipping,
+    isDefaultBilling: record.isDefaultBilling,
+  };
+}
+
 interface AddressFormModalProps {
   open: boolean;
   onClose: () => void;
   mode: "add" | "edit";
-  address?: Address;
+  address?: AddressRecord;
+  forceDefaultShipping?: boolean;
 }
 
 export function AddressFormModal({
@@ -65,29 +101,36 @@ export function AddressFormModal({
   onClose,
   mode,
   address,
+  forceDefaultShipping,
 }: AddressFormModalProps) {
-  const addAddress = useAddressStore((state) => state.add);
-  const updateAddress = useAddressStore((state) => state.update);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
 
-  const [draft, setDraft] = useState<AddressInput>(EMPTY_DRAFT);
+  const [draft, setDraft] = useState<DraftAddress>(EMPTY_DRAFT);
   const [step, setStep] = useState(0);
-  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<
+    Record<string, string[] | undefined>
+  >({});
 
   useEffect(() => {
     if (!open) return;
     setStep(0);
+    setErrorMessage(null);
+    setFieldErrors({});
     if (mode === "edit" && address) {
-      const { id: _id, ...rest } = address;
-      void _id;
-      setDraft({ ...EMPTY_DRAFT, ...rest });
+      setDraft(fromRecord(address));
     } else {
-      setDraft(EMPTY_DRAFT);
+      setDraft({
+        ...EMPTY_DRAFT,
+        isDefaultShipping: forceDefaultShipping ?? EMPTY_DRAFT.isDefaultShipping,
+      });
     }
-  }, [open, mode, address]);
+  }, [open, mode, address, forceDefaultShipping]);
 
-  const patch = <K extends keyof AddressInput>(
+  const patch = <K extends keyof DraftAddress>(
     key: K,
-    value: AddressInput[K],
+    value: DraftAddress[K],
   ) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
   };
@@ -124,17 +167,34 @@ export function AddressFormModal({
       handleNext();
       return;
     }
-    if (saving) return;
-    setSaving(true);
-    if (mode === "edit" && address) {
-      updateAddress(address.id, draft);
-    } else {
-      addAddress(draft);
-    }
-    setTimeout(() => {
-      setSaving(false);
+    if (pending) return;
+    setErrorMessage(null);
+    setFieldErrors({});
+    startTransition(async () => {
+      const payload = {
+        name: draft.name,
+        line1: draft.line1,
+        line2: draft.line2,
+        city: draft.city,
+        state: draft.state,
+        postal: draft.postal,
+        country: draft.country,
+        phone: draft.phone,
+        isDefaultShipping: draft.isDefaultShipping,
+        isDefaultBilling: draft.isDefaultBilling,
+      };
+      const result =
+        mode === "edit" && address
+          ? await updateAddress(address.id, payload)
+          : await createAddress(payload);
+      if (!result.ok) {
+        setErrorMessage(result.error ?? "Address could not be saved");
+        setFieldErrors(result.fieldErrors ?? {});
+        return;
+      }
+      router.refresh();
       onClose();
-    }, 250);
+    });
   };
 
   const title = mode === "add" ? "Add new address" : "Edit address";
@@ -143,7 +203,7 @@ export function AddressFormModal({
     : "Update the saved details for this address.";
 
   const submitLabel = isLast
-    ? saving
+    ? pending
       ? "Saving…"
       : mode === "add"
         ? "Save address"
@@ -178,28 +238,33 @@ export function AddressFormModal({
         <Box className="flex-1 overflow-y-auto px-lg pb-md">
           {step === 0 ? (
             <Stack gap="md">
-              <FormField label="Full name" required>
+              <FormField
+                label="Full name"
+                required
+                error={fieldErrors.name?.[0]}
+              >
                 <TextField
                   type="text"
                   autoComplete="name"
                   value={draft.name}
                   onChange={(event) => patch("name", event.target.value)}
                   placeholder="e.g. Grace Adeyemi"
-                  disabled={saving}
+                  disabled={pending}
                   required
                 />
               </FormField>
               <FormField
                 label="Phone number"
                 hint="Optional — used for delivery updates."
+                error={fieldErrors.phone?.[0]}
               >
                 <TextField
                   type="tel"
                   autoComplete="tel"
-                  value={draft.phone ?? ""}
+                  value={draft.phone}
                   onChange={(event) => patch("phone", event.target.value)}
                   placeholder="+1 (555) 012-3456"
-                  disabled={saving}
+                  disabled={pending}
                 />
               </FormField>
             </Stack>
@@ -207,14 +272,18 @@ export function AddressFormModal({
 
           {step === 1 ? (
             <Stack gap="md">
-              <FormField label="Address line 1" required>
+              <FormField
+                label="Address line 1"
+                required
+                error={fieldErrors.line1?.[0]}
+              >
                 <TextField
                   type="text"
                   autoComplete="address-line1"
                   value={draft.line1}
                   onChange={(event) => patch("line1", event.target.value)}
                   placeholder="Street and number"
-                  disabled={saving}
+                  disabled={pending}
                   required
                 />
               </FormField>
@@ -222,51 +291,67 @@ export function AddressFormModal({
                 <TextField
                   type="text"
                   autoComplete="address-line2"
-                  value={draft.line2 ?? ""}
+                  value={draft.line2}
                   onChange={(event) => patch("line2", event.target.value)}
                   placeholder="Apt, suite, building (optional)"
-                  disabled={saving}
+                  disabled={pending}
                 />
               </FormField>
               <Box className="grid grid-cols-1 md:grid-cols-2 gap-md">
-                <FormField label="City" required>
+                <FormField
+                  label="City"
+                  required
+                  error={fieldErrors.city?.[0]}
+                >
                   <TextField
                     type="text"
                     autoComplete="address-level2"
                     value={draft.city}
                     onChange={(event) => patch("city", event.target.value)}
-                    disabled={saving}
+                    disabled={pending}
                     required
                   />
                 </FormField>
-                <FormField label="State / Region" required>
+                <FormField
+                  label="State / Region"
+                  required
+                  error={fieldErrors.state?.[0]}
+                >
                   <TextField
                     type="text"
                     autoComplete="address-level1"
                     value={draft.state}
                     onChange={(event) => patch("state", event.target.value)}
-                    disabled={saving}
+                    disabled={pending}
                     required
                   />
                 </FormField>
               </Box>
               <Box className="grid grid-cols-1 md:grid-cols-2 gap-md">
-                <FormField label="Postal code" required>
+                <FormField
+                  label="Postal code"
+                  required
+                  error={fieldErrors.postal?.[0]}
+                >
                   <TextField
                     type="text"
                     autoComplete="postal-code"
                     value={draft.postal}
                     onChange={(event) => patch("postal", event.target.value)}
-                    disabled={saving}
+                    disabled={pending}
                     required
                   />
                 </FormField>
-                <FormField label="Country" required>
+                <FormField
+                  label="Country"
+                  required
+                  error={fieldErrors.country?.[0]}
+                >
                   <Select
                     options={COUNTRY_OPTIONS}
                     value={draft.country}
                     onChange={(event) => patch("country", event.target.value)}
-                    disabled={saving}
+                    disabled={pending}
                     required
                     className="w-full font-body-md text-body-md tracking-normal py-sm"
                   />
@@ -311,22 +396,27 @@ export function AddressFormModal({
               </Box>
               <Stack gap="sm">
                 <Checkbox
-                  checked={draft.isDefaultShipping ?? false}
+                  checked={draft.isDefaultShipping}
                   onChange={(checked) =>
                     patch("isDefaultShipping", checked)
                   }
-                  disabled={saving}
+                  disabled={pending}
                   label="Set as default shipping address"
                 />
                 <Checkbox
-                  checked={draft.isDefaultBilling ?? false}
+                  checked={draft.isDefaultBilling}
                   onChange={(checked) =>
                     patch("isDefaultBilling", checked)
                   }
-                  disabled={saving}
+                  disabled={pending}
                   label="Set as default billing address"
                 />
               </Stack>
+              {errorMessage ? (
+                <Text variant="body-sm" tone="error">
+                  {errorMessage}
+                </Text>
+              ) : null}
             </Stack>
           ) : null}
         </Box>
@@ -339,7 +429,7 @@ export function AddressFormModal({
               size="sm"
               caps={false}
               onClick={isFirst ? onClose : handleBack}
-              disabled={saving}
+              disabled={pending}
             >
               {isFirst ? (
                 "Cancel"
@@ -355,7 +445,7 @@ export function AddressFormModal({
               variant="primary"
               size="sm"
               caps={false}
-              disabled={saving || !stepValid}
+              disabled={pending || !stepValid}
             >
               {submitLabel}
               {!isLast ? (

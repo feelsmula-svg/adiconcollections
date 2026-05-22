@@ -10,29 +10,23 @@ import {
   Stack,
   Text,
 } from "@/app/components/ui";
-import { useProfileStore } from "@/app/lib/state/profile-store";
-import { useHydrated } from "@/app/lib/state/hydration";
 import { EditProfileModal } from "./edit-profile-modal";
 
 interface PersonalDetailsSectionProps {
   name: string;
   email: string;
+  phone?: string;
 }
-
-const PLACEHOLDER_PHONE = "+1 (555) 012-3456";
 
 export function PersonalDetailsSection({
   name,
   email,
+  phone,
 }: PersonalDetailsSectionProps) {
-  const hydrated = useHydrated();
-  const storedName = useProfileStore((state) => state.name);
-  const storedPhone = useProfileStore((state) => state.phone);
   const [editing, setEditing] = useState(false);
 
-  const displayName =
-    hydrated && storedName ? storedName : name || "Not added";
-  const phone = hydrated && storedPhone ? storedPhone : PLACEHOLDER_PHONE;
+  const displayName = name || "Not added";
+  const displayPhone = phone && phone.length > 0 ? phone : "Not added";
 
   return (
     <>
@@ -62,14 +56,15 @@ export function PersonalDetailsSection({
         <Box className="grid grid-cols-1 md:grid-cols-3 gap-lg">
           <DetailField label="Full name" value={displayName} />
           <DetailField label="Email address" value={email} />
-          <DetailField label="Phone number" value={phone} />
+          <DetailField label="Phone number" value={displayPhone} />
         </Box>
       </Stack>
       <EditProfileModal
         open={editing}
         onClose={() => setEditing(false)}
-        defaultName={displayName === "Not added" ? "" : displayName}
+        defaultName={name}
         defaultEmail={email}
+        defaultPhone={phone ?? ""}
       />
     </>
   );

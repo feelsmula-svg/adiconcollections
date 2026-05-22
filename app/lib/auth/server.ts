@@ -98,6 +98,8 @@ export function toPublicUser(user: UserRecord): PublicUser {
     name: user.name,
     role: user.role,
     createdAt: user.createdAt,
+    phone: user.phone,
+    adminStatus: user.role === "admin" ? user.adminStatus : undefined,
   };
 }
 
@@ -109,7 +111,11 @@ export async function getSessionUser(): Promise<PublicUser | null> {
     const payload = await verifySession(token);
     const repo = await getUserRepository();
     const user = await repo.findById(payload.sub);
-    return user ? toPublicUser(user) : null;
+    if (!user) return null;
+    // Pending admins must be approved before any authenticated route is
+    // available to them — treat their session as absent everywhere.
+    if (user.role === "admin" && user.adminStatus === "pending") return null;
+    return toPublicUser(user);
   } catch {
     return null;
   }
@@ -125,6 +131,9 @@ export class AdminAccessError extends Error {
 export async function requireAdmin(): Promise<PublicUser> {
   const user = await getSessionUser();
   if (!user || user.role !== "admin") {
+    throw new AdminAccessError();
+  }
+  if (user.adminStatus === "pending") {
     throw new AdminAccessError();
   }
   return user;

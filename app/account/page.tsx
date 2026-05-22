@@ -16,12 +16,16 @@ import {
   Stack,
   Text,
 } from "@/app/components/ui";
+import { UserNotificationsPanel } from "@/app/components/account/user-notifications-panel";
+import { listAddresses } from "@/app/lib/addresses/actions";
 import { getSessionUser } from "@/app/lib/auth/server";
 import {
   formatOrderDate,
   getActiveShipment,
   type OrderStatus,
 } from "@/app/lib/account/orders";
+import { getRewardsSummary } from "@/app/lib/account/rewards";
+import { listUserNotifications } from "@/app/lib/notifications/user-actions";
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   processing: "Processing",
@@ -50,7 +54,14 @@ export default async function AccountDashboardPage() {
   const user = await getSessionUser();
   if (!user) return null;
 
-  const shipment = await getActiveShipment();
+  const [shipment, addresses, rewards, userNotifications] = await Promise.all([
+    getActiveShipment(),
+    listAddresses(),
+    getRewardsSummary(),
+    listUserNotifications(5),
+  ]);
+  const defaultShipping =
+    addresses.find((addr) => addr.isDefaultShipping) ?? null;
   const firstName = (user.name || user.email).split(/\s+/)[0];
 
   return (
@@ -80,178 +91,212 @@ export default async function AccountDashboardPage() {
         </Box>
       </Stack>
 
-      <Box className="grid grid-cols-1 md:grid-cols-5 gap-md">
+      <Box
+        className={`grid grid-cols-1 gap-md ${
+          rewards.visibleToUser ? "md:grid-cols-5" : "md:grid-cols-1"
+        }`}
+      >
         <Card
           variant="outlined"
           padding="none"
           rounded="2xl"
-          className="md:col-span-3 overflow-hidden relative"
+          className={`${rewards.visibleToUser ? "md:col-span-3" : ""} overflow-hidden relative`}
         >
           <Box className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-secondary to-tertiary" />
-          <Stack gap="none">
-            <Row
-              gap="md"
-              align="center"
-              justify="between"
-              className="px-lg pt-lg pb-md"
-            >
-              <Row gap="sm" align="center">
-                <Text
-                  variant="label-caps"
-                  tone="muted"
-                  as="span"
-                  className="tracking-[0.18em]"
-                >
-                  Active Order
+          {shipment ? (
+            <Stack gap="none">
+              <Row
+                gap="md"
+                align="center"
+                justify="between"
+                className="px-lg pt-lg pb-md"
+              >
+                <Row gap="sm" align="center">
+                  <Text
+                    variant="label-caps"
+                    tone="muted"
+                    as="span"
+                    className="tracking-[0.18em]"
+                  >
+                    Active Order
+                  </Text>
+                  <Badge tone="secondary" size="sm">
+                    {STATUS_LABEL[shipment.status]}
+                  </Badge>
+                </Row>
+                <Text variant="body-sm" tone="muted" as="span">
+                  {shipment.reference}
                 </Text>
-                <Badge tone="secondary" size="sm">
-                  {STATUS_LABEL[shipment?.status ?? "in-transit"]}
-                </Badge>
               </Row>
-              <Text variant="body-sm" tone="muted" as="span">
-                {shipment?.reference ?? "—"}
-              </Text>
-            </Row>
-            <Row gap="md" align="center" className="px-lg">
-              <Box className="relative w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden bg-surface-container-high shrink-0">
-                <Image
-                  src="/products/super-double-drawn-28-burgundy-a.jpeg"
-                  alt="Silk Infusion Set"
-                  fill
-                  sizes="96px"
-                  className="object-cover"
+              <Row gap="md" align="center" className="px-lg">
+                {shipment.imageUrl ? (
+                  <Box className="relative w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden bg-surface-container-high shrink-0">
+                    <Image
+                      src={shipment.imageUrl}
+                      alt={shipment.productName}
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                    />
+                  </Box>
+                ) : (
+                  <Box className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-surface-container-high flex items-center justify-center shrink-0">
+                    <Icon
+                      name="inventory_2"
+                      className="text-on-surface-variant text-2xl"
+                    />
+                  </Box>
+                )}
+                <Stack gap="xs" className="flex-1 min-w-0">
+                  <Heading
+                    level={2}
+                    variant="headline-sm"
+                    size="body-lg"
+                    className="md:text-headline-sm"
+                  >
+                    {shipment.productName}
+                  </Heading>
+                  <Text variant="body-sm" tone="muted">
+                    {shipment.expectedDelivery ? (
+                      <>
+                        Expected{" "}
+                        <Text
+                          as="span"
+                          variant="body-sm"
+                          className="font-semibold"
+                        >
+                          {formatOrderDate(shipment.expectedDelivery)}
+                        </Text>
+                      </>
+                    ) : (
+                      "Awaiting delivery estimate"
+                    )}
+                  </Text>
+                </Stack>
+              </Row>
+              <Box className="px-lg pt-lg">
+                <ProgressTimeline status={shipment.status} />
+              </Box>
+              <Row gap="sm" wrap className="px-lg py-lg">
+                <LinkButton
+                  href={`/account/orders/${shipment.id}`}
+                  variant="primary"
+                  size="sm"
+                  caps={false}
+                  className="rounded-full"
+                >
+                  Track
+                </LinkButton>
+                <LinkButton
+                  href={`/account/orders/${shipment.id}`}
+                  variant="ghost"
+                  size="sm"
+                  caps={false}
+                  className="rounded-full"
+                >
+                  View order →
+                </LinkButton>
+              </Row>
+            </Stack>
+          ) : (
+            <Stack gap="md" className="px-lg py-2xl" align="center">
+              <Box className="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center">
+                <Icon
+                  name="local_shipping"
+                  className="text-on-surface-variant text-2xl"
                 />
               </Box>
-              <Stack gap="xs" className="flex-1 min-w-0">
-                <Heading
-                  level={2}
-                  variant="headline-sm"
-                  size="body-lg"
-                  className="md:text-headline-sm"
-                >
-                  {shipment?.productName ?? "No active shipment"}
+              <Stack gap="xs" align="center" className="text-center">
+                <Heading level={2} variant="headline-sm" size="body-lg">
+                  No active shipments
                 </Heading>
-                <Text variant="body-sm" tone="muted">
-                  Expected{" "}
-                  <Text as="span" variant="body-sm" className="font-semibold">
-                    {shipment?.expectedDelivery
-                      ? formatOrderDate(shipment.expectedDelivery)
-                      : "soon"}
-                  </Text>{" "}
-                  · Distribution centre
-                </Text>
+                <Box className="max-w-[320px]">
+                  <Text variant="body-sm" tone="muted">
+                    When you place an order it will appear here so you can
+                    track it end to end.
+                  </Text>
+                </Box>
               </Stack>
-            </Row>
-            <Box className="px-lg pt-lg">
-              <ProgressTimeline status={shipment?.status ?? "in-transit"} />
-            </Box>
-            <Row gap="sm" wrap className="px-lg py-lg">
               <LinkButton
-                href={
-                  shipment
-                    ? `/account/orders/${shipment.id}`
-                    : "/account/orders"
-                }
+                href="/shop"
                 variant="primary"
                 size="sm"
                 caps={false}
                 className="rounded-full"
               >
-                Track
+                Browse the collection
               </LinkButton>
-              <LinkButton
-                href={
-                  shipment
-                    ? `/account/orders/${shipment.id}`
-                    : "/account/orders"
-                }
-                variant="ghost"
-                size="sm"
-                caps={false}
-                className="rounded-full"
-              >
-                View order →
-              </LinkButton>
-            </Row>
-          </Stack>
+            </Stack>
+          )}
         </Card>
 
-        <Box className="md:col-span-2 rounded-2xl bg-primary text-on-primary p-lg flex flex-col justify-between gap-md">
-          <Stack gap="sm">
-            <Row justify="between" align="center">
-              <Box className="w-9 h-9 rounded-full bg-on-primary/15 flex items-center justify-center">
-                <Icon name="redeem" filled className="text-on-primary text-lg" />
-              </Box>
-              <Text
-                variant="label-caps"
-                tone="on-primary"
-                as="span"
-                className="opacity-70 tracking-[0.18em]"
-              >
-                Rewards
-              </Text>
-            </Row>
-            <Stack gap="none">
-              <Heading
-                level={3}
-                variant="display-lg"
-                tone="on-primary"
-                size="headline-md"
-                className="md:text-headline-md lg:text-display-lg leading-none"
-              >
-                450
-              </Heading>
-              <Text
-                variant="body-sm"
-                tone="on-primary"
-                as="span"
-                className="opacity-80"
-              >
-                points to redeem
-              </Text>
+        {rewards.visibleToUser ? (
+          <Box className="md:col-span-2 rounded-2xl bg-primary text-on-primary p-lg flex flex-col justify-between gap-md">
+            <Stack gap="sm">
+              <Row justify="between" align="center">
+                <Box className="w-9 h-9 rounded-full bg-on-primary/15 flex items-center justify-center">
+                  <Icon
+                    name="redeem"
+                    filled
+                    className="text-on-primary text-lg"
+                  />
+                </Box>
+                <Text
+                  variant="label-caps"
+                  tone="on-primary"
+                  as="span"
+                  className="opacity-70 tracking-[0.18em]"
+                >
+                  Rewards
+                </Text>
+              </Row>
+              <Stack gap="none">
+                <Heading
+                  level={3}
+                  variant="display-lg"
+                  tone="on-primary"
+                  size="headline-md"
+                  className="md:text-headline-md lg:text-display-lg leading-none"
+                >
+                  {rewards.balance.toLocaleString()}
+                </Heading>
+                <Text
+                  variant="body-sm"
+                  tone="on-primary"
+                  as="span"
+                  className="opacity-80"
+                >
+                  {rewards.balance === 1
+                    ? "point to redeem"
+                    : "points to redeem"}
+                </Text>
+              </Stack>
             </Stack>
-          </Stack>
-          <RedeemButton
-            variant="inverse"
-            fullWidth
-            className="rounded-full"
-          />
-        </Box>
-      </Box>
-
-      <Box className="grid grid-cols-1 md:grid-cols-2 gap-md">
-        <DefaultShippingCard fallbackName={user.name} />
-        <PaymentMethodCard />
-      </Box>
-
-      <Box className="rounded-2xl bg-surface-container p-lg md:p-xl">
-        <Row gap="md" align="start" wrap>
-          <Box className="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
-            <Icon
-              name="tips_and_updates"
-              filled
-              className="text-on-secondary-container text-xl"
+            <RedeemButton
+              balance={rewards.balance}
+              tiers={rewards.settings.tiers}
+              pointsPerDollar={rewards.settings.pointsPerDollar}
+              variant="inverse"
+              fullWidth
+              className="rounded-full"
             />
           </Box>
-          <Stack gap="xs" className="flex-1 min-w-[220px]">
-            <Text
-              variant="label-caps"
-              tone="muted"
-              as="span"
-              className="tracking-[0.18em]"
-            >
-              Stylist&apos;s tip
-            </Text>
-            <Text variant="body-md" className="text-on-surface">
-              &ldquo;Preserving the integrity of your hair starts with
-              moisture-rich foundations. Our Silk Infusion serum locks in
-              hydration for up to 48 hours.&rdquo;
-            </Text>
-            <Text variant="body-sm" tone="muted">
-              — Anaya, AdiCon Senior Stylist
-            </Text>
-          </Stack>
-        </Row>
+        ) : null}
+      </Box>
+
+      {userNotifications.length > 0 ? (
+        <UserNotificationsPanel
+          notifications={userNotifications}
+          selfUserId={user.id}
+        />
+      ) : null}
+
+      <Box className="grid grid-cols-1 md:grid-cols-2 gap-md">
+        <DefaultShippingCard
+          fallbackName={user.name}
+          address={defaultShipping}
+        />
+        <PaymentMethodCard />
       </Box>
     </AccountShell>
   );

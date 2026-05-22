@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   Badge,
@@ -13,15 +14,13 @@ import {
   Stack,
   Text,
 } from "@/app/components/ui";
-import {
-  useAddressStore,
-  type Address,
-} from "@/app/lib/state/address-store";
+import { deleteAddress } from "@/app/lib/addresses/actions";
+import type { AddressRecord } from "@/app/lib/addresses/types";
 
 interface DeleteAddressModalProps {
   open: boolean;
   onClose: () => void;
-  address: Address | null;
+  address: AddressRecord | null;
 }
 
 export function DeleteAddressModal({
@@ -29,17 +28,22 @@ export function DeleteAddressModal({
   onClose,
   address,
 }: DeleteAddressModalProps) {
-  const removeAddress = useAddressStore((state) => state.remove);
-  const [removing, setRemoving] = useState(false);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleRemove = () => {
-    if (!address || removing) return;
-    setRemoving(true);
-    removeAddress(address.id);
-    setTimeout(() => {
-      setRemoving(false);
+    if (!address || pending) return;
+    setErrorMessage(null);
+    startTransition(async () => {
+      const result = await deleteAddress(address.id);
+      if (!result.ok) {
+        setErrorMessage(result.error ?? "Could not remove address");
+        return;
+      }
+      router.refresh();
       onClose();
-    }, 200);
+    });
   };
 
   const label = address?.isDefaultShipping
@@ -91,6 +95,12 @@ export function DeleteAddressModal({
           </Box>
         ) : null}
 
+        {errorMessage ? (
+          <Text variant="body-sm" tone="error">
+            {errorMessage}
+          </Text>
+        ) : null}
+
         <Row gap="sm" justify="end">
           <Button
             type="button"
@@ -98,7 +108,7 @@ export function DeleteAddressModal({
             size="sm"
             caps={false}
             onClick={onClose}
-            disabled={removing}
+            disabled={pending}
           >
             Cancel
           </Button>
@@ -108,9 +118,9 @@ export function DeleteAddressModal({
             size="sm"
             caps={false}
             onClick={handleRemove}
-            disabled={removing}
+            disabled={pending}
           >
-            {removing ? "Removing…" : "Remove address"}
+            {pending ? "Removing…" : "Remove address"}
           </Button>
         </Row>
       </Stack>

@@ -12,27 +12,24 @@ import {
   Stack,
   Text,
 } from "@/app/components/ui";
-import { useAddressStore } from "@/app/lib/state/address-store";
-import { useHydrated } from "@/app/lib/state/hydration";
+import type { AddressRecord } from "@/app/lib/addresses/types";
 import { AddressFormModal } from "./address-form-modal";
 
 interface DefaultShippingCardProps {
   fallbackName: string;
+  address: AddressRecord | null;
 }
 
-export function DefaultShippingCard({ fallbackName }: DefaultShippingCardProps) {
-  const hydrated = useHydrated();
-  const addresses = useAddressStore((state) => state.addresses);
+export function DefaultShippingCard({
+  fallbackName,
+  address,
+}: DefaultShippingCardProps) {
   const [editing, setEditing] = useState(false);
 
-  const defaultShipping = hydrated
-    ? addresses.find((entry) => entry.isDefaultShipping) ?? null
-    : null;
-
-  const name = defaultShipping?.name || fallbackName || "Add a name";
-  const line = defaultShipping
-    ? `${defaultShipping.line1}${defaultShipping.line2 ? `, ${defaultShipping.line2}` : ""} · ${defaultShipping.city}, ${defaultShipping.state} ${defaultShipping.postal}`
-    : "1248 Editorial Way, Suite 400 · New York, NY 10012";
+  const name = address?.name || fallbackName || "Add a name";
+  const line = address
+    ? `${address.line1}${address.line2 ? `, ${address.line2}` : ""} · ${address.city}, ${address.state} ${address.postal}`
+    : "No default shipping address yet";
 
   return (
     <>
@@ -67,7 +64,7 @@ export function DefaultShippingCard({ fallbackName }: DefaultShippingCardProps) 
               caps={false}
               onClick={() => setEditing(true)}
             >
-              Edit
+              {address ? "Edit" : "Add"}
             </Button>
           </Row>
           <Stack gap="xs" className="pl-[52px]">
@@ -84,8 +81,9 @@ export function DefaultShippingCard({ fallbackName }: DefaultShippingCardProps) 
       <AddressFormModal
         open={editing}
         onClose={() => setEditing(false)}
-        mode={defaultShipping ? "edit" : "add"}
-        address={defaultShipping ?? undefined}
+        mode={address ? "edit" : "add"}
+        address={address ?? undefined}
+        forceDefaultShipping={!address}
       />
     </>
   );

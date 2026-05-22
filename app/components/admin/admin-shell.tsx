@@ -22,6 +22,9 @@ export type AdminNavKey =
   | "products"
   | "inventory"
   | "customers"
+  | "messages"
+  | "campaigns"
+  | "promo-codes"
   | "marketing"
   | "taxonomy"
   | "settings";
@@ -58,6 +61,24 @@ const NAV_ENTRIES: NavEntry[] = [
     href: "/admin/customers",
     label: "Customers",
     icon: "group",
+  },
+  {
+    key: "messages",
+    href: "/admin/messages",
+    label: "Messages",
+    icon: "forum",
+  },
+  {
+    key: "campaigns",
+    href: "/admin/campaigns",
+    label: "Campaigns",
+    icon: "campaign",
+  },
+  {
+    key: "promo-codes",
+    href: "/admin/promo-codes",
+    label: "Promo codes",
+    icon: "confirmation_number",
   },
   {
     key: "marketing",
@@ -155,6 +176,7 @@ export function AdminShell({
           title={title}
           subtitle={subtitle}
           onMenuClick={() => setDrawerOpen(true)}
+          selfUserId={user.id}
         />
         <Box className="flex-grow px-md py-md sm:px-lg sm:py-lg md:px-xl md:py-xl lg:px-2xl">
           <Stack gap="lg" className="md:gap-xl">

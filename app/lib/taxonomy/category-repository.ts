@@ -41,12 +41,18 @@ let repoPromise: Promise<CategoryRepository> | null = null;
 export async function getCategoryRepository(): Promise<CategoryRepository> {
   if (!repoPromise) {
     repoPromise = (async () => {
+      if (process.env.MONGO_DB_URL) {
+        const { MongoCategoryRepository } = await import(
+          "./repositories/mongo-category-repository"
+        );
+        return new MongoCategoryRepository();
+      }
       const { JsonCategoryRepository } = await import(
         "./repositories/json-category-repository"
       );
       if (process.env.NODE_ENV === "production") {
         console.warn(
-          "[taxonomy] JsonCategoryRepository is DEV-ONLY. It is not safe across serverless invocations or multiple workers.",
+          "[taxonomy] JsonCategoryRepository is DEV-ONLY. Set MONGO_DB_URL to use the Mongo-backed repository.",
         );
       }
       return new JsonCategoryRepository();

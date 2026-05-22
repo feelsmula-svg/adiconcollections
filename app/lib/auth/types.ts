@@ -1,11 +1,15 @@
 export type UserRole = "customer" | "admin";
 
+export type AdminStatus = "pending" | "approved";
+
 export interface PublicUser {
   id: string;
   email: string;
   name: string;
   role: UserRole;
   createdAt: string;
+  phone?: string;
+  adminStatus?: AdminStatus;
 }
 
 export interface UserRecord extends PublicUser {

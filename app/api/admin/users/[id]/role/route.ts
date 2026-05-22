@@ -74,6 +74,20 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const repo = await getUserRepository();
+
+  if (parsed.data.role !== "admin") {
+    const primary = await repo.findPrimaryAdmin();
+    if (primary && primary.id === id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "The primary admin cannot be demoted.",
+        },
+        { status: 400 },
+      );
+    }
+  }
+
   const updated = await repo.updateRole(id, parsed.data.role);
   if (!updated) {
     return NextResponse.json(

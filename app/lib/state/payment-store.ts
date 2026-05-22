@@ -21,17 +21,6 @@ interface PaymentState {
   remove: (id: string) => void;
 }
 
-const SEED: SavedCard[] = [
-  {
-    id: "seed-visa",
-    brand: "Visa",
-    last4: "4429",
-    expiry: "08/26",
-    holder: "John Joe",
-    isPrimary: true,
-  },
-];
-
 function newId(): string {
   return `card_${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -45,7 +34,7 @@ function ensurePrimary(cards: SavedCard[]): SavedCard[] {
 export const usePaymentStore = create<PaymentState>()(
   persist(
     (set) => ({
-      cards: SEED,
+      cards: [],
       addCard: (input) => {
         const id = newId();
         set((state) => {

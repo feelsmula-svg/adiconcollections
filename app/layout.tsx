@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Serif } from "next/font/google";
+import { CampaignModal } from "@/app/components/campaign-modal";
 import { CartShell } from "@/app/components/cart/cart-shell";
+import { getSessionUser } from "@/app/lib/auth/server";
+import { getModalCampaigns } from "@/app/lib/campaigns/server";
+import { getWishlistIds } from "@/app/lib/wishlist/actions";
+import { WishlistProvider } from "@/app/lib/wishlist/wishlist-context";
 import "./globals.css";
 
 const inter = Inter({
@@ -24,11 +29,16 @@ export const metadata: Metadata = {
     "100% virgin raw hair bundles, closures and styling. 30-day returns and free US shipping on orders over $150.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const [user, modalCampaigns] = await Promise.all([
+    getSessionUser(),
+    getModalCampaigns().catch(() => []),
+  ]);
+  const wishlistIds = user ? await getWishlistIds() : [];
   return (
     <html
       lang="en"
@@ -41,7 +51,13 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-background text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
-        <CartShell>{children}</CartShell>
+        <WishlistProvider
+          initialIds={wishlistIds}
+          isAuthenticated={Boolean(user)}
+        >
+          <CartShell>{children}</CartShell>
+          <CampaignModal campaigns={modalCampaigns} />
+        </WishlistProvider>
       </body>
     </html>
   );

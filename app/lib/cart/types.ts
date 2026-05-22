@@ -17,6 +17,8 @@ export interface CartProduct {
   priceCents: number;
   imageSrc: string;
   imageAlt: string;
+  /** Optional full gallery; first entry equals `imageSrc`. */
+  images?: string[];
   badge?: ProductBadge;
   lengthOptions?: ProductLengthOption[];
 }

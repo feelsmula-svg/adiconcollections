@@ -67,6 +67,10 @@ export async function PATCH(request: Request, context: RouteContext) {
   const updated = await repo.update(id, {
     ...parsed.data,
     category: parsed.data.category as ProductCategory | undefined,
+    // Derive primary imageUrl from the first uploaded image if a new gallery
+    // was provided. Leave existing imageUrl untouched otherwise.
+    imageUrl: parsed.data.images?.[0],
+    images: parsed.data.images,
   });
 
   if (!updated) {

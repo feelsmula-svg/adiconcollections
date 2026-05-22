@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+
 import { useCartStore } from "@/app/lib/state/cart-store";
 import { useCheckoutStore } from "@/app/lib/state/checkout-store";
-import { getStripeClient } from "@/app/lib/stripe/client";
+import { confirmCheckoutByPaymentIntent } from "@/app/lib/checkout/actions";
 import {
   Box,
   Button,
@@ -22,6 +23,7 @@ type Status = "loading" | "succeeded" | "processing" | "failed";
 interface Result {
   status: Status;
   message: string;
+  orderId?: string;
 }
 
 export function CheckoutSuccessContent() {
@@ -31,12 +33,14 @@ export function CheckoutSuccessContent() {
   const resetCheckout = useCheckoutStore((state) => state.reset);
   const [result, setResult] = useState<Result>({
     status: "loading",
-    message: "Confirming your payment with Stripe…",
+    message: "Confirming your order…",
   });
+  const ranRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const clientSecret = params.get("payment_intent_client_secret");
-    if (!clientSecret) {
+    const paymentIntentId =
+      params.get("payment_intent") ?? readIntentFromClientSecret(params);
+    if (!paymentIntentId) {
       setResult({
         status: "failed",
         message:
@@ -45,55 +49,49 @@ export function CheckoutSuccessContent() {
       return;
     }
 
+    if (ranRef.current === paymentIntentId) return;
+    ranRef.current = paymentIntentId;
+
     let cancelled = false;
     (async () => {
-      try {
-        const stripe = await getStripeClient();
-        if (!stripe) throw new Error("Stripe failed to initialise.");
-        const { paymentIntent, error } =
-          await stripe.retrievePaymentIntent(clientSecret);
-        if (cancelled) return;
-        if (error || !paymentIntent) {
-          setResult({
-            status: "failed",
-            message: error?.message ?? "Payment could not be retrieved.",
-          });
-          return;
-        }
-        switch (paymentIntent.status) {
-          case "succeeded":
-            clear();
-            resetCheckout();
-            setResult({
-              status: "succeeded",
-              message: "Payment received. We're prepping your order now.",
-            });
-            return;
-          case "processing":
-            setResult({
-              status: "processing",
-              message:
-                "Your payment is processing. We'll email you once it clears.",
-            });
-            return;
-          case "requires_payment_method":
-            setResult({
-              status: "failed",
-              message: "Payment was not successful. Please try a different method.",
-            });
-            return;
-          default:
-            setResult({
-              status: "failed",
-              message: `Unexpected status: ${paymentIntent.status}.`,
-            });
-        }
-      } catch (err: unknown) {
-        if (cancelled) return;
-        const message =
-          err instanceof Error ? err.message : "Failed to verify payment.";
-        setResult({ status: "failed", message });
+      const outcome = await confirmCheckoutByPaymentIntent(paymentIntentId);
+      if (cancelled) return;
+
+      if (!outcome.ok) {
+        setResult({
+          status: outcome.status === "processing" ? "processing" : "failed",
+          message:
+            outcome.error ?? "We couldn't confirm your order. Please contact support.",
+        });
+        return;
       }
+
+      if (outcome.status === "processing") {
+        setResult({
+          status: "processing",
+          message:
+            "Your payment is processing. We'll email you once it clears.",
+          orderId: outcome.order?.id,
+        });
+        return;
+      }
+
+      if (outcome.status === "failed") {
+        setResult({
+          status: "failed",
+          message: "Payment was not successful. Please try a different method.",
+          orderId: outcome.order?.id,
+        });
+        return;
+      }
+
+      clear();
+      resetCheckout();
+      setResult({
+        status: "succeeded",
+        message: "Payment received. We're prepping your order now.",
+        orderId: outcome.order?.id,
+      });
     })();
 
     return () => {
@@ -137,17 +135,51 @@ export function CheckoutSuccessContent() {
                   {result.message}
                 </Text>
               </Stack>
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => router.push("/")}
-              >
-                Back to shop
-              </Button>
+              <Stack gap="sm" align="center" className="w-full">
+                {result.orderId ? (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={() =>
+                      router.push(`/account/orders/${result.orderId}`)
+                    }
+                  >
+                    View order
+                  </Button>
+                ) : null}
+                {result.status === "succeeded" ? (
+                  <Button
+                    variant="ghost"
+                    size="md"
+                    caps={false}
+                    onClick={() => router.push("/account/orders")}
+                  >
+                    All my orders
+                  </Button>
+                ) : null}
+                <Button
+                  variant={result.status === "succeeded" ? "outline" : "primary"}
+                  size="md"
+                  onClick={() => router.push("/")}
+                >
+                  Back to shop
+                </Button>
+              </Stack>
             </Stack>
           </Card>
         </Box>
       </Container>
     </Section>
   );
+}
+
+interface ParamsLike {
+  get(key: string): string | null;
+}
+
+function readIntentFromClientSecret(params: ParamsLike): string | null {
+  const cs = params.get("payment_intent_client_secret");
+  if (!cs) return null;
+  const match = cs.match(/^(pi_[A-Za-z0-9]+)_secret_/);
+  return match ? match[1] : null;
 }

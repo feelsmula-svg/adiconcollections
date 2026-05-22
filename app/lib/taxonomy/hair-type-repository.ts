@@ -38,12 +38,18 @@ let repoPromise: Promise<HairTypeRepository> | null = null;
 export async function getHairTypeRepository(): Promise<HairTypeRepository> {
   if (!repoPromise) {
     repoPromise = (async () => {
+      if (process.env.MONGO_DB_URL) {
+        const { MongoHairTypeRepository } = await import(
+          "./repositories/mongo-hair-type-repository"
+        );
+        return new MongoHairTypeRepository();
+      }
       const { JsonHairTypeRepository } = await import(
         "./repositories/json-hair-type-repository"
       );
       if (process.env.NODE_ENV === "production") {
         console.warn(
-          "[taxonomy] JsonHairTypeRepository is DEV-ONLY. It is not safe across serverless invocations or multiple workers.",
+          "[taxonomy] JsonHairTypeRepository is DEV-ONLY. Set MONGO_DB_URL to use the Mongo-backed repository.",
         );
       }
       return new JsonHairTypeRepository();

@@ -132,6 +132,18 @@ export interface OrderSummary {
   imageUrl?: string;
 }
 
+export type OrderDeliveryMethod = "same-day" | "standard";
+
+export const DELIVERY_METHOD_LABEL: Record<OrderDeliveryMethod, string> = {
+  "same-day": "Express Next-Day",
+  standard: "Standard",
+};
+
+export const DELIVERY_METHOD_DAYS: Record<OrderDeliveryMethod, number> = {
+  "same-day": 1,
+  standard: 2,
+};
+
 export interface OrderRecord extends OrderSummary {
   userId: string;
   customerName: string;
@@ -147,6 +159,8 @@ export interface OrderRecord extends OrderSummary {
   adminNotes?: string;
   cancellationReason?: string;
   activity?: OrderActivityEntry[];
+  paymentIntentId?: string;
+  deliveryMethod?: OrderDeliveryMethod;
 }
 
 export type OrderDetail = OrderRecord;

@@ -16,15 +16,61 @@ import {
   Text,
 } from "@/app/components/ui";
 
+interface CartPayloadItem {
+  id: string;
+  name: string;
+  attributes: string;
+  collection: string;
+  imageUrl: string;
+  quantity: number;
+  price: number;
+}
+
+interface CartPayloadAddress {
+  name: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postal: string;
+  country: string;
+}
+
+interface CartPayloadTotals {
+  subtotal: number;
+  shipping: number;
+  tax: number;
+  total: number;
+}
+
+export interface CheckoutCartPayload {
+  customerName: string;
+  customerEmail: string;
+  items: CartPayloadItem[];
+  shippingAddress: CartPayloadAddress;
+  totals: CartPayloadTotals;
+  deliveryMethod: "same-day" | "standard";
+  promoCode?: string;
+}
+
 interface StripePaymentProps {
   amountCents: number;
   disabled?: boolean;
+  getCartPayload: () => CheckoutCartPayload;
 }
 
-export function StripePayment({ amountCents, disabled }: StripePaymentProps) {
+export function StripePayment({
+  amountCents,
+  disabled,
+  getCartPayload,
+}: StripePaymentProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [intentError, setIntentError] = useState<string | null>(null);
   const intentIdRef = useRef<string | null>(null);
+  const getCartPayloadRef = useRef(getCartPayload);
+  useEffect(() => {
+    getCartPayloadRef.current = getCartPayload;
+  }, [getCartPayload]);
 
   useEffect(() => {
     if (disabled) return;
@@ -37,12 +83,14 @@ export function StripePayment({ amountCents, disabled }: StripePaymentProps) {
 
     (async () => {
       try {
+        const cart = getCartPayloadRef.current();
         const response = await fetch("/api/stripe/payment-intent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             amountCents,
             paymentIntentId: intentIdRef.current ?? undefined,
+            cart,
           }),
         });
         if (cancelled) return;

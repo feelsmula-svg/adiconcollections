@@ -36,6 +36,7 @@ import {
   TextField,
   cn,
 } from "@/app/components/ui";
+import { CartPromoCode } from "@/app/components/cart/cart-promo-code";
 import { StripePayment } from "./stripe-payment";
 
 export function CheckoutContent() {
@@ -56,9 +57,58 @@ function CheckoutShell() {
   const taxCents = useCartTaxCents();
   const delivery = useCheckoutStore((state) => state.delivery);
   const isValid = useIsCheckoutValid();
+  const appliedPromo = useCartStore((state) => state.appliedPromo);
 
   const shippingCents = DELIVERY_COST_CENTS[delivery];
-  const totalCents = subtotalCents + taxCents + shippingCents;
+  const promoDiscount = computePromoDiscount(
+    appliedPromo,
+    subtotalCents,
+    shippingCents,
+  );
+  const discountedSubtotal = Math.max(
+    0,
+    subtotalCents - promoDiscount.subtotal,
+  );
+  const discountedShipping = Math.max(
+    0,
+    shippingCents - promoDiscount.shipping,
+  );
+  const totalCents = discountedSubtotal + taxCents + discountedShipping;
+
+  const getCartPayload = () => {
+    const cartState = useCartStore.getState();
+    const checkoutState = useCheckoutStore.getState();
+    return {
+      customerName:
+        `${checkoutState.firstName} ${checkoutState.lastName}`.trim(),
+      customerEmail: checkoutState.email,
+      items: cartState.lines.map((line) => ({
+        id: line.product.id,
+        name: line.product.name,
+        attributes: line.product.description ?? "",
+        collection: "",
+        imageUrl: line.product.imageSrc,
+        quantity: line.quantity,
+        price: line.product.priceCents,
+      })),
+      shippingAddress: {
+        name: `${checkoutState.firstName} ${checkoutState.lastName}`.trim(),
+        line1: checkoutState.address,
+        city: checkoutState.city,
+        state: checkoutState.stateRegion,
+        postal: checkoutState.zip,
+        country: "United States",
+      },
+      totals: {
+        subtotal: subtotalCents,
+        shipping: shippingCents,
+        tax: taxCents,
+        total: totalCents,
+      },
+      deliveryMethod: checkoutState.delivery,
+      promoCode: cartState.appliedPromo?.code,
+    };
+  };
 
   return (
     <Container width="default">
@@ -69,7 +119,11 @@ function CheckoutShell() {
               <CheckoutProgress current={1} />
               <ShippingSection />
               <DeliverySection />
-              <StripePayment amountCents={totalCents} disabled={!isValid} />
+              <StripePayment
+                amountCents={totalCents}
+                disabled={!isValid}
+                getCartPayload={getCartPayload}
+              />
               <TrustBadges />
             </Stack>
           </Box>
@@ -80,12 +134,43 @@ function CheckoutShell() {
               taxCents={taxCents}
               shippingCents={shippingCents}
               totalCents={totalCents}
+              promoDiscount={promoDiscount}
             />
           </Box>
         </Box>
       </Section>
     </Container>
   );
+}
+
+function computePromoDiscount(
+  promo: ReturnType<typeof useCartStore.getState>["appliedPromo"],
+  subtotalCents: number,
+  shippingCents: number,
+): { subtotal: number; shipping: number; label: string } {
+  if (!promo) return { subtotal: 0, shipping: 0, label: "" };
+  if (subtotalCents < promo.minSubtotalCents) {
+    return { subtotal: 0, shipping: 0, label: "" };
+  }
+  if (promo.type === "percent") {
+    const percent = Math.max(0, Math.min(100, promo.value));
+    return {
+      subtotal: Math.min(
+        subtotalCents,
+        Math.floor((subtotalCents * percent) / 100),
+      ),
+      shipping: 0,
+      label: promo.label,
+    };
+  }
+  if (promo.type === "fixed") {
+    return {
+      subtotal: Math.min(subtotalCents, Math.max(0, promo.value)),
+      shipping: 0,
+      label: promo.label,
+    };
+  }
+  return { subtotal: 0, shipping: shippingCents, label: promo.label };
 }
 
 interface ProgressProps {
@@ -357,6 +442,7 @@ interface OrderSummaryProps {
   taxCents: number;
   shippingCents: number;
   totalCents: number;
+  promoDiscount?: { subtotal: number; shipping: number; label: string };
 }
 
 function OrderSummary({
@@ -364,6 +450,7 @@ function OrderSummary({
   taxCents,
   shippingCents,
   totalCents,
+  promoDiscount,
 }: OrderSummaryProps) {
   const lines = useCartStore((state) => state.lines);
   return (
@@ -417,7 +504,7 @@ function OrderSummary({
 
         <Divider />
 
-        <PromoCodeRow />
+        <CartPromoCode />
 
         <Divider />
 
@@ -428,11 +515,25 @@ function OrderSummary({
             </Text>
             <Text variant="body-sm">{formatPrice(subtotalCents)}</Text>
           </Row>
+          {promoDiscount && promoDiscount.subtotal > 0 ? (
+            <Row justify="between">
+              <Text variant="body-sm" tone="primary">
+                Promo · {promoDiscount.label}
+              </Text>
+              <Text variant="body-sm" tone="primary">
+                -{formatPrice(promoDiscount.subtotal)}
+              </Text>
+            </Row>
+          ) : null}
           <Row justify="between">
             <Text variant="body-sm" tone="muted">
               Shipping
             </Text>
-            <Text variant="body-sm">{formatPrice(shippingCents)}</Text>
+            <Text variant="body-sm">
+              {promoDiscount && promoDiscount.shipping > 0
+                ? "Free"
+                : formatPrice(shippingCents)}
+            </Text>
           </Row>
           <Row justify="between">
             <Text variant="body-sm" tone="muted">
@@ -470,31 +571,6 @@ function OrderSummary({
         </Card>
       </Stack>
     </Card>
-  );
-}
-
-function PromoCodeRow() {
-  const code = useCartStore((state) => state.promoCode);
-  const setPromoCode = useCartStore((state) => state.setPromoCode);
-  return (
-    <Row gap="sm">
-      <TextField
-        placeholder="Promo code"
-        value={code}
-        onChange={(e) => setPromoCode(e.target.value)}
-        aria-label="Promo code"
-      />
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={() => {
-          /* TODO: apply */
-        }}
-        className="shrink-0 tracking-[0.1em]"
-      >
-        Apply
-      </Button>
-    </Row>
   );
 }
 

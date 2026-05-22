@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { AdminAccessError, requireAdmin } from "@/app/lib/auth/server";
+import { notifyUser } from "@/app/lib/notifications/notify";
+import { ORDER_STATUS_LABEL } from "@/app/lib/orders/format";
 import { getOrderRepository } from "@/app/lib/orders/order-repository";
 import { orderActionSchema } from "@/app/lib/orders/schemas";
 import type { OrderRecord, ShippingCarrier } from "@/app/lib/orders/types";
@@ -116,5 +118,91 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
+  // Best-effort customer notification for the actions that actually change
+  // what the customer sees in their order timeline.
+  void notifyCustomer(input.action, updated);
+
   return NextResponse.json({ success: true, data: updated });
+}
+
+async function notifyCustomer(
+  action: string,
+  order: OrderRecord,
+): Promise<void> {
+  if (!order.userId) return;
+
+  const link = `/account/orders/${order.id}`;
+  const statusLabel = ORDER_STATUS_LABEL[order.status];
+
+  switch (action) {
+    case "advance":
+      await notifyUser({
+        userId: order.userId,
+        kind: "order-placed",
+        title: `Order ${order.reference}: ${statusLabel}`,
+        body: `Your order has moved to ${statusLabel.toLowerCase()}. We'll keep you posted with each next step.`,
+        link,
+        email: order.customerEmail,
+        emailSubject: `Order ${order.reference} update — ${statusLabel}`,
+      });
+      break;
+    case "revert":
+      await notifyUser({
+        userId: order.userId,
+        kind: "order-placed",
+        title: `Order ${order.reference} stepped back to ${statusLabel}`,
+        body: "We've adjusted the tracking on your order. Reach out if you have any questions.",
+        link,
+      });
+      break;
+    case "cancel":
+      await notifyUser({
+        userId: order.userId,
+        kind: "order-cancelled",
+        title: `Order ${order.reference} cancelled`,
+        body:
+          order.cancellationReason ??
+          "Your order has been cancelled. If this is unexpected, please reply to this notification or contact us.",
+        link,
+        email: order.customerEmail,
+        emailSubject: `Order ${order.reference} cancelled`,
+      });
+      break;
+    case "restore":
+      await notifyUser({
+        userId: order.userId,
+        kind: "order-placed",
+        title: `Order ${order.reference} restored`,
+        body: "Good news — your order is back on track.",
+        link,
+        email: order.customerEmail,
+        emailSubject: `Order ${order.reference} restored`,
+      });
+      break;
+    case "update-shipping":
+      await notifyUser({
+        userId: order.userId,
+        kind: "order-placed",
+        title: `Tracking info updated for ${order.reference}`,
+        body: order.trackingNumber
+          ? `Carrier ${order.carrier ?? ""} · Tracking ${order.trackingNumber}`
+          : "We've updated the shipping details on your order.",
+        link,
+      });
+      break;
+    case "update-expected-delivery":
+      await notifyUser({
+        userId: order.userId,
+        kind: "order-placed",
+        title: `New delivery estimate for ${order.reference}`,
+        body: order.expectedDelivery
+          ? `Now expected ${order.expectedDelivery}.`
+          : "We've removed the delivery estimate while we sort logistics.",
+        link,
+      });
+      break;
+    default:
+      // Other actions (notes, signature) are admin-internal — no customer-facing notification.
+      break;
+  }
 }

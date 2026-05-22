@@ -72,6 +72,19 @@ export class JsonResetTokenRepository implements ResetTokenRepository {
     });
   }
 
+  async consumeAllForUser(userId: string): Promise<void> {
+    return this.withLock(async () => {
+      const data = await readFile();
+      const now = new Date().toISOString();
+      data.tokens = data.tokens.map((entry) =>
+        entry.userId === userId && !entry.consumedAt
+          ? { ...entry, consumedAt: now }
+          : entry,
+      );
+      await writeFile(data);
+    });
+  }
+
   private withLock<T>(work: () => Promise<T>): Promise<T> {
     const previous = this.mutex;
     let release: () => void = () => {};

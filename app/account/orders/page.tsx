@@ -23,6 +23,7 @@ import {
   listOrders,
   type OrderStatus,
 } from "@/app/lib/account/orders";
+import { getRewardsSummary } from "@/app/lib/account/rewards";
 import {
   ORDER_STATUS_INDEX,
   ORDER_STATUS_LABEL,
@@ -44,10 +45,11 @@ export default async function OrderHistoryPage() {
   const user = await getSessionUser();
   if (!user) return null;
 
-  const [orders, shipment, orderRecords] = await Promise.all([
+  const [orders, shipment, orderRecords, rewards] = await Promise.all([
     listOrders(),
     getActiveShipment(),
     listOrderRecords(),
+    getRewardsSummary(),
   ]);
   const recentUpdates = recentCustomerPrompts(orderRecords, 6);
 
@@ -78,101 +80,146 @@ export default async function OrderHistoryPage() {
         </Box>
       </Stack>
 
-      <Box className="grid grid-cols-1 md:grid-cols-5 gap-md">
+      <Box
+        className={`grid grid-cols-1 gap-md ${
+          rewards.visibleToUser ? "md:grid-cols-5" : "md:grid-cols-1"
+        }`}
+      >
         <Card
           variant="outlined"
           padding="none"
           rounded="2xl"
-          className="md:col-span-3 overflow-hidden relative"
+          className={`${rewards.visibleToUser ? "md:col-span-3" : ""} overflow-hidden relative`}
         >
           <Box className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-secondary to-tertiary" />
-          <Stack gap="none">
-            <Row
-              gap="md"
-              align="center"
-              justify="between"
-              className="px-lg pt-lg pb-md"
-            >
-              <Row gap="sm" align="center">
-                <Text
-                  variant="label-caps"
-                  tone="muted"
-                  as="span"
-                  className="tracking-[0.18em]"
-                >
-                  Active Shipment
+          {shipment ? (
+            <Stack gap="none">
+              <Row
+                gap="md"
+                align="center"
+                justify="between"
+                className="px-lg pt-lg pb-md"
+              >
+                <Row gap="sm" align="center">
+                  <Text
+                    variant="label-caps"
+                    tone="muted"
+                    as="span"
+                    className="tracking-[0.18em]"
+                  >
+                    Active Shipment
+                  </Text>
+                  <Badge tone={ORDER_STATUS_TONE[shipment.status]} size="sm">
+                    {ORDER_STATUS_LABEL[shipment.status]}
+                  </Badge>
+                </Row>
+                <Text variant="body-sm" tone="muted" as="span">
+                  {shipment.reference}
                 </Text>
-                <Badge
-                  tone={ORDER_STATUS_TONE[shipment?.status ?? "in-transit"]}
-                  size="sm"
-                >
-                  {ORDER_STATUS_LABEL[shipment?.status ?? "in-transit"]}
-                </Badge>
               </Row>
-              <Text variant="body-sm" tone="muted" as="span">
-                {shipment?.reference ?? "—"}
-              </Text>
-            </Row>
-            <Row gap="md" align="center" className="px-lg">
-              <Box className="relative w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden bg-surface-container-high shrink-0">
-                <Image
-                  src="/products/bone-straight-ombre-purple-12-a.jpeg"
-                  alt={shipment?.productName ?? "Active shipment"}
-                  fill
-                  sizes="96px"
-                  className="object-cover"
+              <Row gap="md" align="center" className="px-lg">
+                {shipment.imageUrl ? (
+                  <Box className="relative w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden bg-surface-container-high shrink-0">
+                    <Image
+                      src={shipment.imageUrl}
+                      alt={shipment.productName}
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                    />
+                  </Box>
+                ) : (
+                  <Box className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-surface-container-high flex items-center justify-center shrink-0">
+                    <Icon
+                      name="inventory_2"
+                      className="text-on-surface-variant text-2xl"
+                    />
+                  </Box>
+                )}
+                <Stack gap="xs" className="flex-1 min-w-0">
+                  <Heading
+                    level={2}
+                    variant="headline-sm"
+                    size="body-lg"
+                    className="md:text-headline-sm"
+                  >
+                    {shipment.productName}
+                  </Heading>
+                  <Text variant="body-sm" tone="muted">
+                    {shipment.expectedDelivery ? (
+                      <>
+                        Expected{" "}
+                        <Text
+                          as="span"
+                          variant="body-sm"
+                          className="font-semibold"
+                        >
+                          {formatOrderDate(shipment.expectedDelivery)}
+                        </Text>
+                      </>
+                    ) : (
+                      "Awaiting delivery estimate"
+                    )}
+                  </Text>
+                </Stack>
+              </Row>
+              <Box className="px-lg pt-lg">
+                <ProgressTimeline status={shipment.status} />
+              </Box>
+              <Row gap="sm" wrap className="px-lg py-lg">
+                <LinkButton
+                  href={`/account/orders/${shipment.id}`}
+                  variant="primary"
+                  size="sm"
+                  caps={false}
+                  className="rounded-full"
+                >
+                  Track shipment
+                </LinkButton>
+                <LinkButton
+                  href="/contact"
+                  variant="ghost"
+                  size="sm"
+                  caps={false}
+                  className="rounded-full"
+                >
+                  Contact concierge →
+                </LinkButton>
+              </Row>
+            </Stack>
+          ) : (
+            <Stack gap="md" className="px-lg py-2xl" align="center">
+              <Box className="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center">
+                <Icon
+                  name="local_shipping"
+                  className="text-on-surface-variant text-2xl"
                 />
               </Box>
-              <Stack gap="xs" className="flex-1 min-w-0">
-                <Heading
-                  level={2}
-                  variant="headline-sm"
-                  size="body-lg"
-                  className="md:text-headline-sm"
-                >
-                  {shipment?.productName ?? "No active shipment"}
+              <Stack gap="xs" align="center" className="text-center">
+                <Heading level={2} variant="headline-sm" size="body-lg">
+                  No active shipments
                 </Heading>
-                <Text variant="body-sm" tone="muted">
-                  Expected{" "}
-                  <Text as="span" variant="body-sm" className="font-semibold">
-                    {shipment?.expectedDelivery
-                      ? formatOrderDate(shipment.expectedDelivery)
-                      : "—"}
-                  </Text>{" "}
-                  · Distribution centre
-                </Text>
+                <Box className="max-w-[320px]">
+                  <Text variant="body-sm" tone="muted">
+                    When you place an order it will appear here so you can
+                    track it from purchase to delivery.
+                  </Text>
+                </Box>
               </Stack>
-            </Row>
-            <Box className="px-lg pt-lg">
-              <ProgressTimeline status={shipment?.status ?? "in-transit"} />
-            </Box>
-            <Row gap="sm" wrap className="px-lg py-lg">
               <LinkButton
-                href={
-                  shipment
-                    ? `/account/orders/${shipment.id}`
-                    : "/account/orders"
-                }
+                href="/shop"
                 variant="primary"
                 size="sm"
                 caps={false}
                 className="rounded-full"
               >
-                Track shipment
+                Browse the collection
               </LinkButton>
-              <LinkButton
-                href="/contact"
-                variant="ghost"
-                size="sm"
-                caps={false}
-                className="rounded-full"
-              >
-                Contact concierge →
-              </LinkButton>
-            </Row>
-          </Stack>
+            </Stack>
+          )}
         </Card>
 
+        {rewards.visibleToUser ? (
         <Box className="md:col-span-2 rounded-2xl bg-primary text-on-primary p-lg flex flex-col justify-between gap-md">
           <Stack gap="sm">
             <Row justify="between" align="center">
@@ -200,7 +247,7 @@ export default async function OrderHistoryPage() {
                 size="headline-md"
                 className="md:text-headline-md lg:text-display-lg leading-none"
               >
-                450
+                {rewards.balance.toLocaleString()}
               </Heading>
               <Text
                 variant="body-sm"
@@ -208,16 +255,22 @@ export default async function OrderHistoryPage() {
                 as="span"
                 className="opacity-80"
               >
-                points to redeem
+                {rewards.balance === 1
+                  ? "point to redeem"
+                  : "points to redeem"}
               </Text>
             </Stack>
           </Stack>
           <RedeemButton
+            balance={rewards.balance}
+            tiers={rewards.settings.tiers}
+            pointsPerDollar={rewards.settings.pointsPerDollar}
             variant="inverse"
             fullWidth
             className="rounded-full"
           />
         </Box>
+        ) : null}
       </Box>
 
       {orders.length === 0 ? (

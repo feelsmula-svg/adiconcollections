@@ -60,6 +60,16 @@ export async function POST(request: Request) {
       );
     }
 
+    if (user.role === "admin" && user.adminStatus === "pending") {
+      return NextResponse.json(
+        {
+          error:
+            "Your admin account is pending approval from an existing admin. You'll be able to sign in once it's approved.",
+        },
+        { status: 403 },
+      );
+    }
+
     const token = await signSession({
       sub: user.id,
       email: user.email,

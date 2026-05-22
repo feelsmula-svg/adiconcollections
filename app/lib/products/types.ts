@@ -53,9 +53,17 @@ export interface ProductRecord {
   category: ProductCategory;
   type: string;
   priceCents: number;
+  /** Primary image — always equal to `images[0]` when `images` is present. */
   imageUrl: string;
+  /**
+   * Full gallery for the product. The first entry is the primary image. New
+   * uploads always populate this; legacy records may have only `imageUrl`.
+   */
+  images?: string[];
   stock: number;
   featured: boolean;
+  badge?: { tone: "primary" | "secondary"; label: string };
+  lengthOptions?: { length: string; priceCents: number }[];
   createdAt: string;
   updatedAt: string;
 }

@@ -115,6 +115,17 @@ export function OrdersList({ orders }: OrdersListProps) {
       ),
     },
     {
+      key: "expected",
+      header: "Expected",
+      render: (order) => (
+        <Text variant="body-sm" as="span">
+          {order.expectedDelivery
+            ? formatOrderDate(order.expectedDelivery)
+            : "—"}
+        </Text>
+      ),
+    },
+    {
       key: "status",
       header: "Status",
       render: (order) => (

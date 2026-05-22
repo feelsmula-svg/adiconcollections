@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   Box,
@@ -15,7 +16,7 @@ import {
   Text,
   TextField,
 } from "@/app/components/ui";
-import { useProfileStore } from "@/app/lib/state/profile-store";
+import { updateProfile } from "@/app/lib/account/profile-actions";
 import { ModalStepper, type ModalStep } from "./modal-stepper";
 
 const STEPS: ModalStep[] = [
@@ -28,6 +29,7 @@ interface EditProfileModalProps {
   onClose: () => void;
   defaultName: string;
   defaultEmail: string;
+  defaultPhone?: string;
 }
 
 export function EditProfileModal({
@@ -35,24 +37,29 @@ export function EditProfileModal({
   onClose,
   defaultName,
   defaultEmail,
+  defaultPhone = "",
 }: EditProfileModalProps) {
-  const storedName = useProfileStore((state) => state.name);
-  const phone = useProfileStore((state) => state.phone);
-  const setProfile = useProfileStore((state) => state.setProfile);
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
 
-  const [name, setName] = useState(storedName || defaultName);
+  const [name, setName] = useState(defaultName);
   const [email, setEmail] = useState(defaultEmail);
-  const [phoneInput, setPhoneInput] = useState(phone);
+  const [phoneInput, setPhoneInput] = useState(defaultPhone);
   const [step, setStep] = useState(0);
-  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<
+    Record<string, string[] | undefined>
+  >({});
 
   useEffect(() => {
     if (!open) return;
-    setName(storedName || defaultName);
+    setName(defaultName);
     setEmail(defaultEmail);
-    setPhoneInput(phone);
+    setPhoneInput(defaultPhone);
     setStep(0);
-  }, [open, defaultName, defaultEmail, phone, storedName]);
+    setErrorMessage(null);
+    setFieldErrors({});
+  }, [open, defaultName, defaultEmail, defaultPhone]);
 
   const stepValid = useMemo(() => {
     if (step === 0) {
@@ -79,13 +86,22 @@ export function EditProfileModal({
       handleNext();
       return;
     }
-    if (saving) return;
-    setSaving(true);
-    setProfile({ name: name.trim(), phone: phoneInput });
-    setTimeout(() => {
-      setSaving(false);
+    if (pending) return;
+    setErrorMessage(null);
+    setFieldErrors({});
+    startTransition(async () => {
+      const result = await updateProfile({
+        name: name.trim(),
+        phone: phoneInput.trim() || null,
+      });
+      if (!result.ok) {
+        setErrorMessage(result.error ?? "Profile could not be updated");
+        setFieldErrors(result.fieldErrors ?? {});
+        return;
+      }
+      router.refresh();
       onClose();
-    }, 250);
+    });
   };
 
   return (
@@ -116,14 +132,18 @@ export function EditProfileModal({
         <Box className="flex-1 overflow-y-auto px-lg pb-md">
           {step === 0 ? (
             <Stack gap="md">
-              <FormField label="Full name" required>
+              <FormField
+                label="Full name"
+                required
+                error={fieldErrors.name?.[0]}
+              >
                 <TextField
                   type="text"
                   autoComplete="name"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   placeholder="e.g. Grace Adeyemi"
-                  disabled={saving}
+                  disabled={pending}
                   required
                 />
               </FormField>
@@ -138,7 +158,7 @@ export function EditProfileModal({
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="you@example.com"
-                  disabled={saving}
+                  disabled
                   required
                 />
               </FormField>
@@ -168,6 +188,7 @@ export function EditProfileModal({
               <FormField
                 label="Phone number"
                 hint="Optional — for delivery updates only."
+                error={fieldErrors.phone?.[0]}
               >
                 <TextField
                   type="tel"
@@ -175,9 +196,14 @@ export function EditProfileModal({
                   value={phoneInput}
                   onChange={(event) => setPhoneInput(event.target.value)}
                   placeholder="+1 (555) 012-3456"
-                  disabled={saving}
+                  disabled={pending}
                 />
               </FormField>
+              {errorMessage ? (
+                <Text variant="body-sm" tone="error">
+                  {errorMessage}
+                </Text>
+              ) : null}
             </Stack>
           ) : null}
         </Box>
@@ -190,7 +216,7 @@ export function EditProfileModal({
               size="sm"
               caps={false}
               onClick={isFirst ? onClose : handleBack}
-              disabled={saving}
+              disabled={pending}
             >
               {isFirst ? (
                 "Cancel"
@@ -206,9 +232,9 @@ export function EditProfileModal({
               variant="primary"
               size="sm"
               caps={false}
-              disabled={saving || !stepValid}
+              disabled={pending || !stepValid}
             >
-              {isLast ? (saving ? "Saving…" : "Save changes") : "Continue"}
+              {isLast ? (pending ? "Saving…" : "Save changes") : "Continue"}
               {!isLast ? (
                 <Icon name="arrow_forward" className="text-lg ml-xs" />
               ) : null}

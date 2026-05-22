@@ -3,9 +3,13 @@
 import { useState, type ReactNode } from "react";
 
 import { Button } from "@/app/components/ui";
+import type { RewardsTier } from "@/app/lib/settings/rewards/types";
 import { RewardsModal } from "./rewards-modal";
 
 interface RedeemButtonProps {
+  balance: number;
+  tiers: RewardsTier[];
+  pointsPerDollar: number;
   variant?: "primary" | "inverse" | "ghost" | "outline";
   fullWidth?: boolean;
   className?: string;
@@ -13,6 +17,9 @@ interface RedeemButtonProps {
 }
 
 export function RedeemButton({
+  balance,
+  tiers,
+  pointsPerDollar,
   variant = "inverse",
   fullWidth,
   className,
@@ -31,7 +38,13 @@ export function RedeemButton({
       >
         {children}
       </Button>
-      <RewardsModal open={open} onClose={() => setOpen(false)} />
+      <RewardsModal
+        open={open}
+        onClose={() => setOpen(false)}
+        balance={balance}
+        tiers={tiers}
+        pointsPerDollar={pointsPerDollar}
+      />
     </>
   );
 }

@@ -1,16 +1,30 @@
 import { TextLink } from "@/app/components/ui";
+import { getHeaderCampaign } from "@/app/lib/campaigns/server";
 import { AccountButton } from "./auth/account-button";
+import { UserNotificationBell } from "./auth/user-notification-bell";
 import { CartTriggerButton } from "./cart/cart-trigger-button";
 import { MobileMenu } from "./mobile-menu";
 import { NavLinks } from "./nav-links";
 import { SearchTrigger } from "./search/search-trigger";
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const headerCampaign = await getHeaderCampaign().catch(() => null);
+  const bannerText = headerCampaign?.headerText;
+  const bannerHref = headerCampaign?.ctaHref;
+
   return (
     <>
-      <div className="bg-on-surface text-white py-2 text-center text-[11px] font-label-caps tracking-widest px-lg">
-        FREE US SHIPPING ON ORDERS OVER $150 · SHOP NOW PAY LATER
-      </div>
+      {bannerText ? (
+        <div className="bg-on-surface text-white py-2 text-center text-[11px] font-label-caps tracking-widest px-lg">
+          {bannerHref ? (
+            <TextLink href={bannerHref} variant="bare" className="text-white">
+              {bannerText}
+            </TextLink>
+          ) : (
+            bannerText
+          )}
+        </div>
+      ) : null}
 
       <div className="bg-surface border-b border-outline-variant py-2 px-lg hidden md:block">
         <div className="max-w-[1400px] mx-auto flex justify-between items-center text-xs font-label-caps">
@@ -28,6 +42,7 @@ export function SiteHeader() {
             >
               favorite
             </TextLink>
+            <UserNotificationBell size="sm" />
             <AccountButton size="sm" />
             <CartTriggerButton size="sm" />
           </div>
@@ -36,7 +51,7 @@ export function SiteHeader() {
 
       <header className="w-full sticky top-0 z-50 bg-surface/95 backdrop-blur-md border-b border-outline-variant">
         <div className="max-w-[1400px] mx-auto px-lg">
-          <div className="md:hidden grid grid-cols-[auto_auto_1fr_auto_auto] items-center gap-md py-md">
+          <div className="md:hidden grid grid-cols-[auto_auto_1fr_auto_auto_auto] items-center gap-xs py-md">
             <MobileMenu />
             <SearchTrigger variant="icon" />
             <TextLink
@@ -47,6 +62,7 @@ export function SiteHeader() {
             >
               AdiCon
             </TextLink>
+            <UserNotificationBell size="sm" />
             <AccountButton size="sm" />
             <CartTriggerButton size="sm" />
           </div>

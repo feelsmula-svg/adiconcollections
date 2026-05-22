@@ -67,9 +67,12 @@ export async function POST(request: Request) {
   }
 
   const repo = await getProductRepository();
+  const primaryImage = parsed.data.images[0];
   const product = await repo.create({
     ...parsed.data,
     category: parsed.data.category as ProductCategory,
+    imageUrl: primaryImage,
+    images: parsed.data.images,
   });
 
   return NextResponse.json({ success: true, data: product }, { status: 201 });

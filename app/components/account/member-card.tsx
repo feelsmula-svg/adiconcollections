@@ -9,8 +9,6 @@ import {
   Text,
 } from "@/app/components/ui";
 import { useCartStore } from "@/app/lib/state/cart-store";
-import { useHydrated } from "@/app/lib/state/hydration";
-import { useProfileStore } from "@/app/lib/state/profile-store";
 
 interface MemberCardProps {
   fallbackName: string;
@@ -21,14 +19,9 @@ export function MemberCard({
   fallbackName,
   fallbackEmail,
 }: MemberCardProps) {
-  const hydrated = useHydrated();
-  const storedName = useProfileStore((state) => state.name);
   const openCart = useCartStore((state) => state.open);
 
-  const name =
-    hydrated && storedName
-      ? storedName
-      : fallbackName || fallbackEmail.split("@")[0];
+  const name = fallbackName || fallbackEmail.split("@")[0];
   const initials = getInitials(name);
 
   return (
@@ -54,7 +47,7 @@ export function MemberCard({
             as="span"
             className="truncate"
           >
-            Premium Member
+            {fallbackEmail}
           </Text>
         </Stack>
       </Row>

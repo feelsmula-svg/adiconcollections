@@ -59,6 +59,10 @@ export class JsonProductRepository implements ProductRepository {
     return this.withLock(async () => {
       const data = await readFile();
       const now = new Date().toISOString();
+      const trimmedImages = input.images
+        ?.map((src) => src.trim())
+        .filter((src) => src.length > 0);
+      const primaryImage = (trimmedImages?.[0] ?? input.imageUrl).trim();
       const record: ProductRecord = {
         id: randomUUID(),
         name: input.name.trim(),
@@ -66,9 +70,17 @@ export class JsonProductRepository implements ProductRepository {
         category: input.category,
         type: input.type.trim(),
         priceCents: input.priceCents,
-        imageUrl: input.imageUrl.trim(),
+        imageUrl: primaryImage,
+        images:
+          trimmedImages && trimmedImages.length > 0
+            ? trimmedImages
+            : primaryImage
+              ? [primaryImage]
+              : undefined,
         stock: input.stock,
         featured: input.featured ?? false,
+        badge: input.badge,
+        lengthOptions: input.lengthOptions,
         createdAt: now,
         updatedAt: now,
       };
@@ -87,6 +99,12 @@ export class JsonProductRepository implements ProductRepository {
       const index = data.products.findIndex((p) => p.id === id);
       if (index === -1) return null;
       const existing = data.products[index];
+      const inputImages = input.images
+        ?.map((src) => src.trim())
+        .filter((src) => src.length > 0);
+      const nextImages = inputImages ?? existing.images;
+      const nextPrimary =
+        input.imageUrl?.trim() ?? nextImages?.[0] ?? existing.imageUrl;
       const updated: ProductRecord = {
         ...existing,
         name: input.name?.trim() ?? existing.name,
@@ -94,9 +112,12 @@ export class JsonProductRepository implements ProductRepository {
         category: input.category ?? existing.category,
         type: input.type?.trim() ?? existing.type,
         priceCents: input.priceCents ?? existing.priceCents,
-        imageUrl: input.imageUrl?.trim() ?? existing.imageUrl,
+        imageUrl: nextPrimary,
+        images: nextImages,
         stock: input.stock ?? existing.stock,
         featured: input.featured ?? existing.featured,
+        badge: input.badge ?? existing.badge,
+        lengthOptions: input.lengthOptions ?? existing.lengthOptions,
         updatedAt: new Date().toISOString(),
       };
       data.products[index] = updated;

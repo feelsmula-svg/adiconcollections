@@ -34,12 +34,18 @@ interface MenuLink {
   matches: (pathname: string) => boolean;
 }
 
-const MENU_LINKS: MenuLink[] = [
+const CUSTOMER_LINKS: MenuLink[] = [
   {
     href: "/account",
     label: "Dashboard",
     icon: "dashboard",
     matches: (p) => p === "/account",
+  },
+  {
+    href: "/account/profile",
+    label: "My account",
+    icon: "person",
+    matches: (p) => p.startsWith("/account/profile"),
   },
   {
     href: "/account/orders",
@@ -54,10 +60,79 @@ const MENU_LINKS: MenuLink[] = [
     matches: (p) => p.startsWith("/wishlist"),
   },
   {
-    href: "/contact",
+    href: "/account/help",
     label: "Help & support",
     icon: "help",
-    matches: (p) => p.startsWith("/contact"),
+    matches: (p) => p.startsWith("/account/help"),
+  },
+];
+
+const ADMIN_LINKS: MenuLink[] = [
+  {
+    href: "/admin",
+    label: "Admin dashboard",
+    icon: "home",
+    matches: (p) => p === "/admin",
+  },
+  {
+    href: "/admin/orders",
+    label: "Orders",
+    icon: "receipt_long",
+    matches: (p) => p.startsWith("/admin/orders"),
+  },
+  {
+    href: "/admin/products",
+    label: "Catalog",
+    icon: "inventory_2",
+    matches: (p) => p.startsWith("/admin/products"),
+  },
+  {
+    href: "/admin/inventory",
+    label: "Inventory",
+    icon: "warehouse",
+    matches: (p) => p.startsWith("/admin/inventory"),
+  },
+  {
+    href: "/admin/customers",
+    label: "Customers",
+    icon: "group",
+    matches: (p) => p.startsWith("/admin/customers"),
+  },
+  {
+    href: "/admin/messages",
+    label: "Messages",
+    icon: "forum",
+    matches: (p) => p.startsWith("/admin/messages"),
+  },
+  {
+    href: "/admin/campaigns",
+    label: "Campaigns",
+    icon: "campaign",
+    matches: (p) => p.startsWith("/admin/campaigns"),
+  },
+  {
+    href: "/admin/promo-codes",
+    label: "Promo codes",
+    icon: "confirmation_number",
+    matches: (p) => p.startsWith("/admin/promo-codes"),
+  },
+  {
+    href: "/admin/marketing",
+    label: "Marketing",
+    icon: "trending_up",
+    matches: (p) => p.startsWith("/admin/marketing"),
+  },
+  {
+    href: "/admin/taxonomy",
+    label: "Taxonomy",
+    icon: "category",
+    matches: (p) => p.startsWith("/admin/taxonomy"),
+  },
+  {
+    href: "/admin/settings",
+    label: "Settings",
+    icon: "settings",
+    matches: (p) => p.startsWith("/admin/settings"),
   },
 ];
 
@@ -197,29 +272,83 @@ function AccountDropdown({ open, onClose, user }: AccountDropdownProps) {
 
       <Divider />
 
-      <Stack gap="none" className="px-xs py-sm">
-        <Box className="px-md pb-xs">
-          <Text
-            variant="label-caps"
-            tone="muted"
-            as="span"
-            className="text-[10px] tracking-[0.18em]"
-          >
-            Account
-          </Text>
-        </Box>
-        {MENU_LINKS.map((link) => (
-          <DropdownLink
-            key={link.href}
-            href={link.href}
-            icon={link.icon}
-            active={link.matches(pathname)}
-            onClick={onClose}
-          >
-            {link.label}
-          </DropdownLink>
-        ))}
-      </Stack>
+      {user.role === "admin" ? (
+        <>
+          <Stack gap="none" className="px-xs py-sm">
+            <Box className="px-md pb-xs flex items-center justify-between">
+              <Text
+                variant="label-caps"
+                tone="primary"
+                as="span"
+                className="text-[10px] tracking-[0.18em]"
+              >
+                Admin
+              </Text>
+              <Box className="px-xs py-[2px] rounded-full bg-primary-fixed/60 text-primary text-[9px] font-semibold tracking-[0.14em] uppercase">
+                Console
+              </Box>
+            </Box>
+            {ADMIN_LINKS.map((link) => (
+              <DropdownLink
+                key={link.href}
+                href={link.href}
+                icon={link.icon}
+                active={link.matches(pathname)}
+                onClick={onClose}
+              >
+                {link.label}
+              </DropdownLink>
+            ))}
+          </Stack>
+
+          <Divider />
+
+          <Stack gap="none" className="px-xs py-sm">
+            <Box className="px-md pb-xs">
+              <Text
+                variant="label-caps"
+                tone="muted"
+                as="span"
+                className="text-[10px] tracking-[0.18em]"
+              >
+                Your account
+              </Text>
+            </Box>
+            <DropdownLink
+              href="/account"
+              icon="storefront"
+              active={pathname === "/account"}
+              onClick={onClose}
+            >
+              View customer dashboard
+            </DropdownLink>
+          </Stack>
+        </>
+      ) : (
+        <Stack gap="none" className="px-xs py-sm">
+          <Box className="px-md pb-xs">
+            <Text
+              variant="label-caps"
+              tone="muted"
+              as="span"
+              className="text-[10px] tracking-[0.18em]"
+            >
+              Account
+            </Text>
+          </Box>
+          {CUSTOMER_LINKS.map((link) => (
+            <DropdownLink
+              key={link.href}
+              href={link.href}
+              icon={link.icon}
+              active={link.matches(pathname)}
+              onClick={onClose}
+            >
+              {link.label}
+            </DropdownLink>
+          ))}
+        </Stack>
+      )}
 
       <Divider />
 

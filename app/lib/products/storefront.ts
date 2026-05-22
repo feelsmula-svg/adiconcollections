@@ -21,9 +21,16 @@ export function recordToCartProduct(record: ProductRecord): CartProduct {
     priceCents: record.priceCents,
     imageSrc: record.imageUrl,
     imageAlt: record.name,
-    badge: record.featured
-      ? { tone: "primary", label: "Featured" }
-      : undefined,
+    images:
+      record.images && record.images.length > 0
+        ? record.images
+        : record.imageUrl
+          ? [record.imageUrl]
+          : undefined,
+    badge:
+      record.badge ??
+      (record.featured ? { tone: "primary", label: "Featured" } : undefined),
+    lengthOptions: record.lengthOptions,
   };
 }
 

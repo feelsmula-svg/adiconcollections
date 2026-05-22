@@ -334,9 +334,10 @@ function SignInForm({ onSuccess, onForgotPassword }: SignInFormProps) {
     if (result.ok) {
       onSuccess();
       if (result.user.role === "admin") {
-        router.push("/admin");
+        router.replace("/admin");
+      } else {
+        router.refresh();
       }
-      router.refresh();
       return;
     }
     setSubmitting(false);
@@ -451,9 +452,10 @@ function SignUpForm({ onSuccess }: SignUpFormProps) {
     if (result.ok) {
       onSuccess();
       if (result.user.role === "admin") {
-        router.push("/admin");
+        router.replace("/admin");
+      } else {
+        router.refresh();
       }
-      router.refresh();
       return;
     }
     setSubmitting(false);

@@ -2,6 +2,7 @@ import { AccountShell } from "@/app/components/account/account-shell";
 import { AddressBookSection } from "@/app/components/account/address-book-section";
 import { PersonalDetailsSection } from "@/app/components/account/personal-details-section";
 import { Box, Heading, Stack, Text } from "@/app/components/ui";
+import { listAddresses } from "@/app/lib/addresses/actions";
 import { getSessionUser } from "@/app/lib/auth/server";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
 export default async function AccountProfilePage() {
   const user = await getSessionUser();
   if (!user) return null;
+
+  const addresses = await listAddresses();
 
   return (
     <AccountShell user={user} active="profile">
@@ -37,8 +40,12 @@ export default async function AccountProfilePage() {
         </Box>
       </Stack>
 
-      <PersonalDetailsSection name={user.name} email={user.email} />
-      <AddressBookSection />
+      <PersonalDetailsSection
+        name={user.name}
+        email={user.email}
+        phone={user.phone}
+      />
+      <AddressBookSection addresses={addresses} />
     </AccountShell>
   );
 }
