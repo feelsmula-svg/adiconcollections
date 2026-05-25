@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "./cn";
 
 type Gap = "none" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
@@ -38,16 +38,13 @@ interface StackProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
 }
 
-export function Stack({
-  gap = "md",
-  align,
-  justify,
-  className,
-  children,
-  ...rest
-}: StackProps) {
+export const Stack = forwardRef<HTMLDivElement, StackProps>(function Stack(
+  { gap = "md", align, justify, className, children, ...rest },
+  ref,
+) {
   return (
     <div
+      ref={ref}
       className={cn(
         "flex flex-col",
         GAP[gap],
@@ -60,4 +57,4 @@ export function Stack({
       {children}
     </div>
   );
-}
+});

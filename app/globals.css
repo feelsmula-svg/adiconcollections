@@ -227,6 +227,10 @@ details.footer-accordion summary::marker {
   animation-name: slide-in-from-bottom;
 }
 
+.duration-200 {
+  animation-duration: 200ms;
+}
+
 .duration-700 {
   animation-duration: 700ms;
 }

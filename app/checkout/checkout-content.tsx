@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   useCartStore,
@@ -38,11 +38,18 @@ import { StripePayment } from "./stripe-payment";
 
 interface CheckoutContentProps {
   shippingSettings: ShippingSettings;
+  prefill?: Partial<ShippingFields>;
 }
 
-export function CheckoutContent({ shippingSettings }: CheckoutContentProps) {
+export function CheckoutContent({
+  shippingSettings,
+  prefill,
+}: CheckoutContentProps) {
   const hydrated = useHydrated();
   const lines = useCartStore((state) => state.lines);
+
+  usePrefillCheckout(prefill, hydrated);
+
   if (hydrated && lines.length === 0) {
     return <EmptyCheckout />;
   }
@@ -51,6 +58,31 @@ export function CheckoutContent({ shippingSettings }: CheckoutContentProps) {
   }
 
   return <CheckoutShell shippingSettings={shippingSettings} />;
+}
+
+/**
+ * Fills empty checkout-store fields from the server-provided prefill once the
+ * persisted store has hydrated from localStorage. Never overwrites a value the
+ * user has already typed, and only runs once per mount.
+ */
+function usePrefillCheckout(
+  prefill: Partial<ShippingFields> | undefined,
+  hydrated: boolean,
+): void {
+  const applied = useRef(false);
+
+  useEffect(() => {
+    if (!hydrated || !prefill || applied.current) return;
+    applied.current = true;
+    const { setField } = useCheckoutStore.getState();
+    const current = useCheckoutStore.getState();
+    (Object.keys(prefill) as Array<keyof ShippingFields>).forEach((key) => {
+      const next = prefill[key];
+      if (!next) return;
+      if (current[key] && current[key].trim().length > 0) return;
+      setField(key, next);
+    });
+  }, [hydrated, prefill]);
 }
 
 function CheckoutShell({ shippingSettings }: CheckoutContentProps) {

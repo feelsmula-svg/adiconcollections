@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   selectCartQuantityFor,
   selectIsInCart,
@@ -113,6 +113,31 @@ export function ProductCard({
     pickDefaultLength(lengthOptions, product.description),
   );
   const [pendingQuantity, setPendingQuantity] = useState<number>(1);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const quantitySectionRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isQuickAdding) return;
+    const panel = panelRef.current;
+    const target = quantitySectionRef.current;
+    if (!panel || !target) return;
+    // Wait one frame so the panel finishes mounting/transitioning, then
+    // smoothly scroll the Quantity section into view inside the panel so the
+    // stepper is always visible without the user having to scroll manually.
+    const raf = requestAnimationFrame(() => {
+      const panelRect = panel.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const offset =
+        targetRect.bottom -
+        panelRect.bottom +
+        panel.scrollTop +
+        // Leave breathing room above the action buttons that overlay the
+        // bottom of the panel.
+        16;
+      panel.scrollTo({ top: Math.max(0, offset), behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isQuickAdding]);
 
   const openQuickAdd = () => {
     setSelectedLength(pickDefaultLength(lengthOptions, product.description));
@@ -204,9 +229,10 @@ export function ProductCard({
 
         {isQuickAdding && (
           <Box
+            ref={panelRef}
             role="dialog"
             aria-label={`Quick add ${product.name}`}
-            className="absolute inset-0 bg-surface/85 backdrop-blur-sm px-sm pt-sm pb-2xl sm:px-md sm:pt-md sm:pb-3xl flex items-center justify-center overflow-y-auto"
+            className="absolute inset-0 bg-surface/85 backdrop-blur-sm px-sm pt-sm pb-2xl sm:px-md sm:pt-md sm:pb-3xl flex items-start justify-center overflow-y-auto scroll-smooth animate-in fade-in duration-200"
           >
             <Stack gap="xs" align="stretch" className="w-full sm:gap-sm">
               {hasVariants && (
@@ -238,7 +264,12 @@ export function ProductCard({
                   </Stack>
                 </Stack>
               )}
-              <Stack gap="xs" align="center">
+              <Stack
+                ref={quantitySectionRef}
+                gap="xs"
+                align="center"
+                className="scroll-mb-2xl"
+              >
                 <Text
                   variant="label-caps"
                   tone="muted"

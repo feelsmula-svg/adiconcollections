@@ -176,7 +176,8 @@ export function UserNotificationBell({
         aria-label="Notifications"
         aria-hidden={!open}
         className={cn(
-          "absolute right-0 top-[calc(100%+10px)] z-[60] w-[340px] max-w-[calc(100vw-24px)] origin-top-right",
+          "fixed inset-x-md top-[72px] z-[60] origin-top",
+          "sm:absolute sm:inset-x-auto sm:right-0 sm:left-auto sm:top-[calc(100%+10px)] sm:w-[340px] sm:max-w-[calc(100vw-24px)] sm:origin-top-right",
           "rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-[0_24px_48px_-12px_rgba(34,18,8,0.20)] overflow-hidden",
           "transition-all duration-150",
           open

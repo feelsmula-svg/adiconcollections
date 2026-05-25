@@ -59,6 +59,39 @@ interface StripePaymentProps {
   getCartPayload: () => CheckoutCartPayload;
 }
 
+/**
+ * Defensive pre-flight check: surface the most common cart payload problems
+ * (empty cart, missing shipping fields, bad totals) BEFORE the request so the
+ * user sees a meaningful message instead of a server-side "Invalid request
+ * body".
+ */
+function validateCartPayload(cart: CheckoutCartPayload): string | null {
+  if (cart.items.length === 0) {
+    return "Your cart is empty.";
+  }
+  for (const item of cart.items) {
+    if (!item.id || !item.name) return "A cart item is missing required info.";
+    if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+      return `Invalid quantity for "${item.name}".`;
+    }
+    if (!Number.isInteger(item.price) || item.price < 0) {
+      return `Invalid price for "${item.name}".`;
+    }
+  }
+  if (!cart.customerName.trim()) return "Please enter your full name.";
+  if (!cart.customerEmail.trim()) return "Please enter your email.";
+  const a = cart.shippingAddress;
+  if (!a.name.trim()) return "Please enter your shipping name.";
+  if (!a.line1.trim()) return "Please enter your street address.";
+  if (!a.city.trim()) return "Please enter your city.";
+  if (!a.state.trim()) return "Please enter your state.";
+  if (!a.postal.trim()) return "Please enter your ZIP / postal code.";
+  if (cart.totals.total < 50) {
+    return "Order total is below the minimum charge ($0.50).";
+  }
+  return null;
+}
+
 export function StripePayment({
   amountCents,
   disabled,
@@ -84,6 +117,10 @@ export function StripePayment({
     (async () => {
       try {
         const cart = getCartPayloadRef.current();
+        const preCheckError = validateCartPayload(cart);
+        if (preCheckError) {
+          throw new Error(preCheckError);
+        }
         const response = await fetch("/api/stripe/payment-intent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -113,9 +150,16 @@ export function StripePayment({
           clientSecret?: string;
           paymentIntentId?: string;
           error?: string;
+          issues?: Array<{ path: string; message: string }>;
         };
         if (!response.ok || !data.clientSecret) {
-          throw new Error(data.error ?? "Could not create payment intent.");
+          const issueDetail = data.issues
+            ?.map((issue) => `${issue.path || "(root)"}: ${issue.message}`)
+            .join("\n");
+          const message = issueDetail
+            ? `${data.error ?? "Could not create payment intent."}\n${issueDetail}`
+            : data.error ?? "Could not create payment intent.";
+          throw new Error(message);
         }
         intentIdRef.current = data.paymentIntentId ?? null;
         setClientSecret(data.clientSecret);
@@ -157,7 +201,9 @@ export function StripePayment({
 
         {!disabled && intentError && (
           <Box className="bg-error-container text-on-error-container rounded-lg p-md">
-            <Text variant="body-sm">{intentError}</Text>
+            <Text variant="body-sm" className="whitespace-pre-wrap">
+              {intentError}
+            </Text>
           </Box>
         )}
 

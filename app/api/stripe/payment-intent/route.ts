@@ -169,11 +169,18 @@ export async function POST(request: Request) {
     const json = await request.json();
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) {
+      const issues = parsed.error.issues.map((issue) => ({
+        path: issue.path.join("."),
+        message: issue.message,
+      }));
+      const summary =
+        issues.length > 0
+          ? `Invalid request body — ${issues
+              .map((i) => `${i.path || "(root)"}: ${i.message}`)
+              .join("; ")}`
+          : "Invalid request body";
       return NextResponse.json(
-        {
-          error: "Invalid request body",
-          fieldErrors: parsed.error.flatten().fieldErrors,
-        },
+        { error: summary, issues },
         { status: 400 },
       );
     }
