@@ -59,10 +59,11 @@ export async function getActiveShipment(): Promise<OrderSummary | null> {
   const user = await getSessionUser();
   if (!user) return null;
   const repo = await getOrderRepository();
+  // The repo already restricts to active statuses (processing + in-transit).
+  // We surface both here so a freshly placed order appears on the dashboard
+  // immediately instead of waiting until it ships.
   const active = await repo.findActiveForUser(user.id);
-  if (!active) return null;
-  if (active.status !== "in-transit") return null;
-  return toSummary(active);
+  return active ? toSummary(active) : null;
 }
 
 export async function getOrderById(id: string): Promise<OrderDetail | null> {
