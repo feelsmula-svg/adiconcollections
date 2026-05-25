@@ -4,11 +4,11 @@ import { z } from "zod";
 import { getSessionUser } from "@/app/lib/auth/server";
 import { getCampaignRepository } from "@/app/lib/campaigns/campaign-repository";
 import { quoteCampaignDiscount } from "@/app/lib/campaigns/discount";
-import { DELIVERY_COST_CENTS, TAX_RATE } from "@/app/lib/cart/constants";
 import { notifyAdmins, notifyUser } from "@/app/lib/notifications/notify";
 import { getOrderRepository } from "@/app/lib/orders/order-repository";
 import { formatCurrency } from "@/app/lib/orders/format";
 import { findStorefrontProduct } from "@/app/lib/products/storefront";
+import { getShippingSettings } from "@/app/lib/settings/shipping/actions";
 import { getStripe } from "@/app/lib/stripe/server";
 
 const MIN_USD_CENTS = 50;
@@ -115,7 +115,11 @@ async function recomputeTotalsForCart(
     }
     subtotal += unit * item.quantity;
   }
-  const shipping = DELIVERY_COST_CENTS[cart.deliveryMethod];
+  const shippingSettings = await getShippingSettings();
+  const shipping =
+    cart.deliveryMethod === "same-day"
+      ? shippingSettings.sameDay.priceCents
+      : shippingSettings.standard.priceCents;
 
   // Apply server-side promo discount if a valid code was supplied.
   let subtotalDiscount = 0;
@@ -136,7 +140,7 @@ async function recomputeTotalsForCart(
 
   const discountedSubtotal = Math.max(0, subtotal - subtotalDiscount);
   const discountedShipping = Math.max(0, shipping - shippingDiscount);
-  const tax = Math.round(discountedSubtotal * TAX_RATE);
+  const tax = Math.round(discountedSubtotal * shippingSettings.taxRate);
   const total = discountedSubtotal + discountedShipping + tax;
   return {
     ok: true,

@@ -7,6 +7,7 @@ import {
   Drawer,
   Heading,
   NavList,
+  Row,
   Stack,
   Text,
 } from "@/app/components/ui";
@@ -36,67 +37,92 @@ interface NavEntry {
   key: AdminNavKey;
 }
 
-const NAV_ENTRIES: NavEntry[] = [
-  { key: "dashboard", href: "/admin", label: "Dashboard", icon: "home" },
+interface NavSection {
+  label: string;
+  items: NavEntry[];
+}
+
+const NAV_SECTIONS: NavSection[] = [
   {
-    key: "orders",
-    href: "/admin/orders",
-    label: "Orders",
-    icon: "receipt_long",
+    label: "Overview",
+    items: [
+      { key: "dashboard", href: "/admin", label: "Dashboard", icon: "home" },
+    ],
   },
   {
-    key: "products",
-    href: "/admin/products",
-    label: "Catalog",
-    icon: "inventory_2",
+    label: "Storefront",
+    items: [
+      {
+        key: "orders",
+        href: "/admin/orders",
+        label: "Orders",
+        icon: "receipt_long",
+      },
+      {
+        key: "products",
+        href: "/admin/products",
+        label: "Catalog",
+        icon: "inventory_2",
+      },
+      {
+        key: "inventory",
+        href: "/admin/inventory",
+        label: "Inventory",
+        icon: "warehouse",
+      },
+      {
+        key: "customers",
+        href: "/admin/customers",
+        label: "Customers",
+        icon: "group",
+      },
+    ],
   },
   {
-    key: "inventory",
-    href: "/admin/inventory",
-    label: "Inventory",
-    icon: "warehouse",
+    label: "Engagement",
+    items: [
+      {
+        key: "messages",
+        href: "/admin/messages",
+        label: "Messages",
+        icon: "forum",
+      },
+      {
+        key: "campaigns",
+        href: "/admin/campaigns",
+        label: "Campaigns",
+        icon: "campaign",
+      },
+      {
+        key: "promo-codes",
+        href: "/admin/promo-codes",
+        label: "Promo codes",
+        icon: "confirmation_number",
+      },
+      {
+        key: "marketing",
+        href: "/admin/marketing",
+        label: "Marketing",
+        icon: "trending_up",
+      },
+    ],
   },
   {
-    key: "customers",
-    href: "/admin/customers",
-    label: "Customers",
-    icon: "group",
-  },
-  {
-    key: "messages",
-    href: "/admin/messages",
-    label: "Messages",
-    icon: "forum",
-  },
-  {
-    key: "campaigns",
-    href: "/admin/campaigns",
-    label: "Campaigns",
-    icon: "campaign",
-  },
-  {
-    key: "promo-codes",
-    href: "/admin/promo-codes",
-    label: "Promo codes",
-    icon: "confirmation_number",
-  },
-  {
-    key: "marketing",
-    href: "/admin/marketing",
-    label: "Marketing",
-    icon: "trending_up",
-  },
-  {
-    key: "taxonomy",
-    href: "/admin/taxonomy",
-    label: "Taxonomy",
-    icon: "category",
-  },
-  {
-    key: "settings",
-    href: "/admin/settings",
-    label: "Settings",
-    icon: "settings",
+    label: "Setup",
+    items: [
+      {
+        key: "taxonomy",
+        href: "/admin/taxonomy",
+        label: "Taxonomy",
+        icon: "category",
+      },
+      {
+        key: "settings",
+        href: "/admin/settings",
+        label: "Settings",
+        icon: "settings",
+      },
+    ],
   },
 ];
 
@@ -118,34 +144,68 @@ export function AdminShell({
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const sidebarBody = (
-    <Stack gap="lg" className="h-full px-lg py-xl">
-      <Stack gap="xs">
-        <Heading level={2} variant="headline-md" tone="primary">
-          Adicon
-        </Heading>
-        <Text variant="body-sm" tone="muted">
-          Admin Console
-        </Text>
-      </Stack>
-
-      <NavList
-        ariaLabel="Admin sections"
-        className="gap-xs flex-grow overflow-y-auto"
-      >
-        {NAV_ENTRIES.map((entry) => (
-          <NavList.Item
-            key={entry.key}
-            href={entry.href}
-            icon={entry.icon}
-            active={entry.key === active}
-            onClick={() => setDrawerOpen(false)}
+    <Stack gap="md" className="min-h-full px-md py-md">
+      <Row gap="sm" align="center" className="px-sm pt-xs">
+        <Box className="w-9 h-9 rounded-lg bg-primary-container flex items-center justify-center shadow-sm">
+          <Text
+            as="span"
+            variant="label-caps"
+            className="text-on-primary-container font-bold tracking-normal text-base"
           >
-            {entry.label}
-          </NavList.Item>
+            A
+          </Text>
+        </Box>
+        <Stack gap="none" className="flex-1 min-w-0">
+          <Heading
+            level={2}
+            variant="headline-sm"
+            tone="primary"
+            className="leading-none"
+          >
+            Adicon
+          </Heading>
+          <Text
+            variant="label-caps"
+            tone="muted"
+            as="span"
+            className="text-[10px] tracking-[0.18em]"
+          >
+            Admin Console
+          </Text>
+        </Stack>
+      </Row>
+
+      <NavList ariaLabel="Admin sections" className="gap-md flex-grow">
+        {NAV_SECTIONS.map((section) => (
+          <Stack gap="xs" key={section.label}>
+            <Text
+              as="span"
+              variant="label-caps"
+              tone="muted"
+              className="px-sm text-[10px] tracking-[0.18em] opacity-80"
+              aria-hidden
+            >
+              {section.label}
+            </Text>
+            <Stack gap="xs">
+              {section.items.map((entry) => (
+                <NavList.Item
+                  key={entry.key}
+                  href={entry.href}
+                  icon={entry.icon}
+                  active={entry.key === active}
+                  size="sm"
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  {entry.label}
+                </NavList.Item>
+              ))}
+            </Stack>
+          </Stack>
         ))}
       </NavList>
 
-      <Box className="mt-auto pt-lg">
+      <Box className="mt-auto pt-sm border-t border-outline-variant">
         <AdminBadge name={user.name} email={user.email} />
       </Box>
     </Stack>
@@ -156,7 +216,7 @@ export function AdminShell({
       <Box
         role="navigation"
         aria-label="Admin navigation"
-        className="hidden lg:flex fixed inset-y-0 left-0 w-[260px] bg-surface border-r border-outline-variant z-50 flex-col"
+        className="hidden lg:flex fixed inset-y-0 left-0 w-[260px] bg-surface border-r border-outline-variant z-50 flex-col overflow-y-auto"
       >
         {sidebarBody}
       </Box>

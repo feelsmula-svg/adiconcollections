@@ -69,7 +69,30 @@ export type ActivityKind =
   | "shipping-updated"
   | "notes-updated"
   | "expected-delivery-updated"
-  | "signature-updated";
+  | "signature-updated"
+  | "refund-issued"
+  | "refund-updated"
+  | "refund-failed";
+
+export type RefundStatus = "pending" | "succeeded" | "failed" | "cancelled";
+
+export interface OrderRefund {
+  /** Stripe refund ID. Absent when the PI was cancelled (no charge) or the refund couldn't be created. */
+  stripeRefundId?: string;
+  status: RefundStatus;
+  /** Amount in dollars (matches the OrderTotals.total unit). */
+  amount: number;
+  createdAt: string;
+  /** Set when the refund moves to a terminal state. */
+  completedAt?: string;
+  /** Set when status === "failed". */
+  failureReason?: string;
+  /**
+   * When `true`, the underlying PaymentIntent was cancelled rather than
+   * refunded — the customer was never actually charged.
+   */
+  paymentCancelled?: boolean;
+}
 
 export interface OrderActivityEntry {
   id: string;
@@ -161,6 +184,7 @@ export interface OrderRecord extends OrderSummary {
   activity?: OrderActivityEntry[];
   paymentIntentId?: string;
   deliveryMethod?: OrderDeliveryMethod;
+  refund?: OrderRefund;
 }
 
 export type OrderDetail = OrderRecord;

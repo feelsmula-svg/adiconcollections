@@ -29,3 +29,18 @@ export const NOTIFICATION_ICON: Record<NotificationKind, string> = {
   "admin-reply": "mark_email_read",
   other: "notifications",
 };
+
+export const NOTIFICATION_KIND_LABEL: Record<NotificationKind, string> = {
+  "order-placed": "Order placed",
+  "order-cancelled": "Order cancelled",
+  "admin-signup-pending": "Admin signup pending",
+  "admin-reply": "Concierge reply",
+  other: "Notification",
+};
+
+export const NOTIFICATION_LINK_LABEL: Partial<Record<NotificationKind, string>> = {
+  "order-placed": "View order",
+  "order-cancelled": "View order",
+  "admin-signup-pending": "Review request",
+  "admin-reply": "Open message",
+};

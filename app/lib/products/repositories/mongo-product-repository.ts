@@ -83,8 +83,10 @@ export class MongoProductRepository implements ProductRepository {
       createdAt: now,
       updatedAt: now,
     };
+    // `insertOne` mutates `record` to attach a Mongo `_id`. Re-strip before
+    // returning so client components never see the ObjectId.
     await coll.insertOne(record);
-    return record;
+    return strip(record);
   }
 
   async update(
@@ -117,7 +119,8 @@ export class MongoProductRepository implements ProductRepository {
       updatedAt: new Date().toISOString(),
     };
     await coll.replaceOne({ id }, updated);
-    return updated;
+    // Re-strip in case the driver attaches anything during the round-trip.
+    return strip(updated);
   }
 
   async delete(id: string): Promise<boolean> {

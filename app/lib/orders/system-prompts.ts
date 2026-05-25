@@ -37,6 +37,9 @@ const ICON: Record<ActivityKind, string> = {
   "notes-updated": "edit_note",
   "expected-delivery-updated": "event",
   "signature-updated": "draw",
+  "refund-issued": "currency_exchange",
+  "refund-updated": "currency_exchange",
+  "refund-failed": "report",
 };
 
 const TONE: Record<ActivityKind, PromptTone> = {
@@ -49,6 +52,9 @@ const TONE: Record<ActivityKind, PromptTone> = {
   "notes-updated": "neutral",
   "expected-delivery-updated": "tertiary",
   "signature-updated": "neutral",
+  "refund-issued": "tertiary",
+  "refund-updated": "tertiary",
+  "refund-failed": "error",
 };
 
 function extractAdvancedTo(message: string): string | null {
@@ -142,6 +148,35 @@ function customerCopyFor(
           ? "Signature now required at delivery"
           : "Signature no longer required",
       };
+    case "refund-issued":
+    case "refund-updated": {
+      const refund = order.refund;
+      if (!refund) return { title: "Refund update" };
+      if (refund.paymentCancelled) {
+        return {
+          title: "Payment cancelled",
+          body: "You were not charged for this order.",
+        };
+      }
+      const amount = `$${refund.amount.toFixed(2)}`;
+      if (refund.status === "succeeded") {
+        return {
+          title: `Refund of ${amount} settled`,
+          body: "The funds are back on your original card.",
+        };
+      }
+      return {
+        title: `Refund of ${amount} in progress`,
+        body: "Most banks settle the funds within 3–10 business days.",
+      };
+    }
+    case "refund-failed":
+      return {
+        title: "Refund couldn't be processed",
+        body:
+          order.refund?.failureReason ??
+          "Our team will follow up to make sure you receive your refund.",
+      };
     case "reverted":
     case "notes-updated":
       return null;
@@ -209,6 +244,29 @@ function adminCopyFor(
         title: order.requiresSignature
           ? "Signature now required"
           : "Signature requirement removed",
+      };
+    case "refund-issued":
+    case "refund-updated": {
+      const refund = order.refund;
+      if (!refund) return { title: entry.message };
+      if (refund.paymentCancelled) {
+        return { title: "Payment cancelled — no charge captured" };
+      }
+      const amount = `$${refund.amount.toFixed(2)}`;
+      return {
+        title:
+          refund.status === "succeeded"
+            ? `Refund of ${amount} settled`
+            : `Refund of ${amount} initiated`,
+        body: refund.stripeRefundId ?? undefined,
+      };
+    }
+    case "refund-failed":
+      return {
+        title: "Refund failed at Stripe",
+        body:
+          order.refund?.failureReason ??
+          "Issue a manual refund from the Stripe dashboard.",
       };
   }
 }

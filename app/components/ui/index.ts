@@ -20,6 +20,10 @@ export { QuantityStepper } from "./QuantityStepper";
 export { Image } from "./Image";
 export { Drawer } from "./Drawer";
 export { Modal } from "./Modal";
+export {
+  NotificationDetailModal,
+  type NotificationDetailItem,
+} from "./NotificationDetailModal";
 export { TextLink } from "./TextLink";
 export { RadioOption } from "./RadioOption";
 export { Checkbox } from "./Checkbox";

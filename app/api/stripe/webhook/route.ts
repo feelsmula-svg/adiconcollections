@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 
 import { notifyAdmins, notifyUser } from "@/app/lib/notifications/notify";
 import { getOrderRepository } from "@/app/lib/orders/order-repository";
+import { refundFromStripe } from "@/app/lib/orders/refund";
 import { getStripe } from "@/app/lib/stripe/server";
 
 export const runtime = "nodejs";
@@ -51,6 +52,10 @@ export async function POST(request: Request) {
       case "payment_intent.succeeded":
         await handlePaymentSuccess(event.data.object as Stripe.PaymentIntent);
         break;
+      case "charge.refunded":
+      case "charge.refund.updated":
+        await handleRefundChange(event.data.object as Stripe.Charge | Stripe.Refund);
+        break;
       default:
         // ignore other events
         break;
@@ -94,6 +99,78 @@ async function handlePaymentFailure(intent: Stripe.PaymentIntent): Promise<void>
       link: `/account/orders/${order.id}`,
       email: order.customerEmail,
       emailSubject: `Order ${order.reference} — payment issue`,
+    });
+  }
+}
+
+async function handleRefundChange(
+  object: Stripe.Charge | Stripe.Refund,
+): Promise<void> {
+  // `charge.refunded` ships the Charge (with `refunds.data`); refund.updated
+  // ships the Refund itself. Normalise to a Refund + paymentIntentId pair.
+  let refund: Stripe.Refund | null = null;
+  let paymentIntentId: string | null = null;
+
+  if (object.object === "charge") {
+    const charge = object as Stripe.Charge;
+    paymentIntentId =
+      typeof charge.payment_intent === "string"
+        ? charge.payment_intent
+        : (charge.payment_intent?.id ?? null);
+    const latest = charge.refunds?.data?.[0] ?? null;
+    refund = latest;
+  } else {
+    refund = object as Stripe.Refund;
+    paymentIntentId =
+      typeof refund.payment_intent === "string"
+        ? refund.payment_intent
+        : (refund.payment_intent?.id ?? null);
+  }
+
+  if (!refund || !paymentIntentId) return;
+
+  const repo = await getOrderRepository();
+  const order = await repo.findByPaymentIntent(paymentIntentId);
+  if (!order) return;
+
+  // Ignore stale updates that don't match the refund we already have.
+  if (
+    order.refund?.stripeRefundId &&
+    order.refund.stripeRefundId !== refund.id
+  ) {
+    return;
+  }
+
+  const next = refundFromStripe(refund);
+  // Skip no-op writes — saves an admin activity row on duplicate webhooks.
+  if (
+    order.refund &&
+    order.refund.status === next.status &&
+    order.refund.stripeRefundId === next.stripeRefundId
+  ) {
+    return;
+  }
+
+  await repo.recordRefund(order.id, {
+    actor: { email: SYSTEM_ACTOR_EMAIL },
+    refund: next,
+  });
+
+  if (next.status === "succeeded" && order.userId) {
+    void notifyUser({
+      userId: order.userId,
+      kind: "order-cancelled",
+      title: `Refund settled for ${order.reference}`,
+      body: `Your refund of $${next.amount.toFixed(2)} has settled on your original card.`,
+      link: `/account/orders/${order.id}`,
+    });
+  }
+  if (next.status === "failed") {
+    void notifyAdmins({
+      kind: "order-cancelled",
+      title: `Refund failed for ${order.reference}`,
+      body: `${order.customerName}: ${next.failureReason ?? "Refund failed at Stripe."}`,
+      link: `/admin/orders/${order.id}`,
     });
   }
 }

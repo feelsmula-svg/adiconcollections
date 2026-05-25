@@ -1,5 +1,6 @@
 import { AccountShell } from "@/app/components/account/account-shell";
 import { AddressBookSection } from "@/app/components/account/address-book-section";
+import { ChangePasswordSection } from "@/app/components/account/change-password-section";
 import { PersonalDetailsSection } from "@/app/components/account/personal-details-section";
 import { Box, Heading, Stack, Text } from "@/app/components/ui";
 import { listAddresses } from "@/app/lib/addresses/actions";
@@ -46,6 +47,7 @@ export default async function AccountProfilePage() {
         phone={user.phone}
       />
       <AddressBookSection addresses={addresses} />
+      <ChangePasswordSection />
     </AccountShell>
   );
 }

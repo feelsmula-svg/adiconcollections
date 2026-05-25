@@ -121,7 +121,9 @@ export class MongoCategoryRepository implements CategoryRepository {
       }
       throw error;
     }
-    return record;
+    // `insertOne` mutates `record` to attach a Mongo `_id`. Re-strip before
+    // returning so client components never see the ObjectId.
+    return strip(record);
   }
 
   async update(
@@ -138,7 +140,8 @@ export class MongoCategoryRepository implements CategoryRepository {
       updatedAt: new Date().toISOString(),
     };
     await coll.replaceOne({ id }, updated);
-    return updated;
+    // Re-strip in case the driver attaches anything during the round-trip.
+    return strip(updated);
   }
 
   async delete(id: string): Promise<boolean> {

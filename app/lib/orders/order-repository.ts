@@ -6,6 +6,7 @@ import type {
   OrderItem,
   OrderPayment,
   OrderRecord,
+  OrderRefund,
   OrderStatus,
   OrderTotals,
   ShippingCarrier,
@@ -76,6 +77,13 @@ export interface UpdateTotalsInput {
   totals: OrderTotals;
 }
 
+export interface RecordRefundInput {
+  actor: ActorContext;
+  refund: OrderRefund;
+  /** Activity-feed message override. Defaults to a sensible string based on refund.status. */
+  activityMessage?: string;
+}
+
 export interface OrderRepository {
   list(filters?: ListOrdersFilters): Promise<OrderRecord[]>;
   findById(id: string): Promise<OrderRecord | null>;
@@ -118,6 +126,10 @@ export interface OrderRepository {
   updateSignature(
     id: string,
     input: UpdateSignatureInput,
+  ): Promise<OrderRecord | null>;
+  recordRefund(
+    id: string,
+    input: RecordRefundInput,
   ): Promise<OrderRecord | null>;
 }
 

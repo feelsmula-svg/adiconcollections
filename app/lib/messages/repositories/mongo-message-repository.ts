@@ -52,8 +52,10 @@ export class MongoMessageRepository implements MessageRepository {
       createdAt: new Date().toISOString(),
       replies: [],
     };
+    // `insertOne` mutates `record` to attach a Mongo `_id`. Re-strip before
+    // returning so client components never see the ObjectId.
     await coll.insertOne(record);
-    return record;
+    return strip(record);
   }
 
   async list(

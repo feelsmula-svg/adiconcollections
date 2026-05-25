@@ -1,7 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import type { Collection, Document } from "mongodb";
+import type { Collection, Document, Filter } from "mongodb";
 
 import { getDb } from "@/app/lib/db/mongo";
 
@@ -13,11 +13,15 @@ import type { AdminNotification } from "../types";
 
 const COLLECTION = "admin_notifications";
 
-async function collection(): Promise<
-  Collection<AdminNotification & Document>
-> {
+// On-disk shape: legacy records may have `recipientUserId: null` because the
+// driver historically serialized `undefined` as BSON null. The wider type
+// lets the Filter API accept `{ recipientUserId: null }` queries.
+type NotificationDoc = Omit<AdminNotification, "recipientUserId"> &
+  Document & { recipientUserId?: string | null };
+
+async function collection(): Promise<Collection<NotificationDoc>> {
   const db = await getDb();
-  const coll = db.collection<AdminNotification & Document>(COLLECTION);
+  const coll = db.collection<NotificationDoc>(COLLECTION);
   await Promise.all([
     coll.createIndex({ id: 1 }, { unique: true }),
     coll.createIndex({ createdAt: -1 }),
@@ -25,14 +29,13 @@ async function collection(): Promise<
   return coll;
 }
 
-function strip(
-  record: AdminNotification & { _id?: unknown },
-): AdminNotification {
-  const { _id, ...rest } = record;
+function strip(record: NotificationDoc & { _id?: unknown }): AdminNotification {
+  const { _id, recipientUserId, ...rest } = record;
   void _id;
   return {
     ...rest,
     readBy: Array.isArray(rest.readBy) ? rest.readBy : [],
+    ...(recipientUserId ? { recipientUserId } : {}),
   };
 }
 
@@ -43,11 +46,13 @@ export class MongoNotificationRepository implements NotificationRepository {
       id: randomUUID(),
       kind: input.kind,
       title: input.title,
-      body: input.body,
-      link: input.link,
-      recipientUserId: input.recipientUserId,
       createdAt: new Date().toISOString(),
       readBy: [],
+      ...(input.body !== undefined ? { body: input.body } : {}),
+      ...(input.link !== undefined ? { link: input.link } : {}),
+      ...(input.recipientUserId !== undefined
+        ? { recipientUserId: input.recipientUserId }
+        : {}),
     };
     await coll.insertOne(record);
     return record;
@@ -56,7 +61,11 @@ export class MongoNotificationRepository implements NotificationRepository {
   async list(limit = 30): Promise<AdminNotification[]> {
     const coll = await collection();
     const docs = await coll
-      .find({ recipientUserId: { $exists: false } })
+      // Equality with `null` matches both missing fields and explicit null
+      // values, so older records that stored `recipientUserId: null` for
+      // broadcasts still surface here. Cast: the driver's Filter type
+      // narrows the widened field back to `string | undefined` for queries.
+      .find({ recipientUserId: null } as Filter<NotificationDoc>)
       .sort({ createdAt: -1 })
       .limit(Math.min(Math.max(limit, 1), 200))
       .toArray();
@@ -79,9 +88,9 @@ export class MongoNotificationRepository implements NotificationRepository {
   async countUnread(userId: string): Promise<number> {
     const coll = await collection();
     return coll.countDocuments({
-      recipientUserId: { $exists: false },
+      recipientUserId: null,
       readBy: { $ne: userId },
-    });
+    } as Filter<NotificationDoc>);
   }
 
   async countUnreadForUser(userId: string): Promise<number> {
@@ -101,9 +110,9 @@ export class MongoNotificationRepository implements NotificationRepository {
     const coll = await collection();
     await coll.updateMany(
       {
-        recipientUserId: { $exists: false },
+        recipientUserId: null,
         readBy: { $ne: userId },
-      },
+      } as Filter<NotificationDoc>,
       { $addToSet: { readBy: userId } },
     );
   }

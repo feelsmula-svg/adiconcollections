@@ -76,8 +76,10 @@ export class MongoAddressRepository implements AddressRepository {
       new Date().toISOString(),
     );
     await this.clearDefaultsIfNeeded(coll, userId, record);
+    // `insertOne` mutates `record` to attach a Mongo `_id`. Re-strip before
+    // returning so client components never see the ObjectId.
     await coll.insertOne(record);
-    return record;
+    return strip(record);
   }
 
   async update(
@@ -91,7 +93,8 @@ export class MongoAddressRepository implements AddressRepository {
     const record = normalise(userId, id, input, existing.createdAt);
     await this.clearDefaultsIfNeeded(coll, userId, record);
     await coll.replaceOne({ id, userId }, record);
-    return record;
+    // Re-strip in case the driver attaches anything during the round-trip.
+    return strip(record);
   }
 
   async delete(id: string, userId: string): Promise<boolean> {

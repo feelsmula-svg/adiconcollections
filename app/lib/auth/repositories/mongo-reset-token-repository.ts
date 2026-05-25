@@ -52,8 +52,10 @@ export class MongoResetTokenRepository implements ResetTokenRepository {
       createdAt: now,
       expiresAt: input.expiresAt,
     };
+    // `insertOne` mutates `record` to attach a Mongo `_id`. Re-strip before
+    // returning so client components never see the ObjectId.
     await coll.insertOne(record);
-    return record;
+    return strip(record);
   }
 
   async findActiveByHash(

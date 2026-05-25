@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { TAX_RATE } from "@/app/lib/cart/constants";
 import type { CartLine, CartProduct } from "@/app/lib/cart/types";
 
 export interface AppliedPromo {
@@ -117,15 +116,6 @@ export function useCartSubtotalCents(): number {
       0,
     ),
   );
-}
-
-export function useCartTaxCents(): number {
-  const subtotal = useCartSubtotalCents();
-  return Math.round(subtotal * TAX_RATE);
-}
-
-export function useCartTotalCents(): number {
-  return useCartSubtotalCents() + useCartTaxCents();
 }
 
 /**

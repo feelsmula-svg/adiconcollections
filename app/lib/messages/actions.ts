@@ -110,7 +110,7 @@ export async function replyToContactMessage(
         kind: "admin-reply",
         title: `Re: ${message.subject}`,
         body: parsed.data.body,
-        link: "/account",
+        link: `/account/messages/${message.id}`,
         recipientUserId,
       });
       inAppDelivered = true;

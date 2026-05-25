@@ -263,6 +263,7 @@ export function OrderManagementPanel({ order }: OrderManagementPanelProps) {
                     {order.cancellationReason ?? "No reason recorded"}
                   </Text>
                 </Row>
+                <RefundSummary order={order} />
                 <Row gap="sm" className="flex-wrap">
                   <Button
                     variant="outline"
@@ -455,8 +456,10 @@ export function OrderManagementPanel({ order }: OrderManagementPanelProps) {
               Cancel order
             </Heading>
             <Text variant="body-sm" tone="muted">
-              Cancellation stops fulfilment and flags the order. The customer
-              will see “Cancelled” on their order history.
+              Cancellation stops fulfilment and flags the order. If the
+              customer was charged, we&apos;ll automatically issue a full
+              refund of ${order.totals.total.toFixed(2)} to their original
+              card.
             </Text>
             <Row justify="end">
               <Button
@@ -495,7 +498,9 @@ export function OrderManagementPanel({ order }: OrderManagementPanelProps) {
           </Heading>
           <Text variant="body-sm" tone="muted">
             Provide a reason — this will be saved to the order activity log and
-            shown internally.
+            shown internally. A full refund of $
+            {order.totals.total.toFixed(2)} will be issued automatically if the
+            customer was charged.
           </Text>
           <FormField label="Reason">
             <Textarea
@@ -607,6 +612,90 @@ function ActivityFeed({ entries }: ActivityFeedProps) {
             </Row>
           ))}
         </Stack>
+      </Stack>
+    </Card>
+  );
+}
+
+const REFUND_TONE: Record<
+  NonNullable<OrderRecord["refund"]>["status"],
+  "primary" | "secondary" | "tertiary" | "neutral" | "error"
+> = {
+  succeeded: "tertiary",
+  pending: "secondary",
+  failed: "error",
+  cancelled: "neutral",
+};
+
+const REFUND_LABEL: Record<
+  NonNullable<OrderRecord["refund"]>["status"],
+  string
+> = {
+  succeeded: "Refund settled",
+  pending: "Refund in progress",
+  failed: "Refund failed",
+  cancelled: "Payment cancelled",
+};
+
+function RefundSummary({ order }: { order: OrderRecord }) {
+  const refund = order.refund;
+  if (!refund) {
+    if (!order.paymentIntentId) return null;
+    return (
+      <Card variant="outlined" padding="sm" rounded="lg">
+        <Row align="center" gap="sm" className="flex-wrap">
+          <Badge tone="neutral">Refund pending review</Badge>
+          <Text variant="body-sm" tone="muted">
+            No refund recorded yet for this cancellation.
+          </Text>
+        </Row>
+      </Card>
+    );
+  }
+
+  const amount = `$${refund.amount.toFixed(2)}`;
+  const helper = refund.paymentCancelled
+    ? "Customer was never charged."
+    : refund.status === "succeeded"
+      ? `${amount} returned to the original card.`
+      : refund.status === "pending"
+        ? `${amount} on its way back to the original card — most banks settle within 3–10 business days.`
+        : refund.status === "failed"
+          ? (refund.failureReason ??
+            `${amount} refund attempt failed. Issue manually from the Stripe dashboard.`)
+          : `${amount} refund was cancelled.`;
+
+  return (
+    <Card variant="outlined" padding="sm" rounded="lg">
+      <Stack gap="xs">
+        <Row align="center" gap="sm" className="flex-wrap">
+          <Badge tone={REFUND_TONE[refund.status]}>
+            {REFUND_LABEL[refund.status]}
+          </Badge>
+          {!refund.paymentCancelled ? (
+            <Text variant="body-sm" as="span" className="font-medium">
+              {amount}
+            </Text>
+          ) : null}
+          {refund.stripeRefundId ? (
+            <Text
+              variant="body-sm"
+              tone="muted"
+              as="span"
+              className="text-[11px]"
+            >
+              {refund.stripeRefundId}
+            </Text>
+          ) : null}
+        </Row>
+        <Text variant="body-sm" tone="muted">
+          {helper}
+        </Text>
+        {refund.completedAt ? (
+          <Text variant="body-sm" tone="muted" as="span" className="text-[11px]">
+            {formatOrderTimestamp(refund.completedAt)}
+          </Text>
+        ) : null}
       </Stack>
     </Card>
   );

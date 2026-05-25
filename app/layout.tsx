@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Noto_Serif } from "next/font/google";
+import { BottomTabNav } from "@/app/components/bottom-tab-nav";
 import { CampaignModal } from "@/app/components/campaign-modal";
 import { CartShell } from "@/app/components/cart/cart-shell";
 import { getSessionUser } from "@/app/lib/auth/server";
@@ -57,6 +58,7 @@ export default async function RootLayout({
         >
           <CartShell>{children}</CartShell>
           <CampaignModal campaigns={modalCampaigns} />
+          <BottomTabNav />
         </WishlistProvider>
       </body>
     </html>

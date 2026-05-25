@@ -5,9 +5,8 @@ import { useState } from "react";
 
 import {
   Avatar,
-  Badge,
-  Button,
-  Card,
+  Box,
+  IconButton,
   Row,
   Stack,
   Text,
@@ -36,19 +35,19 @@ export function AdminBadge({ name, email }: AdminBadgeProps) {
   }
 
   return (
-    <Card variant="tonal" padding="lg" rounded="2xl">
-      <Row gap="md" align="center" className="mb-md">
+    <Box className="rounded-xl border border-outline-variant bg-surface-container-low px-sm py-xs">
+      <Row gap="sm" align="center">
         <Avatar
           initials={initials}
-          size="md"
+          size="sm"
           tone="primary"
           label={`Signed in as ${name}`}
         />
-        <Stack gap="none" className="min-w-0">
+        <Stack gap="none" className="min-w-0 flex-1">
           <Text
-            variant="body-md"
+            variant="body-sm"
             as="span"
-            className="font-semibold truncate"
+            className="font-semibold truncate leading-tight"
           >
             {name}
           </Text>
@@ -56,30 +55,21 @@ export function AdminBadge({ name, email }: AdminBadgeProps) {
             variant="body-sm"
             tone="muted"
             as="span"
-            className="truncate"
+            className="truncate text-xs leading-tight"
           >
             {email}
           </Text>
         </Stack>
+        <IconButton
+          icon="logout"
+          label={busy ? "Signing out…" : "Sign out"}
+          size="sm"
+          variant="plain"
+          onClick={handleSignOut}
+          disabled={busy}
+        />
       </Row>
-      <Row align="center" gap="sm" className="mb-md">
-        <Badge tone="primary">Admin</Badge>
-        <Text variant="body-sm" tone="muted" as="span">
-          Full access
-        </Text>
-      </Row>
-      <Button
-        variant="secondary"
-        size="sm"
-        fullWidth
-        caps={false}
-        className="rounded-full"
-        onClick={handleSignOut}
-        disabled={busy}
-      >
-        {busy ? "Signing out…" : "Sign out"}
-      </Button>
-    </Card>
+    </Box>
   );
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -9,13 +9,17 @@ import {
   Card,
   Heading,
   Icon,
+  NotificationDetailModal,
   Row,
   Stack,
   Text,
+  type NotificationDetailItem,
 } from "@/app/components/ui";
 import { markUserNotificationRead } from "@/app/lib/notifications/user-actions";
 import {
   NOTIFICATION_ICON,
+  NOTIFICATION_KIND_LABEL,
+  NOTIFICATION_LINK_LABEL,
   type AdminNotification,
 } from "@/app/lib/notifications/types";
 
@@ -44,6 +48,7 @@ export function UserNotificationsPanel({
 }: UserNotificationsPanelProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   if (notifications.length === 0) return null;
 
@@ -53,17 +58,33 @@ export function UserNotificationsPanel({
         try {
           await markUserNotificationRead(entry.id);
         } catch {
-          // ignore — visit still happens
+          // ignore — modal still opens
         }
-        if (entry.link) router.push(entry.link);
-        else router.refresh();
+        router.refresh();
       });
-      return;
     }
-    if (entry.link) router.push(entry.link);
+    setActiveId(entry.id);
   };
 
+  const activeEntry =
+    notifications.find((entry) => entry.id === activeId) ?? null;
+
+  const activeDetail: NotificationDetailItem | null = activeEntry
+    ? {
+        id: activeEntry.id,
+        title: activeEntry.title,
+        body: activeEntry.body,
+        link: activeEntry.link,
+        createdAt: activeEntry.createdAt,
+        iconName: NOTIFICATION_ICON[activeEntry.kind],
+      }
+    : null;
+  const activeUnread = activeEntry
+    ? !activeEntry.readBy.includes(selfUserId)
+    : false;
+
   return (
+    <>
     <Card variant="outlined" padding="lg" rounded="2xl">
       <Stack gap="md">
         <Row gap="sm" align="center">
@@ -153,5 +174,21 @@ export function UserNotificationsPanel({
         </Stack>
       </Stack>
     </Card>
+
+      <NotificationDetailModal
+        open={activeEntry !== null}
+        onClose={() => setActiveId(null)}
+        notification={activeDetail}
+        unread={activeUnread}
+        kindLabel={
+          activeEntry ? NOTIFICATION_KIND_LABEL[activeEntry.kind] : undefined
+        }
+        linkLabel={
+          activeEntry
+            ? NOTIFICATION_LINK_LABEL[activeEntry.kind] ?? "View details"
+            : "View details"
+        }
+      />
+    </>
   );
 }

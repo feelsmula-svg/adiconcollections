@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   useCartStore,
   useCartSubtotalCents,
-  useCartTaxCents,
 } from "@/app/lib/state/cart-store";
 import {
   useCheckoutStore,
@@ -14,10 +13,8 @@ import {
 } from "@/app/lib/state/checkout-store";
 import { useHydrated } from "@/app/lib/state/hydration";
 import { formatPrice } from "@/app/lib/cart/format";
-import {
-  DELIVERY_COST_CENTS,
-  type DeliveryMethod,
-} from "@/app/lib/cart/constants";
+import { type DeliveryMethod } from "@/app/lib/cart/constants";
+import type { ShippingSettings } from "@/app/lib/settings/shipping/types";
 import {
   Box,
   Button,
@@ -39,7 +36,11 @@ import {
 import { CartPromoCode } from "@/app/components/cart/cart-promo-code";
 import { StripePayment } from "./stripe-payment";
 
-export function CheckoutContent() {
+interface CheckoutContentProps {
+  shippingSettings: ShippingSettings;
+}
+
+export function CheckoutContent({ shippingSettings }: CheckoutContentProps) {
   const hydrated = useHydrated();
   const lines = useCartStore((state) => state.lines);
   if (hydrated && lines.length === 0) {
@@ -49,17 +50,20 @@ export function CheckoutContent() {
     return null;
   }
 
-  return <CheckoutShell />;
+  return <CheckoutShell shippingSettings={shippingSettings} />;
 }
 
-function CheckoutShell() {
+function CheckoutShell({ shippingSettings }: CheckoutContentProps) {
   const subtotalCents = useCartSubtotalCents();
-  const taxCents = useCartTaxCents();
   const delivery = useCheckoutStore((state) => state.delivery);
   const isValid = useIsCheckoutValid();
   const appliedPromo = useCartStore((state) => state.appliedPromo);
 
-  const shippingCents = DELIVERY_COST_CENTS[delivery];
+  const shippingCents =
+    delivery === "same-day"
+      ? shippingSettings.sameDay.priceCents
+      : shippingSettings.standard.priceCents;
+  const taxCents = Math.round(subtotalCents * shippingSettings.taxRate);
   const promoDiscount = computePromoDiscount(
     appliedPromo,
     subtotalCents,
@@ -118,7 +122,7 @@ function CheckoutShell() {
             <Stack gap="xl">
               <CheckoutProgress current={1} />
               <ShippingSection />
-              <DeliverySection />
+              <DeliverySection shippingSettings={shippingSettings} />
               <StripePayment
                 amountCents={totalCents}
                 disabled={!isValid}
@@ -337,9 +341,10 @@ function ShippingSection() {
   );
 }
 
-function DeliverySection() {
+function DeliverySection({ shippingSettings }: CheckoutContentProps) {
   const delivery = useCheckoutStore((state) => state.delivery);
   const setDelivery = useCheckoutStore((state) => state.setDelivery);
+  const { sameDay, standard } = shippingSettings;
 
   return (
     <Card variant="elevated" padding="lg">
@@ -363,10 +368,10 @@ function DeliverySection() {
             <Row justify="between" align="center" gap="sm">
               <Stack gap="xs" className="min-w-0 flex-1">
                 <Text variant="body-md" className="font-bold" tone="primary">
-                  Express Next-Day
+                  {sameDay.label}
                 </Text>
                 <Text variant="body-sm" tone="muted">
-                  Order before 11 AM ET for next-business-day delivery.
+                  {sameDay.description}
                 </Text>
               </Stack>
               <Text
@@ -374,7 +379,7 @@ function DeliverySection() {
                 tone="primary"
                 className="font-bold shrink-0"
               >
-                {formatPrice(DELIVERY_COST_CENTS["same-day"])}
+                {formatPrice(sameDay.priceCents)}
               </Text>
             </Row>
           </RadioOption>
@@ -387,14 +392,14 @@ function DeliverySection() {
             <Row justify="between" align="center" gap="sm">
               <Stack gap="xs" className="min-w-0 flex-1">
                 <Text variant="body-md" className="font-bold">
-                  Standard (3–5 days)
+                  {standard.label}
                 </Text>
                 <Text variant="body-sm" tone="muted">
-                  Available nationwide across the contiguous US.
+                  {standard.description}
                 </Text>
               </Stack>
               <Text variant="body-md" className="font-bold shrink-0">
-                {formatPrice(DELIVERY_COST_CENTS.standard)}
+                {formatPrice(standard.priceCents)}
               </Text>
             </Row>
           </RadioOption>

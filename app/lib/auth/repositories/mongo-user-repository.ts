@@ -100,7 +100,9 @@ export class MongoUserRepository implements UserRepository {
       }
       throw error;
     }
-    return record;
+    // `insertOne` mutates `record` to attach a Mongo `_id`. Re-strip before
+    // returning so client components never see the ObjectId.
+    return strip(record);
   }
 
   async updatePassword(

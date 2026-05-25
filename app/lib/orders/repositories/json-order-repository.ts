@@ -18,6 +18,7 @@ import type {
   ListOrdersFilters,
   OrderActivityEntry,
   OrderRecord,
+  OrderRefund,
   OrderStatus,
   TrackingStep,
   TrackingStepKey,
@@ -28,6 +29,7 @@ import type {
   CancelOrderInput,
   CreateOrderInput,
   OrderRepository,
+  RecordRefundInput,
   RestoreOrderInput,
   UpdateExpectedDeliveryInput,
   UpdateNotesInput,
@@ -110,6 +112,35 @@ function deriveOrderStatus(tracking: readonly TrackingStep[]): OrderStatus {
   const key = tracking[focus]?.key as TrackingStepKey | undefined;
   if (!key) return "processing";
   return TRACKING_STEP_TO_STATUS[key];
+}
+
+function formatRefundAmount(refund: OrderRefund): string {
+  return `$${refund.amount.toFixed(2)}`;
+}
+
+function defaultRefundActivityMessage(refund: OrderRefund): string {
+  if (refund.paymentCancelled) {
+    return "Cancelled the pending payment — customer was not charged.";
+  }
+  switch (refund.status) {
+    case "succeeded":
+      return `Refund of ${formatRefundAmount(refund)} completed.`;
+    case "pending":
+      return `Refund of ${formatRefundAmount(refund)} initiated. Should settle in 3–10 business days.`;
+    case "failed":
+      return `Refund of ${formatRefundAmount(refund)} failed${refund.failureReason ? `: ${refund.failureReason}` : ""}.`;
+    case "cancelled":
+      return `Refund of ${formatRefundAmount(refund)} was cancelled.`;
+  }
+}
+
+function refundActivityKind(
+  next: OrderRefund,
+  prev: OrderRefund | undefined,
+): OrderActivityEntry["kind"] {
+  if (next.status === "failed") return "refund-failed";
+  if (prev && prev.status !== next.status) return "refund-updated";
+  return "refund-issued";
 }
 
 export class JsonOrderRepository implements OrderRepository {
@@ -511,6 +542,26 @@ export class JsonOrderRepository implements OrderRepository {
           : "Removed signature requirement",
       }),
     }));
+  }
+
+  async recordRefund(
+    id: string,
+    input: RecordRefundInput,
+  ): Promise<OrderRecord | null> {
+    return this.mutate(id, (existing) => {
+      const message =
+        input.activityMessage ?? defaultRefundActivityMessage(input.refund);
+      const kind = refundActivityKind(input.refund, existing.refund);
+      return {
+        ...existing,
+        refund: input.refund,
+        activity: appendActivity(existing.activity, {
+          actorEmail: input.actor.email,
+          kind,
+          message,
+        }),
+      };
+    });
   }
 
   private async mutate(

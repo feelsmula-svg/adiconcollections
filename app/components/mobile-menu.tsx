@@ -60,27 +60,7 @@ const GUEST_ACCOUNT: AccountItem[] = [
   },
 ];
 
-const AUTHED_ACCOUNT: AccountItem[] = [
-  {
-    label: "Dashboard",
-    icon: "dashboard",
-    action: { kind: "link", href: "/account" },
-  },
-  {
-    label: "Order history",
-    icon: "receipt_long",
-    action: { kind: "link", href: "/account/orders" },
-  },
-  {
-    label: "My Wish List",
-    icon: "favorite",
-    action: { kind: "link", href: "/wishlist" },
-  },
-  {
-    label: "Help & support",
-    icon: "help",
-    action: { kind: "link", href: "/contact" },
-  },
+const AUTHED_ACCOUNT_ACTIONS: AccountItem[] = [
   { label: "Sign out", icon: "logout", action: { kind: "signout" } },
 ];
 
@@ -144,7 +124,7 @@ export function MobileMenu() {
     ? GUEST_ACCOUNT
     : isAdmin
       ? AUTHED_ADMIN
-      : AUTHED_ACCOUNT;
+      : AUTHED_ACCOUNT_ACTIONS;
 
   const onAccountClick = (
     e: MouseEvent<HTMLAnchorElement>,

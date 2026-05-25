@@ -17,17 +17,31 @@ export function NavList({ ariaLabel, className, children }: NavListProps) {
   );
 }
 
+type NavItemSize = "sm" | "md";
+
+const NAV_ITEM_SIZE: Record<NavItemSize, string> = {
+  sm: "gap-sm px-md py-xs text-body-sm",
+  md: "gap-md px-md py-sm text-body-md",
+};
+
+const NAV_ITEM_ICON_SIZE: Record<NavItemSize, string> = {
+  sm: "text-lg",
+  md: "text-xl",
+};
+
 interface NavItemProps
   extends Omit<LinkProps, "className">,
     Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "color"> {
   icon?: string;
   active?: boolean;
+  size?: NavItemSize;
   children?: ReactNode;
 }
 
 function NavListItem({
   icon,
   active,
+  size = "md",
   className,
   children,
   ...rest
@@ -36,15 +50,26 @@ function NavListItem({
     <NextLink
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-md px-md py-sm rounded-lg font-body-md text-body-md transition-colors",
+        "group relative flex items-center rounded-lg font-body-md transition-all duration-200",
+        "border-l-2 border-transparent",
+        NAV_ITEM_SIZE[size],
         active
-          ? "bg-surface-variant text-primary font-bold"
-          : "text-on-surface-variant hover:bg-surface-container",
+          ? "bg-primary-fixed/60 text-on-primary-fixed-variant font-semibold border-primary-container shadow-sm"
+          : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface",
         className,
       )}
       {...rest}
     >
-      {icon ? <Icon name={icon} filled={active} className="text-xl" /> : null}
+      {icon ? (
+        <Icon
+          name={icon}
+          filled={active}
+          className={cn(
+            NAV_ITEM_ICON_SIZE[size],
+            "transition-transform duration-200 group-hover:scale-110",
+          )}
+        />
+      ) : null}
       <span>{children}</span>
     </NextLink>
   );

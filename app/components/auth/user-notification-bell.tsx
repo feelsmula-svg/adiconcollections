@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -11,11 +10,12 @@ import {
 
 import {
   Box,
-  Button,
   IconButton,
+  NotificationDetailModal,
   Row,
   Stack,
   Text,
+  type NotificationDetailItem,
 } from "@/app/components/ui";
 import { cn } from "@/app/components/ui/cn";
 import { useSession } from "@/app/lib/hooks/use-session";
@@ -25,6 +25,8 @@ import {
 } from "@/app/lib/notifications/user-actions";
 import {
   NOTIFICATION_ICON,
+  NOTIFICATION_KIND_LABEL,
+  NOTIFICATION_LINK_LABEL,
   type AdminNotification,
 } from "@/app/lib/notifications/types";
 
@@ -54,11 +56,11 @@ export function UserNotificationBell({
   className,
 }: UserNotificationBellProps) {
   const { user, status } = useSession();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [activeId, setActiveId] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   const refresh = useCallback(async () => {
@@ -124,8 +126,25 @@ export function UserNotificationBell({
       });
     }
     setOpen(false);
-    if (entry.link) router.push(entry.link);
+    setActiveId(entry.id);
   };
+
+  const activeEntry =
+    notifications.find((entry) => entry.id === activeId) ?? null;
+
+  const activeDetail: NotificationDetailItem | null = activeEntry
+    ? {
+        id: activeEntry.id,
+        title: activeEntry.title,
+        body: activeEntry.body,
+        link: activeEntry.link,
+        createdAt: activeEntry.createdAt,
+        iconName: NOTIFICATION_ICON[activeEntry.kind],
+      }
+    : null;
+  const activeUnread = activeEntry
+    ? !activeEntry.readBy.includes(user.id)
+    : false;
 
   const badgeLabel =
     unreadCount > 99 ? "99+" : unreadCount > 0 ? String(unreadCount) : null;
@@ -273,6 +292,21 @@ export function UserNotificationBell({
           )}
         </Box>
       </Box>
+
+      <NotificationDetailModal
+        open={activeEntry !== null}
+        onClose={() => setActiveId(null)}
+        notification={activeDetail}
+        unread={activeUnread}
+        kindLabel={
+          activeEntry ? NOTIFICATION_KIND_LABEL[activeEntry.kind] : undefined
+        }
+        linkLabel={
+          activeEntry
+            ? NOTIFICATION_LINK_LABEL[activeEntry.kind] ?? "View details"
+            : "View details"
+        }
+      />
     </Box>
   );
 }

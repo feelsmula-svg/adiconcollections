@@ -1,14 +1,16 @@
 import { redirect } from "next/navigation";
 
+import { ChangePasswordSection } from "@/app/components/account/change-password-section";
 import { AdminShell } from "@/app/components/admin/admin-shell";
 import { AdminSignupSettingsForm } from "@/app/components/admin/admin-signup-settings-form";
 import { PendingAdminsPanel } from "@/app/components/admin/pending-admins-panel";
 import { PromoteAdminForm } from "@/app/components/admin/promote-admin-form";
 import { RewardsSettingsForm } from "@/app/components/admin/rewards-settings-form";
+import { ShippingSettingsForm } from "@/app/components/admin/shipping-settings-form";
+import { StoreProfileForm } from "@/app/components/admin/store-profile-form";
 import {
   Box,
   Card,
-  Divider,
   Heading,
   Icon,
   Row,
@@ -19,6 +21,8 @@ import { getSessionUser, toPublicUser } from "@/app/lib/auth/server";
 import { getUserRepository } from "@/app/lib/auth/user-repository";
 import { getAdminSignupSettings } from "@/app/lib/settings/admin-signup/actions";
 import { getRewardsSettings } from "@/app/lib/settings/rewards/actions";
+import { getShippingSettings } from "@/app/lib/settings/shipping/actions";
+import { getStoreProfile } from "@/app/lib/settings/store-profile/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,13 +35,17 @@ export default async function AdminSettingsPage() {
   const userRepo = await getUserRepository();
   const [
     rewardsSettings,
+    shippingSettings,
     adminSignupSettings,
+    storeProfile,
     admins,
     pendingAdmins,
     primaryAdmin,
   ] = await Promise.all([
     getRewardsSettings(),
+    getShippingSettings(),
     getAdminSignupSettings(),
+    getStoreProfile(),
     userRepo.list({ role: "admin", adminStatus: "approved" }),
     userRepo.list({ role: "admin", adminStatus: "pending" }),
     userRepo.findPrimaryAdmin(),
@@ -61,66 +69,35 @@ export default async function AdminSettingsPage() {
           selfUserId={user.id}
         />
 
+        <ShippingSettingsForm settings={shippingSettings} />
+
         <RewardsSettingsForm settings={rewardsSettings} />
 
+        <StoreProfileForm settings={storeProfile} />
+
         <Card variant="outlined" padding="lg" rounded="2xl">
-          <Stack gap="lg">
-            <Stack gap="xs">
-              <Heading level={2} variant="headline-sm">
-                Store profile
-              </Heading>
-              <Text variant="body-sm" tone="muted">
-                These values are surfaced in customer-facing surfaces (emails,
-                footers). They&apos;re read-only here — editing UI is on the
-                roadmap.
-              </Text>
-            </Stack>
-            <Stack gap="sm">
-              <Row align="center" gap="sm">
-                <Text variant="label-caps" tone="muted" as="span">
-                  Brand name
+          <Stack gap="xs">
+            <Heading level={2} variant="headline-sm">
+              Signed in as
+            </Heading>
+            <Row align="center" gap="sm">
+              <Box className="bg-primary-fixed text-primary p-xs rounded-lg">
+                <Icon name="shield_person" />
+              </Box>
+              <Stack gap="none">
+                <Text variant="body-md" as="span" className="font-semibold">
+                  {user.name}
                 </Text>
-                <Text variant="body-md" as="span">
-                  Adicon Collections
+                <Text variant="body-sm" tone="muted" as="span">
+                  {user.email}
                 </Text>
-              </Row>
-              <Row align="center" gap="sm">
-                <Text variant="label-caps" tone="muted" as="span">
-                  Support email
-                </Text>
-                <Text variant="body-md" as="span">
-                  support@adicon.com
-                </Text>
-              </Row>
-              <Row align="center" gap="sm">
-                <Text variant="label-caps" tone="muted" as="span">
-                  Currency
-                </Text>
-                <Text variant="body-md" as="span">
-                  USD
-                </Text>
-              </Row>
-            </Stack>
-            <Divider />
-            <Stack gap="xs">
-              <Heading level={2} variant="headline-sm">
-                Signed in as
-              </Heading>
-              <Row align="center" gap="sm">
-                <Box className="bg-primary-fixed text-primary p-xs rounded-lg">
-                  <Icon name="shield_person" />
-                </Box>
-                <Stack gap="none">
-                  <Text variant="body-md" as="span" className="font-semibold">
-                    {user.name}
-                  </Text>
-                  <Text variant="body-sm" tone="muted" as="span">
-                    {user.email}
-                  </Text>
-                </Stack>
-              </Row>
-            </Stack>
+              </Stack>
+            </Row>
           </Stack>
+        </Card>
+
+        <Card variant="outlined" padding="lg" rounded="2xl">
+          <ChangePasswordSection />
         </Card>
       </Stack>
     </AdminShell>
