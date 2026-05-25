@@ -13,12 +13,19 @@ import { getStripe } from "@/app/lib/stripe/server";
 
 const MIN_USD_CENTS = 50;
 
+// Admin-uploaded product images are stored as base64 `data:` URIs on the
+// product record. A typical product photo lands around 200–400 KB once
+// encoded, so allow up to ~1 MB to keep payment from being rejected at the
+// validation step. (We still recompute price and re-look up the product
+// server-side — see `lookupUnitPriceCents` below.)
+const MAX_IMAGE_URL_CHARS = 1_048_576;
+
 const itemSchema = z.object({
   id: z.string().trim().min(1).max(200),
   name: z.string().trim().min(1).max(200),
   attributes: z.string().trim().max(400).default(""),
   collection: z.string().trim().max(120).default(""),
-  imageUrl: z.string().trim().max(2048).default(""),
+  imageUrl: z.string().trim().max(MAX_IMAGE_URL_CHARS).default(""),
   quantity: z.number().int().min(1).max(1000),
   // We accept the client-supplied price but NEVER trust it — we recompute
   // from the product DB below and reject if there's any mismatch.
