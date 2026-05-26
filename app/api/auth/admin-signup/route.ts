@@ -12,7 +12,7 @@ import {
   toPublicUser,
 } from "@/app/lib/auth/server";
 import { getUserRepository } from "@/app/lib/auth/user-repository";
-import { notifyAdmins } from "@/app/lib/notifications/notify";
+import { notifyAdmins, notifyUser } from "@/app/lib/notifications/notify";
 import { getAdminSignupSettings } from "@/app/lib/settings/admin-signup/actions";
 
 const adminSignupSchema = signupSchema.extend({
@@ -85,6 +85,19 @@ export async function POST(request: Request) {
         title: `New admin request from ${user.name || user.email}`,
         body: `${user.email} is waiting for approval. Review and approve in admin settings.`,
         link: "/admin/settings",
+      });
+      // Acknowledge the requester so they know the request was received and
+      // what to expect next.
+      void notifyUser({
+        userId: user.id,
+        kind: "admin-signup-pending",
+        title: "Admin request received",
+        body:
+          "Thanks for requesting AdiCon admin access. Your request is in the " +
+          "queue — an existing admin will review it shortly. We'll email you " +
+          "again the moment your account is approved.",
+        email: user.email,
+        emailSubject: "Your AdiCon admin request is in review",
       });
       return NextResponse.json(
         {

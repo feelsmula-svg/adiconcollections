@@ -2,6 +2,7 @@ import "server-only";
 
 import { getUserRepository } from "@/app/lib/auth/user-repository";
 import { sendEmail } from "./email";
+import { absoluteUrl, renderBrandedEmail } from "./email-template";
 import { getNotificationRepository } from "./notification-repository";
 import type { NotificationKind } from "./types";
 
@@ -54,9 +55,22 @@ export async function notifyUser(input: NotifyUserInput): Promise<void> {
   if (input.email) {
     try {
       const subject = input.emailSubject ?? input.title;
-      const html =
-        input.emailHtml ?? defaultEmailHtml(input.title, input.body, input.link);
-      await sendEmail({ to: input.email, subject, html });
+      if (input.emailHtml) {
+        await sendEmail({ to: input.email, subject, html: input.emailHtml });
+      } else {
+        const rendered = renderBrandedEmail({
+          title: input.title,
+          body: input.body,
+          ctaLabel: input.link ? "Open in AdiCon" : undefined,
+          ctaHref: absoluteUrl(input.link) ?? undefined,
+        });
+        await sendEmail({
+          to: input.email,
+          subject,
+          html: rendered.html,
+          text: rendered.text,
+        });
+      }
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "user email failed";
@@ -99,49 +113,26 @@ export async function notifyAdmins(input: NotifyAdminsInput): Promise<void> {
     if (recipients.length === 0) return;
 
     const subject = input.emailSubject ?? input.title;
-    const html =
-      input.emailHtml ??
-      defaultEmailHtml(input.title, input.body, input.link);
-
-    await sendEmail({
-      to: recipients,
-      subject,
-      html,
-    });
+    if (input.emailHtml) {
+      await sendEmail({ to: recipients, subject, html: input.emailHtml });
+    } else {
+      const rendered = renderBrandedEmail({
+        title: input.title,
+        body: input.body,
+        ctaLabel: input.link ? "Open in admin" : undefined,
+        ctaHref: absoluteUrl(input.link) ?? undefined,
+        footerNote: "You're receiving this because you're an AdiCon admin.",
+      });
+      await sendEmail({
+        to: recipients,
+        subject,
+        html: rendered.html,
+        text: rendered.text,
+      });
+    }
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "notification email failed";
     console.error("[notify] email error:", message);
   }
-}
-
-function defaultEmailHtml(
-  title: string,
-  body?: string,
-  link?: string,
-): string {
-  const linkUrl = link
-    ? `${(process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "")}${link}`
-    : null;
-  return [
-    `<div style="font-family: Inter, system-ui, sans-serif; color: #201a18; max-width: 540px; margin: 0 auto; padding: 24px;">`,
-    `<h1 style="font-size: 20px; margin: 0 0 12px 0; color: #6c2f00;">${escapeHtml(title)}</h1>`,
-    body
-      ? `<p style="font-size: 14px; line-height: 1.55; margin: 0 0 16px 0;">${escapeHtml(body)}</p>`
-      : "",
-    linkUrl
-      ? `<p style="margin: 16px 0 0 0;"><a href="${escapeHtml(linkUrl)}" style="display:inline-block; padding: 10px 16px; background: #6c2f00; color: #fff; text-decoration: none; border-radius: 999px; font-weight: 600;">Open in admin</a></p>`
-      : "",
-    `<p style="margin-top: 24px; font-size: 12px; color: #6b6b6b;">— AdiCon admin</p>`,
-    `</div>`,
-  ].join("");
-}
-
-function escapeHtml(input: string): string {
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }

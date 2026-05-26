@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { getSessionUser } from "@/app/lib/auth/server";
 import { getMessageRepository } from "@/app/lib/messages/message-repository";
+import { sendEmail } from "@/app/lib/notifications/email";
+import { renderBrandedEmail } from "@/app/lib/notifications/email-template";
 import { notifyAdmins } from "@/app/lib/notifications/notify";
 
 const bodySchema = z.object({
@@ -68,6 +70,24 @@ export async function POST(request: Request) {
       title: `New message: ${message.subject}`,
       body: `From ${message.name} <${message.email}>`,
       link: `/admin/messages/${message.id}`,
+    });
+
+    // Auto-acknowledgement to the customer so they know it arrived.
+    const ackRendered = renderBrandedEmail({
+      preheader: `We received your message — "${message.subject}"`,
+      title: "We got your message",
+      intro: `Hi ${message.name},`,
+      body:
+        `Thanks for reaching out — our concierge team typically replies within ` +
+        `one business day.\n\nFor reference, here's what you sent us:\n\n"${message.body}"`,
+      footerNote:
+        "You're receiving this because you contacted AdiCon support.",
+    });
+    void sendEmail({
+      to: message.email,
+      subject: `We received your message — "${message.subject}"`,
+      html: ackRendered.html,
+      text: ackRendered.text,
     });
 
     return NextResponse.json(

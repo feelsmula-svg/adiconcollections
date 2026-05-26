@@ -12,6 +12,7 @@ import {
   // type import only — class lives in repo impl file
 } from "@/app/lib/auth/repositories/json-user-repository";
 import { getUserRepository } from "@/app/lib/auth/user-repository";
+import { notifyUser } from "@/app/lib/notifications/notify";
 
 // TODO: rate-limit POST /api/auth/signup (e.g. 5 req/min/IP) before exposing publicly.
 
@@ -63,6 +64,23 @@ export async function POST(request: Request) {
     );
     const cookie = buildSessionCookie(token);
     response.cookies.set(cookie.name, cookie.value, cookie.options);
+
+    // Welcome email + in-app notification. Fire-and-forget so a transient
+    // SMTP hiccup never blocks the signup response.
+    const firstName = user.name.split(" ")[0] || user.name;
+    void notifyUser({
+      userId: user.id,
+      kind: "other",
+      title: "Welcome to AdiCon Collections",
+      body:
+        `Hi ${firstName}, welcome to AdiCon Collections! Your account is ready — ` +
+        `browse our latest drops, save your favorites, and track every order from ` +
+        `your dashboard. We're glad to have you with us.`,
+      link: "/account",
+      email: user.email,
+      emailSubject: "Welcome to AdiCon Collections",
+    });
+
     return response;
   } catch (error: unknown) {
     if (error instanceof DuplicateEmailError) {

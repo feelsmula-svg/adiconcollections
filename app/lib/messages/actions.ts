@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/app/lib/auth/server";
 import { getUserRepository } from "@/app/lib/auth/user-repository";
 import { sendEmail } from "@/app/lib/notifications/email";
+import { renderBrandedEmail } from "@/app/lib/notifications/email-template";
 import { getNotificationRepository } from "@/app/lib/notifications/notification-repository";
 import { getMessageRepository } from "./message-repository";
 import type {
@@ -84,15 +85,17 @@ export async function replyToContactMessage(
   }
 
   if (wantEmail) {
+    const rendered = renderBrandedEmail({
+      title: `Re: ${message.subject}`,
+      intro: `Hi ${message.name},`,
+      body: `${parsed.data.body}\n\n— ${actor.name || actor.email}, AdiCon concierge`,
+      footerNote: `In reply to: "${message.subject}"`,
+    });
     const result = await sendEmail({
       to: message.email,
       subject: `Re: ${message.subject}`,
-      html: defaultReplyEmail(
-        message.name,
-        message.subject,
-        parsed.data.body,
-        actor.name || actor.email,
-      ),
+      html: rendered.html,
+      text: rendered.text,
     });
     emailDelivered = result.ok && !result.logOnly;
     if (!result.ok) {
@@ -161,28 +164,3 @@ export async function updateContactMessageStatus(
   return { ok: true };
 }
 
-function defaultReplyEmail(
-  customerName: string,
-  originalSubject: string,
-  body: string,
-  authorName: string,
-): string {
-  return [
-    `<div style="font-family: Inter, system-ui, sans-serif; color: #201a18; max-width: 540px; margin: 0 auto; padding: 24px;">`,
-    `<p style="font-size: 14px; line-height: 1.55; margin: 0 0 16px 0;">Hi ${escapeHtml(customerName)},</p>`,
-    `<p style="font-size: 14px; line-height: 1.55; margin: 0 0 16px 0; white-space: pre-wrap;">${escapeHtml(body)}</p>`,
-    `<p style="font-size: 14px; line-height: 1.55; margin: 0 0 16px 0;">— ${escapeHtml(authorName)}, AdiCon concierge</p>`,
-    `<hr style="border:none; border-top: 1px solid #e5d9d2; margin: 24px 0;" />`,
-    `<p style="font-size: 12px; color: #6b6b6b; margin: 0;">In reply to: <em>${escapeHtml(originalSubject)}</em></p>`,
-    `</div>`,
-  ].join("");
-}
-
-function escapeHtml(input: string): string {
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}

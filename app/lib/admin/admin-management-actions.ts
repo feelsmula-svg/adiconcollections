@@ -9,6 +9,7 @@ import {
 } from "@/app/lib/auth/server";
 import { getUserRepository } from "@/app/lib/auth/user-repository";
 import type { PublicUser } from "@/app/lib/auth/types";
+import { notifyUser } from "@/app/lib/notifications/notify";
 
 const promoteSchema = z.object({
   email: z
@@ -48,6 +49,18 @@ export async function approveAdminRequest(
   if (!updated) {
     return { ok: false, error: "Could not approve admin" };
   }
+  // Let the newly-approved admin know they can sign in now.
+  void notifyUser({
+    userId: updated.id,
+    kind: "other",
+    title: "Your AdiCon admin access is approved",
+    body:
+      `Hi ${updated.name || "there"}, your admin access has been approved. ` +
+      `You can now sign in and start managing AdiCon Collections.`,
+    link: "/admin",
+    email: updated.email,
+    emailSubject: "You're approved — welcome to AdiCon admin",
+  });
   revalidatePath("/admin/settings");
   revalidatePath("/admin/customers");
   return { ok: true, user: toPublicUser(updated) };

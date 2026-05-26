@@ -7,9 +7,10 @@ import {
   RESET_TOKEN_TTL_MS,
 } from "@/app/lib/auth/server";
 import { getUserRepository } from "@/app/lib/auth/user-repository";
+import { sendEmail } from "@/app/lib/notifications/email";
+import { renderBrandedEmail } from "@/app/lib/notifications/email-template";
 
 // TODO: rate-limit POST /api/auth/forgot-password (e.g. 3 req/min/IP).
-// TODO: send a real transactional email (Resend / SES / Postmark) with the reset URL.
 
 export async function POST(request: Request) {
   if (!isJson(request)) {
@@ -61,8 +62,27 @@ export async function POST(request: Request) {
           `[auth/forgot-password] DEV reset link for ${user.email}: ${resetUrl}`,
         );
       }
-      // TODO: send email here. e.g. await sendResetEmail(user.email, resetUrl).
-      void resetUrl;
+
+      const rendered = renderBrandedEmail({
+        preheader: "Reset your AdiCon password",
+        title: "Reset your password",
+        intro: `Hi ${user.name || "there"},`,
+        body:
+          "We received a request to reset your AdiCon password. The link below " +
+          "expires in 30 minutes — tap it to choose a new password.",
+        ctaLabel: "Reset password",
+        ctaHref: resetUrl,
+        footerNote:
+          "If you didn't request this, you can safely ignore this email — " +
+          "your password won't change.",
+      });
+      // Best-effort: never block the API response on email delivery.
+      void sendEmail({
+        to: user.email,
+        subject: "Reset your AdiCon password",
+        html: rendered.html,
+        text: rendered.text,
+      });
     }
   } catch (error: unknown) {
     const message =

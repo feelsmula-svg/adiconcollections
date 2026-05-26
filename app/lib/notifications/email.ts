@@ -1,8 +1,10 @@
 import "server-only";
 
-const RESEND_ENDPOINT = "https://api.resend.com/emails";
+import nodemailer, { type Transporter } from "nodemailer";
+
 const DEFAULT_FROM =
-  process.env.NOTIFICATION_FROM_EMAIL ?? "AdiCon <onboarding@resend.dev>";
+  process.env.NOTIFICATION_FROM_EMAIL ??
+  "AdiCon Collections <adiconluxuryhair@yahoo.com>";
 
 export interface SendEmailInput {
   to: string | string[];
@@ -18,27 +20,46 @@ export interface SendEmailResult {
   error?: string;
   /** Provider message id, present when delivered. */
   id?: string;
-  /** True when the helper just logged to console because no provider is configured. */
+  /** True when the helper just logged to console because no SMTP creds are configured. */
   logOnly?: boolean;
 }
 
+let cachedTransporter: Transporter | null = null;
+
+function getTransporter(): Transporter | null {
+  if (cachedTransporter) return cachedTransporter;
+  const host = process.env.SMTP_HOST ?? "smtp.mail.yahoo.com";
+  const port = Number(process.env.SMTP_PORT ?? "465");
+  const secure = (process.env.SMTP_SECURE ?? "true").toLowerCase() !== "false";
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!user || !pass) return null;
+  cachedTransporter = nodemailer.createTransport({
+    host,
+    port: Number.isFinite(port) ? port : 465,
+    secure,
+    auth: { user, pass },
+  });
+  return cachedTransporter;
+}
+
 /**
- * Best-effort email sender. Uses Resend's HTTP API when `RESEND_API_KEY` is
- * set; otherwise logs to stdout so the dev sees that an email would have
- * gone out. Never throws — callers don't need to catch.
+ * Best-effort email sender. Uses Nodemailer over SMTP when SMTP_USER/SMTP_PASS
+ * are set; otherwise logs to stdout so devs see that an email would have gone
+ * out. Never throws — callers don't need to catch.
  */
 export async function sendEmail(
   input: SendEmailInput,
 ): Promise<SendEmailResult> {
-  const apiKey = process.env.RESEND_API_KEY;
   const recipients = Array.isArray(input.to) ? input.to : [input.to];
   if (recipients.length === 0) {
     return { ok: false, error: "No recipients" };
   }
 
-  if (!apiKey) {
+  const transporter = getTransporter();
+  if (!transporter) {
     console.info(
-      `[email] RESEND_API_KEY not set — would have sent:\n` +
+      `[email] SMTP creds not set — would have sent:\n` +
         `  to: ${recipients.join(", ")}\n` +
         `  subject: ${input.subject}`,
     );
@@ -46,31 +67,14 @@ export async function sendEmail(
   }
 
   try {
-    const response = await fetch(RESEND_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: input.from ?? DEFAULT_FROM,
-        to: recipients,
-        subject: input.subject,
-        html: input.html,
-        text: input.text,
-      }),
+    const info = await transporter.sendMail({
+      from: input.from ?? DEFAULT_FROM,
+      to: recipients,
+      subject: input.subject,
+      html: input.html,
+      text: input.text,
     });
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "");
-      console.error(
-        `[email] resend.send failed ${response.status}: ${errorBody}`,
-      );
-      return { ok: false, error: `Resend returned ${response.status}` };
-    }
-    const data = (await response.json().catch(() => null)) as
-      | { id?: string }
-      | null;
-    return { ok: true, id: data?.id };
+    return { ok: true, id: info.messageId };
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Email request failed";
