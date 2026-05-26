@@ -101,8 +101,9 @@ export function ProductGrid({
             <LinkButton
               href={viewAllHref}
               variant={hasMore ? "primary" : "outline"}
-              size="lg"
+              size="md"
               caps
+              className="whitespace-nowrap"
             >
               {hasMore
                 ? `${viewAllLabel} (${filtered.length})`

@@ -40,7 +40,7 @@ export {
 export { NavList } from "./NavList";
 export { LinkButton } from "./LinkButton";
 export { ChipRail } from "./ChipRail";
-export { Tabs } from "./Tabs";
+export { Tabs, TabsList, TabsPanel, TabsTrigger } from "./Tabs";
 export { FileInput } from "./FileInput";
 export { ProductThumb } from "./ProductThumb";
 export { ErrorBanner } from "./ErrorBanner";

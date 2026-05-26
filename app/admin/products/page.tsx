@@ -150,7 +150,7 @@ export default async function AdminProductsPage({
       align: "end",
       render: (row) => (
         <Text variant="body-md" as="span" className="font-semibold">
-          {formatCurrency(row.priceCents / 100)}
+          {formatCurrency(row.priceCents)}
         </Text>
       ),
     },

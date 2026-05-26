@@ -15,6 +15,10 @@ import {
   Icon,
   Row,
   Stack,
+  Tabs,
+  TabsList,
+  TabsPanel,
+  TabsTrigger,
   Text,
 } from "@/app/components/ui";
 import { getSessionUser, toPublicUser } from "@/app/lib/auth/server";
@@ -51,6 +55,8 @@ export default async function AdminSettingsPage() {
     userRepo.findPrimaryAdmin(),
   ]);
 
+  const pendingCount = pendingAdmins.length;
+
   return (
     <AdminShell
       user={user}
@@ -58,48 +64,77 @@ export default async function AdminSettingsPage() {
       title="Settings"
       subtitle="Store configuration and admin preferences."
     >
-      <Stack gap="xl">
-        <AdminSignupSettingsForm settings={adminSignupSettings} />
+      <Tabs defaultValue="store" ariaLabel="Settings sections">
+        <TabsList ariaLabel="Settings sections">
+          <TabsTrigger value="store">Store</TabsTrigger>
+          <TabsTrigger value="shipping">Shipping</TabsTrigger>
+          <TabsTrigger value="rewards">Rewards</TabsTrigger>
+          <TabsTrigger
+            value="admins"
+            count={pendingCount > 0 ? pendingCount : undefined}
+          >
+            Admins
+          </TabsTrigger>
+          <TabsTrigger value="account">Account</TabsTrigger>
+        </TabsList>
 
-        <PendingAdminsPanel pending={pendingAdmins.map(toPublicUser)} />
+        <TabsPanel value="store">
+          <StoreProfileForm settings={storeProfile} />
+        </TabsPanel>
 
-        <PromoteAdminForm
-          existingAdmins={admins.map(toPublicUser)}
-          primaryAdminId={primaryAdmin?.id ?? null}
-          selfUserId={user.id}
-        />
+        <TabsPanel value="shipping">
+          <ShippingSettingsForm settings={shippingSettings} />
+        </TabsPanel>
 
-        <ShippingSettingsForm settings={shippingSettings} />
+        <TabsPanel value="rewards">
+          <RewardsSettingsForm settings={rewardsSettings} />
+        </TabsPanel>
 
-        <RewardsSettingsForm settings={rewardsSettings} />
-
-        <StoreProfileForm settings={storeProfile} />
-
-        <Card variant="outlined" padding="lg" rounded="2xl">
-          <Stack gap="xs">
-            <Heading level={2} variant="headline-sm">
-              Signed in as
-            </Heading>
-            <Row align="center" gap="sm">
-              <Box className="bg-primary-fixed text-primary p-xs rounded-lg">
-                <Icon name="shield_person" />
-              </Box>
-              <Stack gap="none">
-                <Text variant="body-md" as="span" className="font-semibold">
-                  {user.name}
-                </Text>
-                <Text variant="body-sm" tone="muted" as="span">
-                  {user.email}
-                </Text>
-              </Stack>
-            </Row>
+        <TabsPanel value="admins">
+          <Stack gap="xl">
+            <AdminSignupSettingsForm settings={adminSignupSettings} />
+            <PendingAdminsPanel pending={pendingAdmins.map(toPublicUser)} />
+            <PromoteAdminForm
+              existingAdmins={admins.map(toPublicUser)}
+              primaryAdminId={primaryAdmin?.id ?? null}
+              selfUserId={user.id}
+            />
           </Stack>
-        </Card>
+        </TabsPanel>
 
-        <Card variant="outlined" padding="lg" rounded="2xl">
-          <ChangePasswordSection />
-        </Card>
-      </Stack>
+        <TabsPanel value="account">
+          <Stack gap="xl">
+            <Card variant="outlined" padding="lg" rounded="2xl">
+              <Stack gap="xs">
+                <Heading level={2} variant="headline-sm">
+                  Signed in as
+                </Heading>
+                <Row align="center" gap="sm">
+                  <Box className="bg-primary-fixed text-primary p-xs rounded-lg">
+                    <Icon name="shield_person" />
+                  </Box>
+                  <Stack gap="none">
+                    <Text
+                      variant="body-md"
+                      as="span"
+                      className="font-semibold"
+                    >
+                      {user.name}
+                    </Text>
+                    <Text variant="body-sm" tone="muted" as="span">
+                      {user.email}
+                    </Text>
+                  </Stack>
+                </Row>
+              </Stack>
+            </Card>
+
+            <Card variant="outlined" padding="lg" rounded="2xl">
+              <ChangePasswordSection />
+            </Card>
+          </Stack>
+        </TabsPanel>
+      </Tabs>
     </AdminShell>
   );
 }

@@ -364,7 +364,7 @@ export default async function AdminDashboardPage() {
                     </Text>
                   </Stack>
                   <Text variant="body-md" as="span" className="font-semibold">
-                    {formatCurrency(product.priceCents / 100)}
+                    {formatCurrency(product.priceCents)}
                   </Text>
                 </Row>
               ))

@@ -199,7 +199,7 @@ function MobileCardList<T>({
             key={rowKey(row, startIndex + idx)}
             onClick={onRowClick ? () => onRowClick(row) : undefined}
             className={cn(
-              "border-b border-outline-variant last:border-b-0 px-lg py-md flex flex-col gap-sm transition-colors",
+              "border-b border-outline-variant last:border-b-0 px-md py-md sm:px-lg flex flex-col gap-sm transition-colors",
               interactive && "cursor-pointer hover:bg-surface-container-low",
             )}
           >

@@ -53,10 +53,10 @@ export function formatOrderTimestamp(value: string): string {
   });
 }
 
-export function formatCurrency(value: number): string {
+export function formatCurrency(minorUnits: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 2,
-  }).format(value);
+  }).format(minorUnits / 100);
 }

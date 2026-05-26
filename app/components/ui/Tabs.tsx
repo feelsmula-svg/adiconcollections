@@ -73,7 +73,7 @@ interface TabsListProps {
   children?: ReactNode;
 }
 
-function TabsList({ ariaLabel, className, children }: TabsListProps) {
+export function TabsList({ ariaLabel, className, children }: TabsListProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
 
   function focusTab(index: number) {
@@ -144,7 +144,7 @@ interface TabsTriggerProps {
   className?: string;
 }
 
-function TabsTrigger({
+export function TabsTrigger({
   value,
   count,
   disabled,
@@ -196,7 +196,7 @@ interface TabsPanelProps {
   className?: string;
 }
 
-function TabsPanel({ value, children, className }: TabsPanelProps) {
+export function TabsPanel({ value, children, className }: TabsPanelProps) {
   const { value: active, baseId } = useTabsContext();
   const isActive = value === active;
   if (!isActive) return null;
