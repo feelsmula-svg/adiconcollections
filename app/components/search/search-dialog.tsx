@@ -22,17 +22,19 @@ import {
 } from "@/app/components/ui";
 import { cn } from "@/app/components/ui/cn";
 import { formatPrice } from "@/app/lib/cart/format";
-import { allProducts } from "@/app/lib/products/catalog";
 import type { CartProduct } from "@/app/lib/cart/types";
 
 const PREVIEW_LIMIT = 4;
 
-function searchProducts(query: string): CartProduct[] {
+function searchProducts(
+  query: string,
+  catalog: readonly CartProduct[],
+): CartProduct[] {
   const needle = query.trim().toLowerCase();
   if (needle.length < 2) return [];
   const tokens = needle.split(/\s+/).filter(Boolean);
   const scored: { product: CartProduct; score: number }[] = [];
-  for (const product of allProducts()) {
+  for (const product of catalog) {
     const haystack = `${product.name} ${product.description ?? ""}`.toLowerCase();
     let score = 0;
     for (const token of tokens) {
@@ -55,11 +57,35 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
+  const [catalog, setCatalog] = useState<readonly CartProduct[]>([]);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Load the storefront product catalog the first time the dialog opens.
+  // Cached for the lifetime of the dialog so repeated opens don't re-fetch.
+  useEffect(() => {
+    if (!open || catalogLoaded) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/products", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = (await response.json()) as { products?: CartProduct[] };
+        if (cancelled) return;
+        setCatalog(data.products ?? []);
+        setCatalogLoaded(true);
+      } catch {
+        // Leave catalogLoaded=false so a later open retries.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, catalogLoaded]);
 
   // Lock scroll + focus input when opening; clear query when closing.
   useEffect(() => {
@@ -85,7 +111,10 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
     return () => clearTimeout(handle);
   }, [query]);
 
-  const results = useMemo(() => searchProducts(debounced), [debounced]);
+  const results = useMemo(
+    () => searchProducts(debounced, catalog),
+    [debounced, catalog],
+  );
   const preview = results.slice(0, PREVIEW_LIMIT);
   const total = results.length;
 

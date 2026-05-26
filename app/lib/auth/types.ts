@@ -36,3 +36,15 @@ export interface PasswordResetRecord {
   expiresAt: string;
   consumedAt?: string;
 }
+
+export interface PendingSignupRecord {
+  email: string;
+  name: string;
+  passwordHash: string;
+  otpHash: string;
+  attempts: number;
+  createdAt: string;
+  expiresAt: string;
+  /** Earliest ISO timestamp at which a new OTP may be requested via resend. */
+  resendAvailableAt: string;
+}

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import {
+  useEffect,
   useState,
   type FormEvent,
   type ReactNode,
@@ -25,8 +26,13 @@ import {
 import { useMediaQuery } from "@/app/lib/hooks/use-media-query";
 import { useAuthStore, type FieldErrors } from "@/app/lib/state/auth-store";
 
-type AuthView = "signin" | "signup" | "forgot";
+type AuthView = "signin" | "signup" | "verify-otp" | "forgot";
 type ForgotStatus = "idle" | "sent";
+
+interface PendingSignup {
+  email: string;
+  resendInMs: number;
+}
 
 interface ViewCopy {
   title: string;
@@ -44,6 +50,11 @@ const VIEW_COPY: Record<AuthView, ViewCopy> = {
     title: "Join AdiCon",
     subtitle: "Create your account to unlock member pricing.",
     googleLabel: "Sign up with Google",
+  },
+  "verify-otp": {
+    title: "Verify your email",
+    subtitle:
+      "We sent a 6-digit code to your inbox. Enter it below to finish creating your account.",
   },
   forgot: {
     title: "Forgot your password?",
@@ -133,14 +144,25 @@ interface AuthBodyProps {
 function AuthBody({ view, copy, onViewChange, onSuccess }: AuthBodyProps) {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotStatus, setForgotStatus] = useState<ForgotStatus>("idle");
+  const [pendingSignup, setPendingSignup] = useState<PendingSignup | null>(
+    null,
+  );
 
   const isForgot = view === "forgot";
+  const isVerifyOtp = view === "verify-otp";
   const forgotSent = isForgot && forgotStatus === "sent";
+  const hideTabs = isForgot || isVerifyOtp;
 
   const goToSignIn = () => {
     setForgotStatus("idle");
     setForgotEmail("");
+    setPendingSignup(null);
     onViewChange("signin");
+  };
+
+  const goToSignUp = () => {
+    setPendingSignup(null);
+    onViewChange("signup");
   };
 
   return (
@@ -155,6 +177,11 @@ function AuthBody({ view, copy, onViewChange, onSuccess }: AuthBodyProps) {
             />
           </Box>
         ) : null}
+        {isVerifyOtp ? (
+          <Box className="w-12 h-12 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center mb-sm">
+            <Icon name="mark_email_read" filled className="text-primary text-xl" />
+          </Box>
+        ) : null}
         <Heading level={2} variant="headline-md" align="center">
           {forgotSent ? "Check your inbox" : copy.title}
         </Heading>
@@ -167,13 +194,21 @@ function AuthBody({ view, copy, onViewChange, onSuccess }: AuthBodyProps) {
               </Text>
               , a reset link is on its way. The link is valid for 30 minutes.
             </>
+          ) : isVerifyOtp && pendingSignup ? (
+            <>
+              We sent a 6-digit code to{" "}
+              <Text as="span" variant="body-sm" className="font-bold">
+                {pendingSignup.email}
+              </Text>
+              . Enter it below to finish creating your account.
+            </>
           ) : (
             copy.subtitle
           )}
         </Text>
       </Stack>
 
-      {!isForgot && (
+      {!hideTabs && (
         <Row
           gap="none"
           align="stretch"
@@ -200,7 +235,22 @@ function AuthBody({ view, copy, onViewChange, onSuccess }: AuthBodyProps) {
           onForgotPassword={() => onViewChange("forgot")}
         />
       )}
-      {view === "signup" && <SignUpForm onSuccess={onSuccess} />}
+      {view === "signup" && (
+        <SignUpForm
+          onPending={(pending) => {
+            setPendingSignup(pending);
+            onViewChange("verify-otp");
+          }}
+        />
+      )}
+      {isVerifyOtp && pendingSignup && (
+        <VerifyOtpForm
+          pending={pendingSignup}
+          onPendingChange={setPendingSignup}
+          onSuccess={onSuccess}
+          onBack={goToSignUp}
+        />
+      )}
       {isForgot && !forgotSent && (
         <ForgotForm
           email={forgotEmail}
@@ -220,7 +270,7 @@ function AuthBody({ view, copy, onViewChange, onSuccess }: AuthBodyProps) {
         >
           Back to sign in
         </TextLink>
-      ) : (
+      ) : isVerifyOtp ? null : (
         <>
           <Row align="center" gap="md" className="w-full">
             <Box className="flex-1">
@@ -431,11 +481,10 @@ function SignInForm({ onSuccess, onForgotPassword }: SignInFormProps) {
 }
 
 interface SignUpFormProps {
-  onSuccess: () => void;
+  onPending: (pending: PendingSignup) => void;
 }
 
-function SignUpForm({ onSuccess }: SignUpFormProps) {
-  const router = useRouter();
+function SignUpForm({ onPending }: SignUpFormProps) {
   const signUp = useAuthStore((s) => s.signUp);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -450,12 +499,7 @@ function SignUpForm({ onSuccess }: SignUpFormProps) {
     setError(EMPTY_ERROR);
     const result = await signUp({ name, email, password });
     if (result.ok) {
-      onSuccess();
-      if (result.user.role === "admin") {
-        router.replace("/admin");
-      } else {
-        router.refresh();
-      }
+      onPending({ email: result.email, resendInMs: result.resendInMs });
       return;
     }
     setSubmitting(false);
@@ -535,8 +579,172 @@ function SignUpForm({ onSuccess }: SignUpFormProps) {
           fullWidth
           disabled={submitting}
         >
-          {submitting ? "Creating account…" : "Create my account"}
+          {submitting ? "Sending code…" : "Continue"}
         </Button>
+      </Stack>
+    </form>
+  );
+}
+
+interface VerifyOtpFormProps {
+  pending: PendingSignup;
+  onPendingChange: (pending: PendingSignup) => void;
+  onSuccess: () => void;
+  onBack: () => void;
+}
+
+function VerifyOtpForm({
+  pending,
+  onPendingChange,
+  onSuccess,
+  onBack,
+}: VerifyOtpFormProps) {
+  const router = useRouter();
+  const verifySignupOtp = useAuthStore((s) => s.verifySignupOtp);
+  const resendSignupOtp = useAuthStore((s) => s.resendSignupOtp);
+  const [code, setCode] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendIn, setResendIn] = useState(() =>
+    Math.ceil(pending.resendInMs / 1000),
+  );
+  const [info, setInfo] = useState<string | null>(null);
+  const [error, setError] = useState<FormError>(EMPTY_ERROR);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const id = window.setInterval(() => {
+      setResendIn((current) => (current <= 1 ? 0 : current - 1));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [resendIn]);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setInfo(null);
+    setError(EMPTY_ERROR);
+    const result = await verifySignupOtp({ email: pending.email, code });
+    if (result.ok) {
+      onSuccess();
+      if (result.user.role === "admin") {
+        router.replace("/admin");
+      } else {
+        router.refresh();
+      }
+      return;
+    }
+    setSubmitting(false);
+    setError({
+      message: result.error,
+      fieldErrors: result.fieldErrors ?? {},
+    });
+  };
+
+  const onResend = async () => {
+    if (resending || resendIn > 0) return;
+    setResending(true);
+    setInfo(null);
+    setError(EMPTY_ERROR);
+    const result = await resendSignupOtp(pending.email);
+    setResending(false);
+    if (result.ok) {
+      onPendingChange({
+        email: pending.email,
+        resendInMs: result.resendInMs,
+      });
+      setResendIn(Math.ceil(result.resendInMs / 1000));
+      setInfo("A new code has been sent to your inbox.");
+      return;
+    }
+    setError({ message: result.error, fieldErrors: result.fieldErrors ?? {} });
+  };
+
+  return (
+    <form onSubmit={onSubmit} className="w-full" noValidate>
+      <Stack gap="md">
+        {error.message ? (
+          <Text
+            variant="body-sm"
+            tone="error"
+            role="alert"
+            className="text-[12px]"
+          >
+            {error.message}
+          </Text>
+        ) : null}
+        {info ? (
+          <Text variant="body-sm" tone="muted" className="text-[12px]">
+            {info}
+          </Text>
+        ) : null}
+
+        <FormField
+          label="Verification code"
+          required
+          hint="6-digit code from your email"
+          error={firstFieldError(error.fieldErrors, "code")}
+        >
+          <TextField
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="123456"
+            maxLength={6}
+            value={code}
+            onChange={(event) =>
+              setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+            }
+            disabled={submitting}
+            required
+            className="tracking-[0.4em] text-center"
+          />
+        </FormField>
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="md"
+          fullWidth
+          disabled={submitting || code.length !== 6}
+        >
+          {submitting ? "Verifying…" : "Verify and create account"}
+        </Button>
+
+        <Row justify="between" align="center" className="w-full">
+          <TextLink
+            href="#"
+            variant="muted"
+            onClick={(event) => {
+              event.preventDefault();
+              onBack();
+            }}
+          >
+            Wrong email?
+          </TextLink>
+          {resendIn > 0 ? (
+            <Text
+              variant="body-sm"
+              tone="muted"
+              className="text-[12px]"
+              as="span"
+            >
+              Resend in {resendIn}s
+            </Text>
+          ) : (
+            <TextLink
+              href="#"
+              variant="default"
+              onClick={(event) => {
+                event.preventDefault();
+                void onResend();
+              }}
+            >
+              {resending ? "Resending…" : "Resend code"}
+            </TextLink>
+          )}
+        </Row>
       </Stack>
     </form>
   );

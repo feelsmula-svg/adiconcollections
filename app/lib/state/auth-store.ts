@@ -25,12 +25,39 @@ export interface AuthActionSuccess {
 
 export type AuthActionResult = AuthActionSuccess | AuthActionFailure;
 
+export interface SignUpPendingResult {
+  ok: true;
+  pending: true;
+  email: string;
+  resendInMs: number;
+  expiresInMs: number;
+}
+
+export type SignUpResult =
+  | SignUpPendingResult
+  | AuthActionFailure;
+
+export interface VerifyOtpInput {
+  email: string;
+  code: string;
+}
+
+export interface ResendOtpResult {
+  ok: true;
+  resendInMs: number;
+  expiresInMs: number;
+}
+
+export type ResendOtpActionResult = ResendOtpResult | AuthActionFailure;
+
 interface AuthState {
   user: PublicUser | null;
   status: AuthStatus;
   refresh: () => Promise<void>;
   signIn: (input: SigninInput) => Promise<AuthActionResult>;
-  signUp: (input: SignupInput) => Promise<AuthActionResult>;
+  signUp: (input: SignupInput) => Promise<SignUpResult>;
+  verifySignupOtp: (input: VerifyOtpInput) => Promise<AuthActionResult>;
+  resendSignupOtp: (email: string) => Promise<ResendOtpActionResult>;
   signOut: () => Promise<void>;
 }
 
@@ -42,6 +69,10 @@ interface AuthErrorResponse {
   error?: string;
   fieldErrors?: FieldErrors;
   user?: PublicUser;
+  pending?: boolean;
+  email?: string;
+  resendInMs?: number;
+  expiresInMs?: number;
 }
 
 const GENERIC_ERROR = "Something went wrong. Please try again.";
@@ -114,6 +145,32 @@ export const useAuthStore = create<AuthState>()((set) => ({
   signUp: async (input) => {
     set({ status: "loading" });
     const { status, data } = await postJson("/api/auth/signup", input);
+    set((state) => ({
+      ...state,
+      status: state.user ? "authed" : "guest",
+    }));
+    if (status === 202 && data?.pending && data.email) {
+      return {
+        ok: true,
+        pending: true,
+        email: data.email,
+        resendInMs: data.resendInMs ?? 0,
+        expiresInMs: data.expiresInMs ?? 0,
+      };
+    }
+    return {
+      ok: false,
+      error: data?.error ?? GENERIC_ERROR,
+      fieldErrors: data?.fieldErrors,
+    };
+  },
+
+  verifySignupOtp: async (input) => {
+    set({ status: "loading" });
+    const { status, data } = await postJson(
+      "/api/auth/signup/verify",
+      input,
+    );
     if (status === 200 && data?.user) {
       set({ user: data.user, status: "authed" });
       return { ok: true, user: data.user };
@@ -122,6 +179,24 @@ export const useAuthStore = create<AuthState>()((set) => ({
       ...state,
       status: state.user ? "authed" : "guest",
     }));
+    return {
+      ok: false,
+      error: data?.error ?? GENERIC_ERROR,
+      fieldErrors: data?.fieldErrors,
+    };
+  },
+
+  resendSignupOtp: async (email) => {
+    const { status, data } = await postJson("/api/auth/signup/resend", {
+      email,
+    });
+    if (status === 200) {
+      return {
+        ok: true,
+        resendInMs: data?.resendInMs ?? 0,
+        expiresInMs: data?.expiresInMs ?? 0,
+      };
+    }
     return {
       ok: false,
       error: data?.error ?? GENERIC_ERROR,

@@ -95,7 +95,6 @@ function CheckoutShell({ shippingSettings }: CheckoutContentProps) {
     delivery === "same-day"
       ? shippingSettings.sameDay.priceCents
       : shippingSettings.standard.priceCents;
-  const taxCents = Math.round(subtotalCents * shippingSettings.taxRate);
   const promoDiscount = computePromoDiscount(
     appliedPromo,
     subtotalCents,
@@ -109,6 +108,7 @@ function CheckoutShell({ shippingSettings }: CheckoutContentProps) {
     0,
     shippingCents - promoDiscount.shipping,
   );
+  const taxCents = Math.round(discountedSubtotal * shippingSettings.taxRate);
   const totalCents = discountedSubtotal + taxCents + discountedShipping;
 
   const getCartPayload = () => {
@@ -136,8 +136,8 @@ function CheckoutShell({ shippingSettings }: CheckoutContentProps) {
         country: "United States",
       },
       totals: {
-        subtotal: subtotalCents,
-        shipping: shippingCents,
+        subtotal: discountedSubtotal,
+        shipping: discountedShipping,
         tax: taxCents,
         total: totalCents,
       },

@@ -8,7 +8,6 @@ import {
   Badge,
   Box,
   Button,
-  Card,
   Container,
   Heading,
   Icon,
@@ -20,13 +19,6 @@ import {
   Text,
   TextLink,
 } from "@/app/components/ui";
-
-const DEFAULT_LENGTHS: ProductLengthOption[] = [
-  { length: '18"', priceCents: 0 },
-  { length: '20"', priceCents: 0 },
-  { length: '22"', priceCents: 0 },
-  { length: '24"', priceCents: 0 },
-];
 
 function pickDefaultLength(
   options: ProductLengthOption[],
@@ -40,7 +32,7 @@ function pickDefaultLength(
       if (hit) return hit.length;
     }
   }
-  return options[0]?.length ?? DEFAULT_LENGTHS[1].length;
+  return options[0]?.length ?? "";
 }
 
 function variantId(productId: string, length: string): string {
@@ -56,13 +48,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const addItem = useCartStore((state) => state.addItem);
   const openCart = useCartStore((state) => state.open);
   const lengthOptions = useMemo<ProductLengthOption[]>(
-    () =>
-      product.lengthOptions && product.lengthOptions.length > 0
-        ? product.lengthOptions
-        : DEFAULT_LENGTHS,
+    () => product.lengthOptions ?? [],
     [product.lengthOptions],
   );
-  const hasVariants = (product.lengthOptions?.length ?? 0) > 0;
+  const hasVariants = lengthOptions.length > 0;
   const [selectedLength, setSelectedLength] = useState<string>(() =>
     pickDefaultLength(lengthOptions, product.description),
   );
@@ -124,8 +113,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
               />
             </Box>
           </Box>
-
-          <ProductDescription product={product} />
         </Stack>
       </Section>
     </Container>
@@ -133,22 +120,63 @@ export function ProductDetail({ product }: ProductDetailProps) {
 }
 
 function ProductGallery({ product }: { product: CartProduct }) {
+  const images =
+    product.images && product.images.length > 0
+      ? product.images
+      : [product.imageSrc];
+  const [activeIndex, setActiveIndex] = useState(0);
+  const safeIndex = Math.min(activeIndex, images.length - 1);
+  const activeSrc = images[safeIndex];
+
   return (
     <Box className="w-full max-w-[340px] sm:max-w-[420px] lg:max-w-[560px] mx-auto lg:mx-0">
-      <Box className="relative aspect-square rounded-2xl overflow-hidden border border-outline-variant bg-surface-container-low">
-        <Image
-          src={product.imageSrc}
-          alt={product.imageAlt}
-          fill
-          sizes="(min-width: 1024px) 560px, 100vw"
-          className="object-cover"
-        />
-        {product.badge && (
-          <Box className="absolute top-md left-md">
-            <Badge tone={product.badge.tone}>{product.badge.label}</Badge>
-          </Box>
+      <Stack gap="sm">
+        <Box className="relative aspect-square rounded-2xl overflow-hidden border border-outline-variant bg-surface-container-low">
+          <Image
+            src={activeSrc}
+            alt={product.imageAlt}
+            fill
+            sizes="(min-width: 1024px) 560px, 100vw"
+            className="object-cover"
+          />
+          {product.badge && (
+            <Box className="absolute top-md left-md">
+              <Badge tone={product.badge.tone}>{product.badge.label}</Badge>
+            </Box>
+          )}
+        </Box>
+        {images.length > 1 && (
+          <Row gap="sm" wrap>
+            {images.map((src, index) => {
+              const isActive = index === safeIndex;
+              return (
+                <Button
+                  key={`${index}-${src.slice(0, 32)}`}
+                  variant="ghost"
+                  size="sm"
+                  caps={false}
+                  onClick={() => setActiveIndex(index)}
+                  aria-label={`Show image ${index + 1}`}
+                  aria-pressed={isActive}
+                  className={`relative w-16 h-16 sm:w-20 sm:h-20 p-0 rounded-lg overflow-hidden border ${
+                    isActive
+                      ? "border-primary ring-2 ring-primary/40"
+                      : "border-outline-variant hover:border-primary"
+                  }`}
+                >
+                  <Image
+                    src={src}
+                    alt={`${product.imageAlt} ${index + 1}`}
+                    fill
+                    sizes="80px"
+                    className="object-cover"
+                  />
+                </Button>
+              );
+            })}
+          </Row>
         )}
-      </Box>
+      </Stack>
     </Box>
   );
 }
@@ -182,31 +210,14 @@ function PurchasePanel({
         : "grid-cols-2";
   return (
     <Stack gap="md">
-      <Stack gap="xs">
-        <Heading
-          level={1}
-          variant="display-lg"
-          size="headline-md"
-          className="leading-tight"
-        >
-          {product.name}
-        </Heading>
-        <Row gap="sm" align="center">
-          <Row gap="none">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Icon
-                key={i}
-                name="star"
-                filled
-                className="text-base text-primary"
-              />
-            ))}
-          </Row>
-          <Text variant="label-caps" tone="muted">
-            (128 reviews)
-          </Text>
-        </Row>
-      </Stack>
+      <Heading
+        level={1}
+        variant="display-lg"
+        size="headline-md"
+        className="leading-tight"
+      >
+        {product.name}
+      </Heading>
 
       <Text
         variant="body-lg"
@@ -217,41 +228,31 @@ function PurchasePanel({
         {formatPrice(displayPriceCents)}
       </Text>
 
-      <Stack gap="sm">
-        <Row justify="between" align="center">
+      {product.description && (
+        <Text variant="body-md" tone="muted" className="leading-relaxed">
+          {product.description}
+        </Text>
+      )}
+
+      {lengthOptions.length > 0 && (
+        <Stack gap="sm">
           <Text variant="label-caps" tone="muted">
             Select length
           </Text>
-          <TextLink
-            href="/contact"
-            variant="default"
-            className="text-body-sm underline"
-          >
-            Size guide
-          </TextLink>
-        </Row>
-        <Box className={`grid ${gridColsClass} gap-sm`}>
-          {lengthOptions.map((opt) => (
-            <Button
-              key={opt.length}
-              variant={opt.length === selectedLength ? "primary" : "outline"}
-              size="sm"
-              onClick={() => onLengthChange(opt.length)}
-            >
-              {opt.length}
-            </Button>
-          ))}
-        </Box>
-      </Stack>
-
-      <Card variant="elevated" padding="md">
-        <Box className="grid grid-cols-2 gap-md">
-          <SpecItem label="Origin" value="Premium Virgin" />
-          <SpecItem label="Texture" value={product.description ?? "—"} />
-          <SpecItem label="Lace type" value="HD Swiss" />
-          <SpecItem label="Weight" value="300g (3 bundles)" />
-        </Box>
-      </Card>
+          <Box className={`grid ${gridColsClass} gap-sm`}>
+            {lengthOptions.map((opt) => (
+              <Button
+                key={opt.length}
+                variant={opt.length === selectedLength ? "primary" : "outline"}
+                size="sm"
+                onClick={() => onLengthChange(opt.length)}
+              >
+                {opt.length}
+              </Button>
+            ))}
+          </Box>
+        </Stack>
+      )}
 
       <Stack gap="sm">
         <Row gap="sm" align="center" justify="between">
@@ -284,87 +285,6 @@ function PurchasePanel({
           Buy now
         </Button>
       </Stack>
-
-      <Stack gap="xs" className="pt-md border-t border-outline-variant">
-        <Row gap="sm" align="center">
-          <Icon
-            name="local_shipping"
-            className="text-base text-on-surface-variant"
-          />
-          <Text variant="body-sm" tone="muted">
-            Free express shipping on US orders over $150
-          </Text>
-        </Row>
-        <Row gap="sm" align="center">
-          <Icon
-            name="workspace_premium"
-            className="text-base text-on-surface-variant"
-          />
-          <Text variant="body-sm" tone="muted">
-            100% Remy virgin human hair guaranteed
-          </Text>
-        </Row>
-      </Stack>
     </Stack>
-  );
-}
-
-function SpecItem({ label, value }: { label: string; value: string }) {
-  return (
-    <Stack gap="xs">
-      <Text variant="label-caps" tone="muted" className="text-[10px]">
-        {label}
-      </Text>
-      <Text variant="body-sm" className="font-bold">
-        {value}
-      </Text>
-    </Stack>
-  );
-}
-
-function ProductDescription({ product }: { product: CartProduct }) {
-  return (
-    <Section padding="md">
-      <Box className="grid grid-cols-1 md:grid-cols-12 gap-xl">
-        <Box className="md:col-span-4">
-          <Heading
-            level={2}
-            variant="headline-sm"
-            className="text-primary border-l-4 border-primary pl-md"
-          >
-            The Details
-          </Heading>
-        </Box>
-        <Box className="md:col-span-8">
-          <Stack gap="md">
-            <Text variant="body-lg" className="leading-relaxed">
-              Our{" "}
-              <Text as="span" tone="primary" className="font-bold">
-                {product.name}
-              </Text>{" "}
-              is crafted with care. Sourced from premium donors with the
-              cuticle intact and aligned in one direction, each bundle stays
-              tangle-free and ultra-soft for over two years with proper care.
-            </Text>
-            <Text variant="body-md" tone="muted">
-              Pair with our care collection for best results — gentle wash, low
-              heat, and a satin pillowcase will keep this piece looking
-              salon-fresh wash after wash.
-            </Text>
-            <Card variant="tonal" padding="lg">
-              <Stack gap="sm">
-                <Text variant="editorial-italic">
-                  &ldquo;Designed for the woman who demands excellence without
-                  compromise.&rdquo;
-                </Text>
-                <Text variant="label-caps" tone="primary">
-                  — Adrienne C., Founder
-                </Text>
-              </Stack>
-            </Card>
-          </Stack>
-        </Box>
-      </Box>
-    </Section>
   );
 }

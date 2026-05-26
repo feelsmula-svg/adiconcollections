@@ -25,6 +25,20 @@ export const signupSchema = z.object({
   password: passwordSchema,
 });
 
+const otpSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, "Enter the 6-digit code");
+
+export const verifySignupOtpSchema = z.object({
+  email: emailSchema,
+  code: otpSchema,
+});
+
+export const resendSignupOtpSchema = z.object({
+  email: emailSchema,
+});
+
 export const signinSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Password is required").max(128, "Too long"),
@@ -66,3 +80,5 @@ export type SigninInput = z.infer<typeof signinSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type VerifySignupOtpInput = z.infer<typeof verifySignupOtpSchema>;
+export type ResendSignupOtpInput = z.infer<typeof resendSignupOtpSchema>;

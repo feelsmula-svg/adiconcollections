@@ -12,7 +12,6 @@ import {
   Stack,
 } from "@/app/components/ui";
 import type { CartProduct } from "@/app/lib/cart/types";
-import { FEATURED_PRODUCTS } from "@/app/lib/products/catalog";
 import { ProductCard } from "./products/product-card";
 
 const TEXTURES = ["All", "Straight", "Curly", "Waves", "Bangs"] as const;
@@ -20,10 +19,17 @@ type Texture = (typeof TEXTURES)[number];
 
 const DEFAULT_PREVIEW_LIMIT = 8;
 
+const TEXTURE_PATTERNS: Record<Exclude<Texture, "All">, RegExp> = {
+  Straight: /\b(?:bone\s*straight|kinky\s*straight|straight|yaki)\b/i,
+  Curly: /\b(?:jerry\s*curl|kinky\s*curly|curls?|curly|curl)\b/i,
+  Waves: /\b(?:body\s*wave|deep\s*wave|loose\s*wave|waves?|wavy)\b/i,
+  Bangs: /\bbangs?\b/i,
+};
+
 function matches(texture: Texture, name: string, description?: string): boolean {
   if (texture === "All") return true;
-  const haystack = `${name} ${description ?? ""}`.toLowerCase();
-  return haystack.includes(texture.toLowerCase());
+  const haystack = `${name} ${description ?? ""}`;
+  return TEXTURE_PATTERNS[texture].test(haystack);
 }
 
 interface ProductGridProps {
@@ -39,7 +45,7 @@ export function ProductGrid({
   viewAllHref = "/shop",
   viewAllLabel = "View all products",
 }: ProductGridProps = {}) {
-  const source = provided ?? FEATURED_PRODUCTS;
+  const source = provided ?? [];
   const [active, setActive] = useState<Texture>("All");
   const filtered = source.filter((p) =>
     matches(active, p.name, p.description),

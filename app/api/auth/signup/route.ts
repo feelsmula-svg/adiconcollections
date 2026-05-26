@@ -1,18 +1,15 @@
 import { NextResponse } from "next/server";
 
-import { buildSessionCookie } from "@/app/lib/auth/cookie";
 import { signupSchema } from "@/app/lib/auth/schemas";
 import {
+  generateSignupOtp,
   hashPassword,
-  signSession,
-  toPublicUser,
+  SIGNUP_OTP_RESEND_COOLDOWN_MS,
+  SIGNUP_OTP_TTL_MS,
 } from "@/app/lib/auth/server";
-import {
-  DuplicateEmailError,
-  // type import only — class lives in repo impl file
-} from "@/app/lib/auth/repositories/json-user-repository";
+import { getPendingSignupRepository } from "@/app/lib/auth/pending-signup-repository";
+import { sendSignupOtpEmail } from "@/app/lib/auth/signup-otp-email";
 import { getUserRepository } from "@/app/lib/auth/user-repository";
-import { notifyUser } from "@/app/lib/notifications/notify";
 
 // TODO: rate-limit POST /api/auth/signup (e.g. 5 req/min/IP) before exposing publicly.
 
@@ -43,54 +40,43 @@ export async function POST(request: Request) {
   }
 
   try {
-    const repo = await getUserRepository();
-    const passwordHash = await hashPassword(parsed.data.password);
-    const user = await repo.create({
-      email: parsed.data.email,
-      name: parsed.data.name,
-      passwordHash,
-    });
-
-    const token = await signSession({
-      sub: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    });
-
-    const response = NextResponse.json(
-      { user: toPublicUser(user) },
-      { status: 200 },
-    );
-    const cookie = buildSessionCookie(token);
-    response.cookies.set(cookie.name, cookie.value, cookie.options);
-
-    // Welcome email + in-app notification. Fire-and-forget so a transient
-    // SMTP hiccup never blocks the signup response.
-    const firstName = user.name.split(" ")[0] || user.name;
-    void notifyUser({
-      userId: user.id,
-      kind: "other",
-      title: "Welcome to AdiCon Collections",
-      body:
-        `Hi ${firstName}, welcome to AdiCon Collections! Your account is ready — ` +
-        `browse our latest drops, save your favorites, and track every order from ` +
-        `your dashboard. We're glad to have you with us.`,
-      link: "/account",
-      email: user.email,
-      emailSubject: "Welcome to AdiCon Collections",
-    });
-
-    return response;
-  } catch (error: unknown) {
-    if (error instanceof DuplicateEmailError) {
+    const userRepo = await getUserRepository();
+    const existing = await userRepo.findByEmail(parsed.data.email);
+    if (existing) {
       return NextResponse.json(
         { error: "An account with that email already exists" },
         { status: 409 },
       );
     }
-    const message =
-      error instanceof Error ? error.message : "Sign-up failed";
+
+    const passwordHash = await hashPassword(parsed.data.password);
+    const { code, hash: otpHash } = generateSignupOtp();
+    const now = Date.now();
+    const pendingRepo = await getPendingSignupRepository();
+    await pendingRepo.upsert({
+      email: parsed.data.email,
+      name: parsed.data.name,
+      passwordHash,
+      otpHash,
+      expiresAt: new Date(now + SIGNUP_OTP_TTL_MS).toISOString(),
+      resendAvailableAt: new Date(
+        now + SIGNUP_OTP_RESEND_COOLDOWN_MS,
+      ).toISOString(),
+    });
+
+    await sendSignupOtpEmail(parsed.data.email, parsed.data.name, code);
+
+    return NextResponse.json(
+      {
+        pending: true,
+        email: parsed.data.email,
+        resendInMs: SIGNUP_OTP_RESEND_COOLDOWN_MS,
+        expiresInMs: SIGNUP_OTP_TTL_MS,
+      },
+      { status: 202 },
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Sign-up failed";
     console.error("[auth/signup] error:", message);
     return NextResponse.json(
       { error: "Sign-up failed. Please try again." },

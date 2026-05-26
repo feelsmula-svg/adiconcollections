@@ -1,7 +1,7 @@
 import "server-only";
 
 import bcrypt from "bcryptjs";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 
@@ -16,6 +16,10 @@ const BCRYPT_COST = 10;
 
 export const RESET_TOKEN_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
+export const SIGNUP_OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+export const SIGNUP_OTP_RESEND_COOLDOWN_MS = 30 * 1000; // 30 seconds
+export const SIGNUP_OTP_MAX_ATTEMPTS = 6;
+
 export function generateResetToken(): { plaintext: string; hash: string } {
   const plaintext = randomBytes(32).toString("hex");
   return { plaintext, hash: hashResetToken(plaintext) };
@@ -23,6 +27,16 @@ export function generateResetToken(): { plaintext: string; hash: string } {
 
 export function hashResetToken(plaintext: string): string {
   return createHash("sha256").update(plaintext).digest("hex");
+}
+
+export function generateSignupOtp(): { code: string; hash: string } {
+  // 6 zero-padded decimal digits sourced from a CSPRNG. Stored only as a hash.
+  const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
+  return { code, hash: hashSignupOtp(code) };
+}
+
+export function hashSignupOtp(code: string): string {
+  return createHash("sha256").update(code).digest("hex");
 }
 
 const DUMMY_HASH =
