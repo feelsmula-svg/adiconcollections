@@ -33,7 +33,7 @@ const CONTACT_CARDS: ContactCard[] = [
   {
     icon: "call",
     title: "Phone",
-    body: "+1 (404) 555-0117",
+    body: "+1 (470) 358-0008",
   },
   {
     icon: "schedule",

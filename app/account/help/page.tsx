@@ -74,8 +74,8 @@ const CONTACT_CHANNELS: ContactChannel[] = [
   {
     icon: "call",
     label: "Phone",
-    value: "+1 (404) 555-0117",
-    href: "tel:+14045550117",
+    value: "+1 (470) 358-0008",
+    href: "tel:+14703580008",
   },
   {
     icon: "schedule",

@@ -30,7 +30,7 @@ export async function SiteHeader() {
         <div className="max-w-[1400px] mx-auto flex justify-between items-center text-xs font-label-caps">
           <div className="flex gap-md text-on-surface-variant">
             <span>🇺🇸 EN</span>
-            <span>Customer Service +1 (800) 555-0117</span>
+            <span>Customer Service +1 (470) 358-0008</span>
           </div>
           <div className="flex items-center gap-lg text-on-surface">
             <SearchTrigger variant="inline" />
