@@ -1,7 +1,7 @@
 import Image from "next/image";
+import heroModel from "../../public/hero.jpeg";
 
-const SELFIE_IMAGE =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuBbRqW3m33mMNEsgsRrayUDFDDKwRJ2CUF1p4zMlZp3dnJIC8__HQHFJqOfACU5UdTVNs0Q-x6KBEYQIdck81VuI-2vSSJpq-C6hYJi_P9UPYkLuPjjww4ld6WORXzqB-1HcJqx3YbUlpZuBJuaDVi83KWThPxaQaboUSt1pN0RIRx4NohDpb98EtuEkMCY9PeBz4_il-Pekj-FDNvC58ZN5iZLL77OXGwDq36bs5FxvBgf4RwgwWKYDcFQrKX6vUzDsbseBuhk-2Q";
+const SELFIE_IMAGE = heroModel;
 
 export function BundleDeals() {
   return (
@@ -16,13 +16,13 @@ export function BundleDeals() {
           </p>
         </div>
         <div className="flex-1 max-w-[20rem] md:max-w-[28rem] w-full">
-          <div className="relative w-full aspect-[4/3]">
+          <div className="relative w-full aspect-[3/4] md:aspect-[4/3]">
             <Image
               src={SELFIE_IMAGE}
               alt="Customer selfie wearing AdiCon Collections hair"
               fill
               sizes="(max-width: 768px) 100vw, 28rem"
-              className="object-cover opacity-80 grayscale hover:grayscale-0 transition-all duration-700"
+              className="object-cover object-center opacity-80 grayscale hover:grayscale-0 transition-all duration-700"
             />
           </div>
         </div>
