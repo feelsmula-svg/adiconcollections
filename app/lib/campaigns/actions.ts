@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { requireAdmin } from "@/app/lib/auth/server";
+import { CACHE_TAGS } from "@/app/lib/cache/tags";
 import { getCampaignRepository } from "./campaign-repository";
 import { campaignSchema, type CampaignInput } from "./schemas";
 import type { Campaign } from "./types";
@@ -52,6 +53,7 @@ export async function createCampaign(
     const repo = await getCampaignRepository();
     const campaign = await repo.create(normalise(parsed.data));
     revalidatePath("/admin/marketing");
+    revalidateTag(CACHE_TAGS.campaigns, "max");
     revalidatePath("/", "layout");
     return { ok: true, campaign };
   } catch (error: unknown) {
@@ -83,6 +85,7 @@ export async function updateCampaign(
   const campaign = await repo.update(trimmed, normalise(parsed.data));
   if (!campaign) return { ok: false, error: "Campaign not found" };
   revalidatePath("/admin/marketing");
+  revalidateTag(CACHE_TAGS.campaigns, "max");
   revalidatePath("/", "layout");
   return { ok: true, campaign };
 }
@@ -101,6 +104,7 @@ export async function deleteCampaign(
   const ok = await repo.delete(trimmed);
   if (!ok) return { ok: false, error: "Campaign not found" };
   revalidatePath("/admin/marketing");
+  revalidateTag(CACHE_TAGS.campaigns, "max");
   revalidatePath("/", "layout");
   return { ok: true };
 }

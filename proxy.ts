@@ -54,7 +54,7 @@ function rateLimit(
   return { ok: true };
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (request.method !== "POST") return NextResponse.next();
   const rule = RULES[request.nextUrl.pathname];
   if (!rule) return NextResponse.next();

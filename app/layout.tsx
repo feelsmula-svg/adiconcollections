@@ -26,10 +26,84 @@ const notoSerif = Noto_Serif({
   display: "swap",
 });
 
+const DEFAULT_SITE_URL = "https://www.adiconcollections.com";
+
+function resolveSiteUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!raw) {
+    return DEFAULT_SITE_URL;
+  }
+  const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    return new URL(normalized).toString();
+  } catch {
+    return DEFAULT_SITE_URL;
+  }
+}
+
+const siteUrl = resolveSiteUrl();
+const siteName = "AdiCon Collections";
+const siteDescription =
+  "100% virgin raw hair bundles, wigs, closures and styling. 30-day returns and free US shipping on orders over $150.";
+
 export const metadata: Metadata = {
-  title: "AdiCon Collections — Premium Raw Hair, Direct to You",
-  description:
-    "100% virgin raw hair bundles, closures and styling. 30-day returns and free US shipping on orders over $150.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "AdiCon Collections — Premium Raw Hair, Direct to You",
+    template: "%s | AdiCon Collections",
+  },
+  description: siteDescription,
+  applicationName: siteName,
+  keywords: [
+    "raw hair",
+    "virgin hair",
+    "human hair bundles",
+    "lace wigs",
+    "lace frontals",
+    "closures",
+    "body wave hair",
+    "straight hair",
+    "AdiCon Collections",
+  ],
+  authors: [{ name: siteName }],
+  creator: siteName,
+  publisher: siteName,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    siteName,
+    title: "AdiCon Collections — Premium Raw Hair, Direct to You",
+    description: siteDescription,
+    url: siteUrl,
+    locale: "en_US",
+    images: [
+      {
+        url: "/hero.jpeg",
+        width: 1200,
+        height: 630,
+        alt: "AdiCon Collections premium raw hair",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AdiCon Collections — Premium Raw Hair, Direct to You",
+    description: siteDescription,
+    images: ["/hero.jpeg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 export default async function RootLayout({

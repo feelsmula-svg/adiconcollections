@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import type { CartProduct } from "@/app/lib/cart/types";
 import {
   ACCESSORIES,
@@ -8,6 +10,26 @@ import {
 } from "./catalog";
 import { getProductRepository } from "./product-repository";
 import type { ProductCategory, ProductRecord } from "./types";
+
+/**
+ * Request-scoped read of every admin-managed product. The storefront helpers
+ * below all derive their results from this single list (filtering in memory),
+ * so a page that needs several slices (featured, accessories, by-category)
+ * pays a single Mongo query per request instead of one per section.
+ *
+ * NOTE: we use React `cache()` (per-request memoisation) rather than the
+ * cross-request `unstable_cache` because admin products currently embed their
+ * images as base64 data URLs, which pushes the serialised list well past the
+ * 2 MB data-cache limit. Externalising images to files (see
+ * `public/uploads/`) is the proper fix and would let this move back to a
+ * tagged `unstable_cache`.
+ */
+const getCachedAdminProducts = cache(
+  async (): Promise<ProductRecord[]> => {
+    const repo = await getProductRepository();
+    return repo.list();
+  },
+);
 
 /**
  * Bridge a server-managed ProductRecord into the storefront CartProduct shape
@@ -47,8 +69,7 @@ export function seedProducts(): CartProduct[] {
 
 /** All products visible on the storefront — seed + admin-uploaded. */
 export async function getAllStorefrontProducts(): Promise<CartProduct[]> {
-  const repo = await getProductRepository();
-  const admin = await repo.list();
+  const admin = await getCachedAdminProducts();
   return [...seedProducts(), ...admin.map(recordToCartProduct)];
 }
 
@@ -57,8 +78,8 @@ export async function findStorefrontProduct(
 ): Promise<CartProduct | undefined> {
   const seed = seedProducts().find((p) => p.id === id);
   if (seed) return seed;
-  const repo = await getProductRepository();
-  const record = await repo.findById(id);
+  const admin = await getCachedAdminProducts();
+  const record = admin.find((p) => p.id === id);
   return record ? recordToCartProduct(record) : undefined;
 }
 
@@ -77,8 +98,8 @@ export async function getStorefrontProductsByCategory(
   category: ProductCategory,
   fallbackKeywords: string[] = [],
 ): Promise<CartProduct[]> {
-  const repo = await getProductRepository();
-  const admin = await repo.list({ category });
+  const all = await getCachedAdminProducts();
+  const admin = all.filter((p) => p.category === category);
   const seed =
     fallbackKeywords.length > 0
       ? seedProducts().filter((p) => {
@@ -90,13 +111,13 @@ export async function getStorefrontProductsByCategory(
 }
 
 export async function getFeaturedStorefrontProducts(): Promise<CartProduct[]> {
-  const repo = await getProductRepository();
-  const adminFeatured = await repo.list({ featured: true });
+  const admin = await getCachedAdminProducts();
+  const adminFeatured = admin.filter((p) => p.featured);
   return [...FEATURED_PRODUCTS, ...adminFeatured.map(recordToCartProduct)];
 }
 
 export async function getAccessoryStorefrontProducts(): Promise<CartProduct[]> {
-  const repo = await getProductRepository();
-  const admin = await repo.list({ category: "accessories" });
-  return [...ACCESSORIES, ...admin.map(recordToCartProduct)];
+  const admin = await getCachedAdminProducts();
+  const accessories = admin.filter((p) => p.category === "accessories");
+  return [...ACCESSORIES, ...accessories.map(recordToCartProduct)];
 }

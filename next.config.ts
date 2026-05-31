@@ -33,6 +33,11 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   images: {
+    // Serve modern formats; the optimizer negotiates AVIF/WebP per request.
+    formats: ["image/avif", "image/webp"],
+    // Cache optimized variants for a week instead of re-running the optimizer
+    // on every request.
+    minimumCacheTTL: 60 * 60 * 24 * 7,
     remotePatterns: [
       {
         protocol: "https",

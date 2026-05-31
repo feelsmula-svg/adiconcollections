@@ -23,9 +23,8 @@ const CATEGORIES: Category[] = [
   },
   {
     label: "Frontals & Closures",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuC3Leb5F_nnwTuHRsVTyEsFV24WI1-mUGec08bQYnQwue0JlNZVvShyxvW0ImaWHZVQ7uGyXSowKsAndZy5efIjXB7UW4bgak-2cIkWcxSRB-RjGqn32FXHugLnUDm5o6rRLdBmX8IoIWtJ_s2Qgila916eOfgbIHm583gYRcqdtZChtJHQmXhC9LHMpod_T_UhodPy5LnRPWy5hI_JdrRKEyTIXLbi9M17SmJznAtFVm0TMoAueZLTNsyLEUeYzG_ZZPDhgk-DZ14",
-    alt: "Lace frontal piece displayed with curly raw hair texture",
+    image: "/categories/category-frontals.jpeg",
+    alt: "Sleek straight lace frontal install with a clean middle part",
     href: "/frontals-and-closures",
   },
   {

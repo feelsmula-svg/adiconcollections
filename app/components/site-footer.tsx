@@ -1,4 +1,9 @@
-import { PaymentLogos, SocialIconLink, TextLink } from "@/app/components/ui";
+import {
+  PaymentLogos,
+  SocialIconLink,
+  Text,
+  TextLink,
+} from "@/app/components/ui";
 
 const INSTAGRAM_URL = "https://www.instagram.com/adiconcollections";
 
@@ -173,6 +178,15 @@ export function SiteFooter() {
         </div>
 
         <PaymentLogos />
+
+        <Text
+          as="p"
+          variant="body-sm"
+          align="center"
+          className="mt-lg opacity-60"
+        >
+          Developed by iam-ignite
+        </Text>
       </div>
     </footer>
   );
