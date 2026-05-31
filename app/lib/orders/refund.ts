@@ -58,7 +58,8 @@ export async function attemptFullRefund(
     }
     const refund: OrderRefund = {
       status: "cancelled",
-      amount: order.totals.total,
+      // OrderTotals are in cents; OrderRefund.amount is in dollars.
+      amount: order.totals.total / 100,
       createdAt: now,
       completedAt: now,
       paymentCancelled: true,

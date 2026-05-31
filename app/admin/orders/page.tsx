@@ -1,6 +1,9 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
+import { AdminTableLoading } from "@/app/components/admin/admin-table-loading";
+import { TabSpinnerLink } from "@/app/components/admin/tab-spinner-link";
 import {
   Badge,
   Card,
@@ -45,14 +48,50 @@ function parsePage(value: string | undefined): number {
 export default async function AdminOrdersPage({
   searchParams,
 }: AdminOrdersPageProps) {
+  const params = await searchParams;
+  const status = isOrderStatus(params.status) ? params.status : undefined;
+  const currentPage = parsePage(params.page);
+
+  return (
+    <AdminPage
+      title="Orders"
+      subtitle="Update tracking, change statuses, and oversee fulfilment."
+    >
+      <Card variant="outlined" padding="md" rounded="2xl">
+        <ChipRail ariaLabel="Filter orders by status">
+          <TabSpinnerLink active={!status} label="All" href="/admin/orders" />
+          {ORDER_STATUSES.map((s) => (
+            <TabSpinnerLink
+              key={s}
+              active={status === s}
+              label={ORDER_STATUS_LABEL[s]}
+              href={`/admin/orders?status=${s}`}
+            />
+          ))}
+        </ChipRail>
+      </Card>
+
+      <Suspense
+        key={`${status ?? "all"}|${currentPage}`}
+        fallback={<AdminTableLoading />}
+      >
+        <OrdersContent status={status} currentPage={currentPage} />
+      </Suspense>
+    </AdminPage>
+  );
+}
+
+async function OrdersContent({
+  status,
+  currentPage,
+}: {
+  status: OrderStatus | undefined;
+  currentPage: number;
+}) {
   const user = await getSessionUser();
   if (!user || user.role !== "admin") {
     redirect("/account");
   }
-
-  const params = await searchParams;
-  const status = isOrderStatus(params.status) ? params.status : undefined;
-  const currentPage = parsePage(params.page);
 
   const repo = await getOrderRepository();
   const orders = await repo.list(status ? { status } : undefined);
@@ -137,27 +176,7 @@ export default async function AdminOrdersPage({
   ];
 
   return (
-    <AdminShell
-      user={user}
-      active="orders"
-      title="Orders"
-      subtitle="Update tracking, change statuses, and oversee fulfilment."
-    >
-      <Card variant="outlined" padding="md" rounded="2xl">
-        <ChipRail ariaLabel="Filter orders by status">
-          <StatusFilterLink active={!status} label="All" href="/admin/orders" />
-          {ORDER_STATUSES.map((s) => (
-            <StatusFilterLink
-              key={s}
-              active={status === s}
-              label={ORDER_STATUS_LABEL[s]}
-              href={`/admin/orders?status=${s}`}
-            />
-          ))}
-        </ChipRail>
-      </Card>
-
-      <Card variant="outlined" padding="none" rounded="2xl">
+    <Card variant="outlined" padding="none" rounded="2xl">
         <DataTable
           columns={columns}
           rows={orders}
@@ -174,26 +193,6 @@ export default async function AdminOrdersPage({
             />
           }
         />
-      </Card>
-    </AdminShell>
-  );
-}
-
-interface StatusFilterLinkProps {
-  active: boolean;
-  label: string;
-  href: string;
-}
-
-function StatusFilterLink({ active, label, href }: StatusFilterLinkProps) {
-  return (
-    <LinkButton
-      href={href}
-      variant={active ? "primary" : "ghost"}
-      size="sm"
-      caps={false}
-    >
-      {label}
-    </LinkButton>
+    </Card>
   );
 }

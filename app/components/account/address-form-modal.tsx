@@ -445,7 +445,8 @@ export function AddressFormModal({
               variant="primary"
               size="sm"
               caps={false}
-              disabled={pending || !stepValid}
+              loading={pending}
+              disabled={!stepValid}
             >
               {submitLabel}
               {!isLast ? (

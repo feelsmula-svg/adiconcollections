@@ -231,7 +231,7 @@ export function ContactContent() {
                       size="md"
                       fullWidth
                       onClick={onSubmit}
-                      disabled={submitting}
+                      loading={submitting}
                       className="tracking-[0.12em]"
                     >
                       {submitting ? "Sending…" : "Send message"}

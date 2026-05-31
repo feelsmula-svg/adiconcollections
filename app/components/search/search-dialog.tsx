@@ -17,6 +17,7 @@ import {
   Image,
   LinkButton,
   Row,
+  Spinner,
   Stack,
   Text,
 } from "@/app/components/ui";
@@ -181,6 +182,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
             query={debounced}
             results={preview}
             total={total}
+            loading={!catalogLoaded}
             onNavigate={onClose}
           />
         </Box>
@@ -253,6 +255,7 @@ interface SearchResultsProps {
   query: string;
   results: CartProduct[];
   total: number;
+  loading: boolean;
   onNavigate: () => void;
 }
 
@@ -260,10 +263,23 @@ function SearchResults({
   query,
   results,
   total,
+  loading,
   onNavigate,
 }: SearchResultsProps) {
   const trimmed = query.trim();
   const hasQuery = trimmed.length >= 2;
+
+  // Catalog still downloading while the shopper is already typing.
+  if (hasQuery && loading) {
+    return (
+      <Stack gap="sm" align="center" className="px-md py-lg">
+        <Spinner size="md" />
+        <Text variant="body-sm" tone="muted">
+          Searching the collection…
+        </Text>
+      </Stack>
+    );
+  }
 
   if (!hasQuery) {
     return (

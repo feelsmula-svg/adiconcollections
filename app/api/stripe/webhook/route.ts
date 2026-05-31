@@ -177,17 +177,8 @@ async function handleRefundChange(
 
 async function handlePaymentSuccess(intent: Stripe.PaymentIntent): Promise<void> {
   const repo = await getOrderRepository();
-  const order = await repo.findByPaymentIntent(intent.id);
-  if (!order) return;
-  if (order.status !== "processing") return;
-  // Sync the card details now that Stripe has them.
-  const charge =
-    typeof intent.latest_charge === "object" && intent.latest_charge !== null
-      ? (intent.latest_charge as Stripe.Charge)
-      : null;
-  const card = charge?.payment_method_details?.card;
-  if (!card) return;
-  // Re-issue the same totals (no-op write) to revalidate caches; the card
-  // sync itself happens lazily when the customer views the order.
-  await repo.updateTotalsByPaymentIntent(intent.id, { totals: order.totals });
+  // Flip the order to paid so it counts toward revenue/analytics. Idempotent —
+  // the server-verified checkout confirmation may have already done this.
+  // (Card brand/last4 are synced lazily by confirmCheckoutByPaymentIntent.)
+  await repo.markPaidByPaymentIntent(intent.id);
 }

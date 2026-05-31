@@ -1,6 +1,9 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
+import { AdminTableLoading } from "@/app/components/admin/admin-table-loading";
+import { TabSpinnerLink } from "@/app/components/admin/tab-spinner-link";
 import {
   InventoryRow,
   type InventorySource,
@@ -84,15 +87,55 @@ function parsePage(value: string | undefined): number {
 export default async function AdminInventoryPage({
   searchParams,
 }: AdminInventoryPageProps) {
-  const user = await getSessionUser();
-  if (!user || user.role !== "admin") {
-    redirect("/account");
-  }
-
   const params = await searchParams;
   const tab: Tab = isTab(params.tab) ? params.tab : "attention";
   const query = (params.q?.trim() ?? "").toLowerCase();
   const currentPage = parsePage(params.page);
+
+  return (
+    <AdminPage
+      title="Inventory"
+      subtitle="Stock health and restocking across every product on the storefront. Edit product info in Catalog."
+    >
+      <Card variant="outlined" padding="md" rounded="2xl">
+        <Stack gap="md">
+          <ChipRail ariaLabel="Filter inventory by stock health">
+            {TABS.map((value) => (
+              <TabSpinnerLink
+                key={value}
+                active={tab === value}
+                label={TAB_LABEL[value]}
+                href={buildHref({ tab: value, q: query })}
+              />
+            ))}
+          </ChipRail>
+          <InventorySearch initialQuery={query} tab={tab} />
+        </Stack>
+      </Card>
+
+      <Suspense
+        key={`${tab}|${query}|${currentPage}`}
+        fallback={<AdminTableLoading />}
+      >
+        <InventoryContent tab={tab} query={query} currentPage={currentPage} />
+      </Suspense>
+    </AdminPage>
+  );
+}
+
+async function InventoryContent({
+  tab,
+  query,
+  currentPage,
+}: {
+  tab: Tab;
+  query: string;
+  currentPage: number;
+}) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "admin") {
+    redirect("/account");
+  }
 
   const repo = await getProductRepository();
   const seedRepo = await getSeedStockRepository();
@@ -192,12 +235,7 @@ export default async function AdminInventoryPage({
   ];
 
   return (
-    <AdminShell
-      user={user}
-      active="inventory"
-      title="Inventory"
-      subtitle="Stock health and restocking across every product on the storefront. Edit product info in Catalog."
-    >
+    <>
       <Box className="grid grid-cols-3 gap-sm sm:gap-md lg:gap-lg">
         <SummaryCard
           label={`Critical (< ${STOCK_CRITICAL})`}
@@ -207,31 +245,6 @@ export default async function AdminInventoryPage({
         <SummaryCard label={`Low (< ${STOCK_LOW})`} value={low} tone="secondary" />
         <SummaryCard label="Healthy" value={healthy} tone="primary" />
       </Box>
-
-      <Card variant="outlined" padding="md" rounded="2xl">
-        <Stack gap="md">
-          <ChipRail ariaLabel="Filter inventory by stock health">
-            {TABS.map((value) => (
-              <TabLink
-                key={value}
-                active={tab === value}
-                label={TAB_LABEL[value]}
-                href={buildHref({ tab: value, q: query })}
-                count={
-                  value === "critical"
-                    ? critical
-                    : value === "low"
-                      ? low
-                      : value === "attention"
-                        ? critical + low
-                        : items.length
-                }
-              />
-            ))}
-          </ChipRail>
-          <InventorySearch initialQuery={query} tab={tab} />
-        </Stack>
-      </Card>
 
       <Card variant="outlined" padding="none" rounded="2xl">
         <DataTable
@@ -271,7 +284,7 @@ export default async function AdminInventoryPage({
           }
         />
       </Card>
-    </AdminShell>
+    </>
   );
 }
 
@@ -289,26 +302,6 @@ function buildHref({
   if (q) params.set("q", q);
   if (page && page > 1) params.set("page", String(page));
   return `/admin/inventory?${params.toString()}`;
-}
-
-interface TabLinkProps {
-  active: boolean;
-  label: string;
-  href: string;
-  count: number;
-}
-
-function TabLink({ active, label, href, count }: TabLinkProps) {
-  return (
-    <LinkButton
-      href={href}
-      variant={active ? "primary" : "ghost"}
-      size="sm"
-      caps={false}
-    >
-      {label} · {count}
-    </LinkButton>
-  );
 }
 
 interface SummaryCardProps {

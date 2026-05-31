@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import { ProductForm } from "@/app/components/admin/product-form";
 import { LinkButton } from "@/app/components/ui";
 import { getSessionUser } from "@/app/lib/auth/server";
@@ -35,9 +35,7 @@ export default async function AdminProductEditPage({
   ]);
 
   return (
-    <AdminShell
-      user={user}
-      active="products"
+    <AdminPage
       title={product.name}
       subtitle="Edit product details, update stock, or remove from the shop."
     >
@@ -55,6 +53,6 @@ export default async function AdminProductEditPage({
         hairTypes={hairTypes}
         categories={categories}
       />
-    </AdminShell>
+    </AdminPage>
   );
 }

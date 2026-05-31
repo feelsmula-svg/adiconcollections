@@ -6,6 +6,13 @@ const DEFAULT_FROM =
   process.env.NOTIFICATION_FROM_EMAIL ??
   "AdiCon Collections <adiconluxuryhair@yahoo.com>";
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  /** MIME type, e.g. "application/pdf". */
+  contentType?: string;
+}
+
 export interface SendEmailInput {
   to: string | string[];
   subject: string;
@@ -13,6 +20,8 @@ export interface SendEmailInput {
   text?: string;
   /** Optional override for the `From:` address (defaults to NOTIFICATION_FROM_EMAIL). */
   from?: string;
+  /** Optional file attachments (e.g. an invoice PDF). */
+  attachments?: EmailAttachment[];
 }
 
 export interface SendEmailResult {
@@ -58,10 +67,13 @@ export async function sendEmail(
 
   const transporter = getTransporter();
   if (!transporter) {
+    const attachmentNote = input.attachments?.length
+      ? `\n  attachments: ${input.attachments.length}`
+      : "";
     console.info(
       `[email] SMTP creds not set — would have sent:\n` +
         `  to: ${recipients.join(", ")}\n` +
-        `  subject: ${input.subject}`,
+        `  subject: ${input.subject}${attachmentNote}`,
     );
     return { ok: true, logOnly: true };
   }
@@ -73,6 +85,7 @@ export async function sendEmail(
       subject: input.subject,
       html: input.html,
       text: input.text,
+      attachments: input.attachments,
     });
     return { ok: true, id: info.messageId };
   } catch (error: unknown) {

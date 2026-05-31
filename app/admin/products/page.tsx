@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import {
   Badge,
   Card,
@@ -195,9 +195,7 @@ export default async function AdminProductsPage({
   ];
 
   return (
-    <AdminShell
-      user={user}
-      active="products"
+    <AdminPage
       title="Catalog"
       subtitle="Product lifecycle — names, descriptions, pricing, images, and what is featured on the storefront. Manage stock in Inventory."
     >
@@ -251,6 +249,6 @@ export default async function AdminProductsPage({
           }
         />
       </Card>
-    </AdminShell>
+    </AdminPage>
   );
 }

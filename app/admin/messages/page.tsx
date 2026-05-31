@@ -1,12 +1,11 @@
 import { redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import {
   Badge,
   Box,
   Card,
   EmptyState,
-  Heading,
   Icon,
   LinkButton,
   Row,
@@ -61,9 +60,7 @@ export default async function AdminMessagesPage() {
   const newCount = messages.filter((m) => m.status === "new").length;
 
   return (
-    <AdminShell
-      user={user}
-      active="messages"
+    <AdminPage
       title="Messages"
       subtitle={
         newCount > 0
@@ -143,6 +140,6 @@ export default async function AdminMessagesPage() {
           })}
         </Stack>
       )}
-    </AdminShell>
+    </AdminPage>
   );
 }

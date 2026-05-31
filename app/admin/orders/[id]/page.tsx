@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import { OrderManagementPanel } from "@/app/components/admin/order-management-panel";
 import {
   Badge,
@@ -17,13 +17,13 @@ import {
 import {
   ORDER_STATUS_LABEL,
   ORDER_STATUS_TONE,
+  formatCarrier,
   formatCurrency,
   formatOrderDate,
   formatOrderTimestamp,
 } from "@/app/lib/orders/format";
 import { getSessionUser } from "@/app/lib/auth/server";
 import { getOrderRepository } from "@/app/lib/orders/order-repository";
-import { SHIPPING_CARRIER_LABELS } from "@/app/lib/orders/types";
 
 interface AdminOrderDetailPageProps {
   params: Promise<{ id: string }>;
@@ -43,9 +43,7 @@ export default async function AdminOrderDetailPage({
   if (!order) notFound();
 
   return (
-    <AdminShell
-      user={user}
-      active="orders"
+    <AdminPage
       title={order.reference}
       subtitle={`Placed ${formatOrderDate(order.placedAt)} · ${order.customerName} (${order.customerEmail})`}
     >
@@ -190,9 +188,8 @@ export default async function AdminOrderDetailPage({
                   Shipping
                 </Text>
                 <Text variant="body-md" as="span" className="font-semibold">
-                  {order.carrier
-                    ? SHIPPING_CARRIER_LABELS[order.carrier]
-                    : "No carrier set"}
+                  {formatCarrier(order.carrier, order.carrierName) ??
+                    "No carrier set"}
                 </Text>
                 <Text variant="body-sm" tone="muted">
                   {order.trackingNumber
@@ -247,7 +244,7 @@ export default async function AdminOrderDetailPage({
           </Stack>
         </Box>
       </Row>
-    </AdminShell>
+    </AdminPage>
   );
 }
 

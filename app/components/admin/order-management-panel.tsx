@@ -96,6 +96,9 @@ export function OrderManagementPanel({ order }: OrderManagementPanelProps) {
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
   const [carrier, setCarrier] = useState<string>(order.carrier ?? "");
+  const [carrierName, setCarrierName] = useState<string>(
+    order.carrierName ?? "",
+  );
   const [trackingNumber, setTrackingNumber] = useState<string>(
     order.trackingNumber ?? "",
   );
@@ -176,6 +179,7 @@ export function OrderManagementPanel({ order }: OrderManagementPanelProps) {
       {
         action: "update-shipping",
         carrier: carrier || undefined,
+        carrierName: carrier === "other" ? carrierName.trim() : undefined,
         trackingNumber: trackingNumber.trim(),
       },
       "shipping",
@@ -404,6 +408,17 @@ export function OrderManagementPanel({ order }: OrderManagementPanelProps) {
               </FormField>
             </Box>
           </Row>
+
+          {carrier === "other" ? (
+            <FormField label="Carrier name">
+              <TextField
+                value={carrierName}
+                placeholder="e.g. Aramex, GIG Logistics"
+                onChange={(event) => setCarrierName(event.target.value)}
+                disabled={busy || cancelled}
+              />
+            </FormField>
+          ) : null}
 
           <Row justify="end">
             <Button

@@ -1,10 +1,9 @@
 import {
-  SHIPPING_CARRIER_LABELS,
   type ActivityKind,
   type OrderActivityEntry,
   type OrderRecord,
 } from "@/app/lib/orders/types";
-import { formatOrderDate } from "@/app/lib/orders/format";
+import { formatCarrier, formatOrderDate } from "@/app/lib/orders/format";
 
 export type PromptTone =
   | "primary"
@@ -63,7 +62,7 @@ function extractAdvancedTo(message: string): string | null {
 }
 
 function carrierLabel(order: OrderRecord): string {
-  return order.carrier ? SHIPPING_CARRIER_LABELS[order.carrier] : "the carrier";
+  return formatCarrier(order.carrier, order.carrierName) ?? "the carrier";
 }
 
 function blurbForStep(step: string): string | undefined {
@@ -218,7 +217,7 @@ function adminCopyFor(
         title: "Shipping details updated",
         body:
           order.carrier || order.trackingNumber
-            ? `${order.carrier ? SHIPPING_CARRIER_LABELS[order.carrier] : "Carrier unset"}${
+            ? `${formatCarrier(order.carrier, order.carrierName) ?? "Carrier unset"}${
                 order.trackingNumber ? ` · #${order.trackingNumber}` : ""
               }`
             : undefined,

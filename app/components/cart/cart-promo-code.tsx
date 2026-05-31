@@ -106,7 +106,7 @@ export function CartPromoCode() {
               variant="outline"
               size="sm"
               onClick={applyCode}
-              disabled={pending}
+              loading={pending}
               className="shrink-0 tracking-[0.1em]"
             >
               {pending ? "Checking…" : "Apply"}

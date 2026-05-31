@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import { MessageReplyForm } from "@/app/components/admin/message-reply-form";
 import {
   Badge,
@@ -45,9 +45,7 @@ export default async function AdminMessageDetailPage({
   const customerHasAccount = Boolean(message.userId);
 
   return (
-    <AdminShell
-      user={user}
-      active="messages"
+    <AdminPage
       title={message.subject}
       subtitle={`From ${message.name} <${message.email}> · ${formatTimestamp(message.createdAt)}`}
     >
@@ -161,6 +159,6 @@ export default async function AdminMessageDetailPage({
           customerHasAccount={customerHasAccount}
         />
       </Stack>
-    </AdminShell>
+    </AdminPage>
   );
 }

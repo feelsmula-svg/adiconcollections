@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import { CampaignsManager } from "@/app/components/admin/campaigns-manager";
 import { getSessionUser } from "@/app/lib/auth/server";
 import { getCampaignRepository } from "@/app/lib/campaigns/campaign-repository";
@@ -17,13 +17,11 @@ export default async function AdminCampaignsPage() {
   const campaigns = await repo.list();
 
   return (
-    <AdminShell
-      user={user}
-      active="campaigns"
+    <AdminPage
       title="Campaigns"
       subtitle="Drive the header banner, customer modal, and promo codes from one place."
     >
       <CampaignsManager campaigns={campaigns} />
-    </AdminShell>
+    </AdminPage>
   );
 }

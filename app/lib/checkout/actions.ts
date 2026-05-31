@@ -78,6 +78,13 @@ export async function confirmCheckoutByPaymentIntent(
     if (cancelled) order = cancelled;
   }
 
+  // Server-verified paid: Stripe (the authority) confirms the PI succeeded, so
+  // flip the order to paid even if the webhook hasn't arrived. Idempotent.
+  if (stripeStatus === "succeeded") {
+    const paid = await repo.markPaidByPaymentIntent(trimmed);
+    if (paid) order = paid;
+  }
+
   // Surface card brand/last4 to the customer once Stripe has them.
   if (card && (!order.payment.last4 || order.payment.last4 === "••••")) {
     const brand = card.brand

@@ -42,6 +42,23 @@ export const TRACKING_STEP_TO_STATUS: Record<TrackingStepKey, OrderStatus> = {
   delivered: "delivered",
 };
 
+/**
+ * Payment lifecycle, independent of the fulfilment `status`. New orders start
+ * "pending" and flip to "paid" once Stripe confirms (webhook or the
+ * server-verified checkout confirmation). Legacy orders predate this field —
+ * an absent value is treated as paid so historical revenue is preserved.
+ */
+export type PaymentStatus = "pending" | "paid" | "failed";
+
+/**
+ * Whether an order should count as a real sale (revenue, analytics). Legacy
+ * orders with no `paymentStatus` count as paid; only explicitly "pending" or
+ * "failed" orders are excluded.
+ */
+export function isPaidOrder(order: { paymentStatus?: PaymentStatus }): boolean {
+  return order.paymentStatus !== "pending" && order.paymentStatus !== "failed";
+}
+
 export type ShippingCarrier = "fedex" | "ups" | "usps" | "dhl" | "other";
 
 export const SHIPPING_CARRIERS: readonly ShippingCarrier[] = [
@@ -80,7 +97,7 @@ export interface OrderRefund {
   /** Stripe refund ID. Absent when the PI was cancelled (no charge) or the refund couldn't be created. */
   stripeRefundId?: string;
   status: RefundStatus;
-  /** Amount in dollars (matches the OrderTotals.total unit). */
+  /** Amount in dollars. NOTE: OrderTotals are in cents — divide by 100. */
   amount: number;
   createdAt: string;
   /** Set when the refund moves to a terminal state. */
@@ -178,6 +195,10 @@ export interface OrderRecord extends OrderSummary {
   tracking: TrackingStep[];
   requiresSignature: boolean;
   carrier?: ShippingCarrier;
+  /** Freeform carrier name, used only when `carrier` is "other". */
+  carrierName?: string;
+  /** Payment lifecycle. Absent on legacy orders (treated as paid). */
+  paymentStatus?: PaymentStatus;
   trackingNumber?: string;
   adminNotes?: string;
   cancellationReason?: string;

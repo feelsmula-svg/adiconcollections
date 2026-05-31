@@ -13,6 +13,7 @@ import {
   Button,
   Card,
   Checkbox,
+  CopyButton,
   FormField,
   Heading,
   Icon,
@@ -103,7 +104,6 @@ export function PromoCodesManager({ campaigns }: PromoCodesManagerProps) {
   >({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const promoCampaigns = campaigns.filter(
     (c) => c.promoCode && c.promoCode.length > 0,
@@ -228,17 +228,6 @@ export function PromoCodesManager({ campaigns }: PromoCodesManagerProps) {
       }
       router.refresh();
     });
-  };
-
-  const copyCode = async (campaign: Campaign) => {
-    if (!campaign.promoCode) return;
-    try {
-      await navigator.clipboard.writeText(campaign.promoCode);
-      setCopiedId(campaign.id);
-      setTimeout(() => setCopiedId(null), 1500);
-    } catch {
-      setRowError("Couldn't copy — your browser blocked clipboard access.");
-    }
   };
 
   return (
@@ -469,7 +458,6 @@ export function PromoCodesManager({ campaigns }: PromoCodesManagerProps) {
               const minLabel = formatMinSubtotal(campaign);
               const rangeLabel = formatRange(campaign);
               const isBusy = busyId === campaign.id;
-              const copied = copiedId === campaign.id;
               return (
                 <Card
                   key={campaign.id}
@@ -522,12 +510,11 @@ export function PromoCodesManager({ campaigns }: PromoCodesManagerProps) {
                         </Row>
                       </Stack>
                       <Row gap="xs" align="center">
-                        <IconButton
-                          icon={copied ? "check" : "content_copy"}
+                        <CopyButton
+                          value={campaign.promoCode ?? ""}
                           label={`Copy ${campaign.promoCode}`}
                           size="sm"
                           variant="plain"
-                          onClick={() => copyCode(campaign)}
                           disabled={isBusy}
                         />
                         <Button

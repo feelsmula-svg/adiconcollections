@@ -55,6 +55,8 @@ export interface RestoreOrderInput {
 export interface UpdateShippingInput {
   actor: ActorContext;
   carrier?: ShippingCarrier | null;
+  /** Freeform carrier name; persisted only when `carrier` is "other". */
+  carrierName?: string | null;
   trackingNumber?: string | null;
 }
 
@@ -93,6 +95,14 @@ export interface OrderRepository {
   updateTotalsByPaymentIntent(
     paymentIntentId: string,
     input: UpdateTotalsInput,
+  ): Promise<OrderRecord | null>;
+  /**
+   * Mark an order as paid once Stripe confirms the PaymentIntent succeeded.
+   * Idempotent: a no-op if the order is already paid. Returns null if no order
+   * matches the PaymentIntent.
+   */
+  markPaidByPaymentIntent(
+    paymentIntentId: string,
   ): Promise<OrderRecord | null>;
   updateTracking(
     id: string,

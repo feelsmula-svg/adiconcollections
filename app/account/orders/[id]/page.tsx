@@ -11,6 +11,7 @@ import {
   Box,
   Button,
   Card,
+  CopyButton,
   Heading,
   Icon,
   Image,
@@ -108,9 +109,17 @@ export default async function OrderDetailPage({
             >
               {order.productName}
             </Heading>
-            <Text variant="body-sm" tone="muted">
-              {order.reference} · Placed {formatOrderDate(order.placedAt)}
-            </Text>
+            <Row gap="xs" align="center">
+              <Text variant="body-sm" tone="muted">
+                {order.reference} · Placed {formatOrderDate(order.placedAt)}
+              </Text>
+              <CopyButton
+                value={order.reference}
+                label={`Copy order ID ${order.reference}`}
+                size="sm"
+                variant="plain"
+              />
+            </Row>
           </Stack>
           <DownloadInvoiceButton order={order} />
         </Row>

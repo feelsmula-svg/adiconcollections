@@ -2,6 +2,7 @@ import "server-only";
 
 import { getSessionUser } from "@/app/lib/auth/server";
 import { getOrderRepository } from "@/app/lib/orders/order-repository";
+import { isPaidOrder } from "@/app/lib/orders/types";
 import { getRewardsSettings } from "@/app/lib/settings/rewards/actions";
 import type { RewardsSettings } from "@/app/lib/settings/rewards/types";
 
@@ -23,6 +24,7 @@ export async function getRewardsSummary(): Promise<RewardsSummary> {
   const orders = await repo.list({ userId: user.id });
   const lifetimeSpentCents = orders.reduce((sum, order) => {
     if (order.status === "cancelled") return sum;
+    if (!isPaidOrder(order)) return sum;
     return sum + (order.totals?.total ?? order.total ?? 0);
   }, 0);
   const balance = settings.enabled

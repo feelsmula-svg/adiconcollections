@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "./cn";
+import { Spinner } from "./Spinner";
 
 type ButtonVariant =
   | "primary"
@@ -28,11 +29,29 @@ const SIZE: Record<ButtonSize, string> = {
   lg: "px-xl py-md text-body-lg",
 };
 
+// Variants painted on a dark surface need a light spinner; the rest use primary.
+const SPINNER_TONE: Record<ButtonVariant, "primary" | "on-primary"> = {
+  primary: "on-primary",
+  secondary: "on-primary",
+  destructive: "on-primary",
+  outline: "primary",
+  ghost: "primary",
+  inverse: "primary",
+};
+
+const SPINNER_SIZE: Record<ButtonSize, "sm" | "md"> = {
+  sm: "sm",
+  md: "sm",
+  lg: "md",
+};
+
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
   caps?: boolean;
+  /** Shows a spinner and disables the button while an action is in flight. */
+  loading?: boolean;
   children?: ReactNode;
 }
 
@@ -41,19 +60,24 @@ export function Button({
   size = "md",
   fullWidth,
   caps = true,
+  loading = false,
   type = "button",
   className,
+  disabled,
   children,
   ...rest
 }: ButtonProps) {
   return (
     <button
       type={type}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(
         "inline-flex items-center justify-center transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed",
         caps
           ? "font-label-caps uppercase tracking-[0.2em]"
           : "font-body-md tracking-normal",
+        loading && "gap-sm",
         fullWidth && "w-full",
         VARIANT[variant],
         SIZE[size],
@@ -61,6 +85,9 @@ export function Button({
       )}
       {...rest}
     >
+      {loading ? (
+        <Spinner size={SPINNER_SIZE[size]} tone={SPINNER_TONE[variant]} />
+      ) : null}
       {children}
     </button>
   );

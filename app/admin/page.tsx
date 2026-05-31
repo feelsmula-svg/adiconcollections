@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import {
   Badge,
   BarChart,
@@ -26,7 +26,7 @@ import {
   formatOrderDate,
 } from "@/app/lib/orders/format";
 import { getOrderRepository } from "@/app/lib/orders/order-repository";
-import type { OrderRecord } from "@/app/lib/orders/types";
+import { isPaidOrder, type OrderRecord } from "@/app/lib/orders/types";
 import { recentAdminPrompts } from "@/app/lib/orders/system-prompts";
 import { SystemPromptFeed } from "@/app/components/orders/system-prompt-feed";
 import { getProductRepository } from "@/app/lib/products/product-repository";
@@ -59,11 +59,13 @@ export default async function AdminDashboardPage() {
   const activeOrders = orders.filter(
     (o) => o.status === "processing" || o.status === "in-transit",
   );
-  const revenue = orders
-    .filter((o) => o.status !== "cancelled")
-    .reduce((sum, o) => sum + o.total, 0);
-  const aov =
-    orders.length > 0 ? revenue / Math.max(1, orders.length) : 0;
+  // Only count real sales: not cancelled, and payment confirmed (legacy orders
+  // with no paymentStatus count as paid). Excludes unpaid/abandoned checkouts.
+  const paidOrders = orders.filter(
+    (o) => o.status !== "cancelled" && isPaidOrder(o),
+  );
+  const revenue = paidOrders.reduce((sum, o) => sum + o.total, 0);
+  const aov = paidOrders.length > 0 ? revenue / paidOrders.length : 0;
   const customerCount = users.filter((u) => u.role === "customer").length;
 
   const recent = orders.slice(0, 5);
@@ -102,9 +104,7 @@ export default async function AdminDashboardPage() {
   const topProducts = catalogItems.slice(0, 4);
 
   return (
-    <AdminShell
-      user={user}
-      active="dashboard"
+    <AdminPage
       title="Dashboard Overview"
       subtitle="Welcome back to your command center."
     >
@@ -381,7 +381,7 @@ export default async function AdminDashboardPage() {
           </Stack>
         </Card>
       </Box>
-    </AdminShell>
+    </AdminPage>
   );
 }
 
@@ -416,6 +416,7 @@ function computeWeeklyRevenue(
 
   for (const order of orders) {
     if (order.status === "cancelled") continue;
+    if (!isPaidOrder(order)) continue;
     const placed = new Date(order.placedAt).getTime();
     if (Number.isNaN(placed)) continue;
     const weeksAgo = Math.floor((now - placed) / msPerWeek);

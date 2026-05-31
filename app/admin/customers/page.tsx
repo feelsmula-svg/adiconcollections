@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import {
   Badge,
   Card,
@@ -126,9 +126,7 @@ export default async function AdminCustomersPage({
   ];
 
   return (
-    <AdminShell
-      user={user}
-      active="customers"
+    <AdminPage
       title="Customers"
       subtitle="Manage everyone with an Adicon account."
     >
@@ -151,6 +149,6 @@ export default async function AdminCustomersPage({
           }
         />
       </Card>
-    </AdminShell>
+    </AdminPage>
   );
 }

@@ -672,7 +672,7 @@ export function ProductForm({
                 type="submit"
                 variant="primary"
                 caps={false}
-                disabled={saving}
+                loading={saving}
               >
                 {saving
                   ? "Saving…"
@@ -716,7 +716,7 @@ export function ProductForm({
               variant="destructive"
               caps={false}
               onClick={handleDelete}
-              disabled={saving}
+              loading={saving}
             >
               {saving ? "Deleting…" : "Delete product"}
             </Button>

@@ -42,6 +42,7 @@ export const orderActionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("update-shipping"),
     carrier: carrierEnum.optional(),
+    carrierName: z.string().trim().max(80, "Too long").optional(),
     trackingNumber: z.string().trim().max(80, "Too long").optional(),
   }),
   z.object({

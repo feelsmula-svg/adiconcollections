@@ -1,4 +1,5 @@
-import type { OrderStatus } from "./types";
+import type { OrderStatus, ShippingCarrier } from "./types";
+import { SHIPPING_CARRIER_LABELS } from "./types";
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   processing: "Processing",
@@ -51,6 +52,25 @@ export function formatOrderTimestamp(value: string): string {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+/**
+ * Display label for a shipping carrier. When the carrier is "other", the
+ * admin-supplied freeform name takes precedence over the generic "Other"
+ * label, falling back to "Other" if no name was entered.
+ */
+export function formatCarrier(
+  carrier: ShippingCarrier | undefined,
+  carrierName?: string,
+): string | undefined {
+  if (!carrier) return undefined;
+  if (carrier === "other") {
+    const trimmed = carrierName?.trim();
+    return trimmed && trimmed.length > 0
+      ? trimmed
+      : SHIPPING_CARRIER_LABELS.other;
+  }
+  return SHIPPING_CARRIER_LABELS[carrier];
 }
 
 export function formatCurrency(minorUnits: number): string {

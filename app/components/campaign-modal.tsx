@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Box,
   Button,
+  CopyButton,
   Heading,
   Icon,
   IconButton,
@@ -140,14 +141,22 @@ export function CampaignModal({ campaigns }: CampaignModalProps) {
                 >
                   Use code
                 </Text>
-                <Text
-                  variant="body-lg"
-                  size="headline-sm"
-                  as="span"
-                  className="font-display-xl tracking-[0.24em]"
-                >
-                  {promoCode}
-                </Text>
+                <Row gap="xs" align="center">
+                  <Text
+                    variant="body-lg"
+                    size="headline-sm"
+                    as="span"
+                    className="font-display-xl tracking-[0.24em]"
+                  >
+                    {promoCode}
+                  </Text>
+                  <CopyButton
+                    value={promoCode}
+                    label={`Copy code ${promoCode}`}
+                    size="sm"
+                    variant="plain"
+                  />
+                </Row>
                 <Text variant="body-sm" tone="muted" align="center">
                   Enter at checkout to apply the discount.
                 </Text>

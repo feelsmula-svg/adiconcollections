@@ -250,3 +250,39 @@ details.footer-accordion summary::marker {
 .delay-500 {
   animation-delay: 500ms;
 }
+
+/* Loading skeleton shimmer — a bright band sweeps across the warm base tone */
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+
+.skeleton-shimmer {
+  /* Base fills the block; the gradient image is the moving highlight on top. */
+  background-color: var(--color-surface-container-high);
+  background-image: linear-gradient(
+    100deg,
+    var(--color-surface-container-high) 25%,
+    var(--color-surface-container-lowest) 50%,
+    var(--color-surface-container-high) 75%
+  );
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+
+/*
+ * Reduced-motion: only silence the purely decorative sweeps (skeleton blocks,
+ * marquee). Progress indicators keep moving — a frozen spinner/bar reads as
+ * broken, which is worse for everyone than gentle, expected motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer,
+  .animate-marquee {
+    animation: none;
+  }
+}

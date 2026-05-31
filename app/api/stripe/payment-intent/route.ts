@@ -7,9 +7,18 @@ import { quoteCampaignDiscount } from "@/app/lib/campaigns/discount";
 import { notifyAdmins, notifyUser } from "@/app/lib/notifications/notify";
 import { getOrderRepository } from "@/app/lib/orders/order-repository";
 import { formatCurrency } from "@/app/lib/orders/format";
+import {
+  invoiceFileName,
+  renderInvoicePdfBuffer,
+} from "@/app/lib/orders/invoice-pdf";
+import type { EmailAttachment } from "@/app/lib/notifications/email";
 import { findStorefrontProduct } from "@/app/lib/products/storefront";
 import { getShippingSettings } from "@/app/lib/settings/shipping/actions";
 import { getStripe } from "@/app/lib/stripe/server";
+
+// jsPDF + Nodemailer need the Node runtime (Buffer, no Edge). Parity with the
+// Stripe webhook route.
+export const runtime = "nodejs";
 
 const MIN_USD_CENTS = 50;
 
@@ -311,15 +320,35 @@ export async function POST(request: Request) {
       link: `/admin/orders/${createdOrder.id}`,
     });
 
+    // Itemized invoice PDF, attached to the confirmation email. Best-effort:
+    // a generation failure must never block order creation or the email.
+    let invoiceAttachments: EmailAttachment[] | undefined;
+    try {
+      invoiceAttachments = [
+        {
+          filename: invoiceFileName(createdOrder),
+          content: renderInvoicePdfBuffer(createdOrder),
+          contentType: "application/pdf",
+        },
+      ];
+    } catch (error: unknown) {
+      console.error(
+        "[stripe/payment-intent] invoice pdf generation failed:",
+        error instanceof Error ? error.message : "unknown error",
+      );
+      invoiceAttachments = undefined;
+    }
+
     // Confirmation notification for the customer themselves.
     void notifyUser({
       userId: session.id,
       kind: "order-placed",
       title: `Order ${createdOrder.reference} confirmed`,
-      body: `Thanks ${body.cart.customerName.split(" ")[0] ?? body.cart.customerName} — we've received your order for ${formatCurrency(createdOrder.totals.total)} and we'll let you know as soon as it ships.`,
+      body: `Thanks ${body.cart.customerName.split(" ")[0] ?? body.cart.customerName} — we've received your order for ${formatCurrency(createdOrder.totals.total)} and we'll let you know as soon as it ships. Your invoice is attached to this email.`,
       link: `/account/orders/${createdOrder.id}`,
       email: body.cart.customerEmail,
       emailSubject: `Your AdiCon order ${createdOrder.reference} is confirmed`,
+      attachments: invoiceAttachments,
     });
 
     return NextResponse.json({

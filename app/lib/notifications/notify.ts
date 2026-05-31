@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getUserRepository } from "@/app/lib/auth/user-repository";
-import { sendEmail } from "./email";
+import { sendEmail, type EmailAttachment } from "./email";
 import { absoluteUrl, renderBrandedEmail } from "./email-template";
 import { getNotificationRepository } from "./notification-repository";
 import type { NotificationKind } from "./types";
@@ -28,6 +28,8 @@ export interface NotifyUserInput {
   email?: string;
   emailSubject?: string;
   emailHtml?: string;
+  /** Optional file attachments included on the email (e.g. an invoice PDF). */
+  attachments?: EmailAttachment[];
 }
 
 /**
@@ -56,7 +58,12 @@ export async function notifyUser(input: NotifyUserInput): Promise<void> {
     try {
       const subject = input.emailSubject ?? input.title;
       if (input.emailHtml) {
-        await sendEmail({ to: input.email, subject, html: input.emailHtml });
+        await sendEmail({
+          to: input.email,
+          subject,
+          html: input.emailHtml,
+          attachments: input.attachments,
+        });
       } else {
         const rendered = renderBrandedEmail({
           title: input.title,
@@ -69,6 +76,7 @@ export async function notifyUser(input: NotifyUserInput): Promise<void> {
           subject,
           html: rendered.html,
           text: rendered.text,
+          attachments: input.attachments,
         });
       }
     } catch (error: unknown) {

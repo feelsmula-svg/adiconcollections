@@ -53,9 +53,8 @@ export function BarChart({
       role="img"
       aria-label={ariaLabel}
       viewBox={`0 0 ${VIEW_WIDTH} ${height}`}
-      preserveAspectRatio="none"
-      className={cn("w-full block", className)}
-      style={{ height }}
+      preserveAspectRatio="xMidYMid meet"
+      className={cn("w-full h-auto block", className)}
     >
       {gridLines.map((line) => (
         <g key={line.y}>

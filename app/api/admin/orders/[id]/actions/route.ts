@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { AdminAccessError, requireAdmin } from "@/app/lib/auth/server";
 import { notifyUser } from "@/app/lib/notifications/notify";
-import { ORDER_STATUS_LABEL } from "@/app/lib/orders/format";
+import { ORDER_STATUS_LABEL, formatCarrier } from "@/app/lib/orders/format";
 import { getOrderRepository } from "@/app/lib/orders/order-repository";
 import { attemptFullRefund, type RefundOutcome } from "@/app/lib/orders/refund";
 import { orderActionSchema } from "@/app/lib/orders/schemas";
@@ -103,6 +103,7 @@ export async function POST(request: Request, context: RouteContext) {
       updated = await repo.updateShipping(id, {
         actor,
         carrier: input.carrier as ShippingCarrier | undefined,
+        carrierName: input.carrierName ?? undefined,
         trackingNumber: input.trackingNumber ?? undefined,
       });
       break;
@@ -152,7 +153,8 @@ function buildFailedRefundRecord(
   const now = new Date().toISOString();
   return {
     status: "failed",
-    amount: order.totals.total,
+    // OrderTotals are in cents; OrderRefund.amount is in dollars.
+    amount: order.totals.total / 100,
     createdAt: now,
     completedAt: now,
     failureReason: reason,
@@ -244,7 +246,7 @@ async function notifyCustomer(
         kind: "order-placed",
         title: `Tracking info updated for ${order.reference}`,
         body: order.trackingNumber
-          ? `Carrier ${order.carrier ?? ""} · Tracking ${order.trackingNumber}`
+          ? `${formatCarrier(order.carrier, order.carrierName) ?? "Carrier"} · Tracking ${order.trackingNumber}`
           : "We've updated the shipping details on your order.",
         link,
       });

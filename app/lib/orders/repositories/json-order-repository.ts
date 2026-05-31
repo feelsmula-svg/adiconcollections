@@ -12,8 +12,8 @@ import {
   TRACKING_STEP_KEYS,
   TRACKING_STEP_LABELS,
   TRACKING_STEP_TO_STATUS,
-  SHIPPING_CARRIER_LABELS,
 } from "../types";
+import { formatCarrier } from "../format";
 import type {
   ListOrdersFilters,
   OrderActivityEntry,
@@ -219,6 +219,28 @@ export class JsonOrderRepository implements OrderRepository {
     });
   }
 
+  async markPaidByPaymentIntent(
+    paymentIntentId: string,
+  ): Promise<OrderRecord | null> {
+    return this.withLock(async () => {
+      const data = await readFile();
+      const index = data.orders.findIndex(
+        (order) => order.paymentIntentId === paymentIntentId,
+      );
+      if (index === -1) return null;
+      if (data.orders[index].paymentStatus === "paid") {
+        return data.orders[index];
+      }
+      const next: OrderRecord = {
+        ...data.orders[index],
+        paymentStatus: "paid",
+      };
+      data.orders[index] = next;
+      await writeFile(data);
+      return next;
+    });
+  }
+
   async create(input: CreateOrderInput): Promise<OrderRecord> {
     return this.withLock(async () => {
       const data = await readFile();
@@ -286,6 +308,7 @@ export class JsonOrderRepository implements OrderRepository {
         tracking,
         requiresSignature: false,
         paymentIntentId: input.paymentIntentId,
+        paymentStatus: "pending",
         deliveryMethod: input.deliveryMethod,
         activity: appendActivity(undefined, {
           actorEmail: input.customerEmail,
@@ -463,6 +486,15 @@ export class JsonOrderRepository implements OrderRepository {
         input.carrier === null
           ? undefined
           : (input.carrier ?? existing.carrier);
+      const trimmedCarrierName = input.carrierName?.trim();
+      const nextCarrierName =
+        nextCarrier !== "other"
+          ? undefined
+          : input.carrierName === null
+            ? undefined
+            : trimmedCarrierName && trimmedCarrierName.length > 0
+              ? trimmedCarrierName
+              : existing.carrierName;
       const trimmed = input.trackingNumber?.trim();
       const nextTracking =
         input.trackingNumber === null
@@ -471,12 +503,11 @@ export class JsonOrderRepository implements OrderRepository {
             ? trimmed
             : existing.trackingNumber;
 
-      const carrierLabel = nextCarrier
-        ? SHIPPING_CARRIER_LABELS[nextCarrier]
-        : "—";
+      const carrierLabel = formatCarrier(nextCarrier, nextCarrierName) ?? "—";
       return {
         ...existing,
         carrier: nextCarrier,
+        carrierName: nextCarrierName,
         trackingNumber: nextTracking,
         activity: appendActivity(existing.activity, {
           actorEmail: input.actor.email,

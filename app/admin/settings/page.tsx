@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { ChangePasswordSection } from "@/app/components/account/change-password-section";
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import { AdminSignupSettingsForm } from "@/app/components/admin/admin-signup-settings-form";
 import { PendingAdminsPanel } from "@/app/components/admin/pending-admins-panel";
 import { PromoteAdminForm } from "@/app/components/admin/promote-admin-form";
@@ -58,9 +58,7 @@ export default async function AdminSettingsPage() {
   const pendingCount = pendingAdmins.length;
 
   return (
-    <AdminShell
-      user={user}
-      active="settings"
+    <AdminPage
       title="Settings"
       subtitle="Store configuration and admin preferences."
     >
@@ -135,6 +133,6 @@ export default async function AdminSettingsPage() {
           </Stack>
         </TabsPanel>
       </Tabs>
-    </AdminShell>
+    </AdminPage>
   );
 }

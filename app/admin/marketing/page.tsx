@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import {
   Badge,
   Box,
@@ -80,9 +80,7 @@ export default async function AdminMarketingPage() {
   }
 
   return (
-    <AdminShell
-      user={user}
-      active="marketing"
+    <AdminPage
       title="Marketing"
       subtitle="Promotions, discounts, and the levers that drive demand."
     >
@@ -119,6 +117,6 @@ export default async function AdminMarketingPage() {
           </Text>
         </Stack>
       </Card>
-    </AdminShell>
+    </AdminPage>
   );
 }

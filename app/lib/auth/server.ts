@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import bcrypt from "bcryptjs";
 import { createHash, randomBytes, randomInt } from "node:crypto";
 import { cookies } from "next/headers";
@@ -117,23 +118,31 @@ export function toPublicUser(user: UserRecord): PublicUser {
   };
 }
 
-export async function getSessionUser(): Promise<PublicUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  try {
-    const payload = await verifySession(token);
-    const repo = await getUserRepository();
-    const user = await repo.findById(payload.sub);
-    if (!user) return null;
-    // Pending admins must be approved before any authenticated route is
-    // available to them — treat their session as absent everywhere.
-    if (user.role === "admin" && user.adminStatus === "pending") return null;
-    return toPublicUser(user);
-  } catch {
-    return null;
-  }
-}
+// Memoized per request with React's `cache()`: the root layout, the segment
+// layout, and the page all call this during a single navigation — without
+// memoization each call re-verifies the JWT and re-queries the user repository.
+// `cache()` collapses them to one lookup per request (it does not, and must
+// not, persist across requests — the session is cookie-bound), which keeps
+// navigations fast so the route-level loading fallback rarely needs to show.
+export const getSessionUser = cache(
+  async (): Promise<PublicUser | null> => {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(SESSION_COOKIE)?.value;
+    if (!token) return null;
+    try {
+      const payload = await verifySession(token);
+      const repo = await getUserRepository();
+      const user = await repo.findById(payload.sub);
+      if (!user) return null;
+      // Pending admins must be approved before any authenticated route is
+      // available to them — treat their session as absent everywhere.
+      if (user.role === "admin" && user.adminStatus === "pending") return null;
+      return toPublicUser(user);
+    } catch {
+      return null;
+    }
+  },
+);
 
 export class AdminAccessError extends Error {
   constructor() {

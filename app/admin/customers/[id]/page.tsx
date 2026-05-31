@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import { CustomerRoleToggle } from "@/app/components/admin/customer-role-toggle";
 import {
   Badge,
@@ -24,7 +24,7 @@ import {
   formatCurrency,
   formatOrderDate,
 } from "@/app/lib/orders/format";
-import type { OrderRecord } from "@/app/lib/orders/types";
+import { isPaidOrder, type OrderRecord } from "@/app/lib/orders/types";
 
 interface AdminCustomerDetailPageProps {
   params: Promise<{ id: string }>;
@@ -61,7 +61,7 @@ export default async function AdminCustomerDetailPage({
   const orders = await orderRepo.list({ userId: id });
 
   const spend = orders
-    .filter((o) => o.status !== "cancelled")
+    .filter((o) => o.status !== "cancelled" && isPaidOrder(o))
     .reduce((sum, o) => sum + o.total, 0);
 
   const columns: DataTableColumn<OrderRecord>[] = [
@@ -122,9 +122,7 @@ export default async function AdminCustomerDetailPage({
   ];
 
   return (
-    <AdminShell
-      user={session}
-      active="customers"
+    <AdminPage
       title={customer.name}
       subtitle={customer.email}
     >
@@ -210,6 +208,6 @@ export default async function AdminCustomerDetailPage({
           </Card>
         </Box>
       </Row>
-    </AdminShell>
+    </AdminPage>
   );
 }

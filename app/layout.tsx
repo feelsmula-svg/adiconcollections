@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter, Noto_Serif } from "next/font/google";
+import { NavProgress } from "@/app/components/ui";
 import { BottomTabNav } from "@/app/components/bottom-tab-nav";
 import { CampaignModal } from "@/app/components/campaign-modal";
 import { CartShell } from "@/app/components/cart/cart-shell";
@@ -52,6 +54,9 @@ export default async function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-background text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
+        <Suspense fallback={null}>
+          <NavProgress />
+        </Suspense>
         <WishlistProvider
           initialIds={wishlistIds}
           isAuthenticated={Boolean(user)}

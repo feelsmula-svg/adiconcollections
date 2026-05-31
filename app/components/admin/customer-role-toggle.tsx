@@ -71,7 +71,7 @@ export function CustomerRoleToggle({
           size="sm"
           caps={false}
           onClick={handleClick}
-          disabled={busy}
+          loading={busy}
         >
           {busy
             ? "Updating…"

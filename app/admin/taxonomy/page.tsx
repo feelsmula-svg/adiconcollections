@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { AdminShell } from "@/app/components/admin/admin-shell";
+import { AdminPage } from "@/app/components/admin/admin-page";
 import { TaxonomyTabs } from "@/app/components/admin/taxonomy-tabs";
 import { getSessionUser } from "@/app/lib/auth/server";
 import { getCategoryRepository } from "@/app/lib/taxonomy/category-repository";
@@ -22,13 +22,11 @@ export default async function AdminTaxonomyPage() {
   ]);
 
   return (
-    <AdminShell
-      user={user}
-      active="taxonomy"
+    <AdminPage
       title="Taxonomy"
       subtitle="Manage product categories and the hair types they belong to."
     >
       <TaxonomyTabs categories={categories} hairTypes={hairTypes} />
-    </AdminShell>
+    </AdminPage>
   );
 }

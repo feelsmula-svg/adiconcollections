@@ -11,8 +11,8 @@ import {
   TRACKING_STEP_KEYS,
   TRACKING_STEP_LABELS,
   TRACKING_STEP_TO_STATUS,
-  SHIPPING_CARRIER_LABELS,
 } from "../types";
+import { formatCarrier } from "../format";
 import type {
   ListOrdersFilters,
   OrderActivityEntry,
@@ -265,6 +265,22 @@ export class MongoOrderRepository implements OrderRepository {
     return result ? strip(result) : null;
   }
 
+  async markPaidByPaymentIntent(
+    paymentIntentId: string,
+  ): Promise<OrderRecord | null> {
+    const coll = await collection();
+    const result = await coll.findOneAndUpdate(
+      // Only flip pending/failed → paid; never re-write an already-paid order.
+      { paymentIntentId, paymentStatus: { $ne: "paid" } },
+      { $set: { paymentStatus: "paid" } },
+      { returnDocument: "after" },
+    );
+    if (result) return strip(result);
+    // Already paid (or no match) — return the current doc if it exists.
+    const existing = await coll.findOne({ paymentIntentId });
+    return existing ? strip(existing) : null;
+  }
+
   async create(input: CreateOrderInput): Promise<OrderRecord> {
     const coll = await collection();
     const existing = await coll.findOne({
@@ -296,6 +312,7 @@ export class MongoOrderRepository implements OrderRepository {
       tracking: buildInitialTracking(placedAt),
       requiresSignature: false,
       paymentIntentId: input.paymentIntentId,
+      paymentStatus: "pending",
       deliveryMethod: input.deliveryMethod,
       activity: [
         {
@@ -489,6 +506,15 @@ export class MongoOrderRepository implements OrderRepository {
         input.carrier === null
           ? undefined
           : (input.carrier ?? existing.carrier);
+      const trimmedCarrierName = input.carrierName?.trim();
+      const nextCarrierName =
+        nextCarrier !== "other"
+          ? undefined
+          : input.carrierName === null
+            ? undefined
+            : trimmedCarrierName && trimmedCarrierName.length > 0
+              ? trimmedCarrierName
+              : existing.carrierName;
       const trimmed = input.trackingNumber?.trim();
       const nextTracking =
         input.trackingNumber === null
@@ -497,12 +523,11 @@ export class MongoOrderRepository implements OrderRepository {
             ? trimmed
             : existing.trackingNumber;
 
-      const carrierLabel = nextCarrier
-        ? SHIPPING_CARRIER_LABELS[nextCarrier]
-        : "—";
+      const carrierLabel = formatCarrier(nextCarrier, nextCarrierName) ?? "—";
       return {
         ...existing,
         carrier: nextCarrier,
+        carrierName: nextCarrierName,
         trackingNumber: nextTracking,
         activity: appendActivity(existing.activity, {
           actorEmail: input.actor.email,
