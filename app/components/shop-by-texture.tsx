@@ -11,16 +11,14 @@ interface Category {
 const CATEGORIES: Category[] = [
   {
     label: "Shop Wigs",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCbcvueS78W_fMyh6E5s86gB8JRqyvRgmHe0FM6-J-gM3rLtPoZoedrXdo1c0TcJip_LM2ebRQWj8K2NojdQBTx5suI4ojUKOO4SoZpwwjIbQHiR4nesKMcTBlywTUWGo9SSXyCFeX14yf7hZ02Vs60qallHmqsUK_BKiN4-w-EGz8MvzYMsVWIiWpHx6ZUIEZ3errHrVr44c4aRvnGh14xiB1V0TTVjko9eBV1Zbzc0D7wWduDoV4imIY4XWeUwtuJLeBmocLHcl8",
-    alt: "Sleek straight wig styled on a glowing studio backdrop",
+    image: "/categories/category-wigs.jpeg",
+    alt: "Body wave lace wig styled with soft glamorous waves",
     href: "/wigs",
   },
   {
     label: "Shop Bundles",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCtSz9sVmkiklMnJZ0bbslw4sFJHSH_xPaxjxBKNZ8n_1x4D-zQ5nB289tJnX6JsbyDadxFciKJ7wKpy6iEvOfz9NEZMFJKE1apZMa5t2kFh7mgQNqI5vVXPbOHFWee486LWAMSjNX1ETvve2Dedyrij6-v1QuVogysIr8XykPAx8XoCQ3lN54WB6zv3U4hpL8Z4JkY4LrnZifKE7sk2Cc9vIGJo7np-xeW36fzPfdIIV-r6FL-MsLAx81NHooIJJwlwTxgphc-gZ0",
-    alt: "Body wave hair bundles fanned out on cream linen",
+    image: "/categories/category-bundles.jpeg",
+    alt: "Loose body wave bundles styled in flowing layers",
     href: "/bundles",
   },
   {

@@ -110,6 +110,9 @@ function CheckoutShell({ shippingSettings }: CheckoutContentProps) {
   );
   const taxCents = Math.round(discountedSubtotal * shippingSettings.taxRate);
   const totalCents = discountedSubtotal + taxCents + discountedShipping;
+  const taxRatePercent = (shippingSettings.taxRate * 100)
+    .toFixed(2)
+    .replace(/\.?0+$/, "");
 
   const getCartPayload = () => {
     const cartState = useCartStore.getState();
@@ -168,6 +171,7 @@ function CheckoutShell({ shippingSettings }: CheckoutContentProps) {
             <OrderSummary
               subtotalCents={subtotalCents}
               taxCents={taxCents}
+              taxRatePercent={taxRatePercent}
               shippingCents={shippingCents}
               totalCents={totalCents}
               promoDiscount={promoDiscount}
@@ -477,6 +481,7 @@ function TrustBadges() {
 interface OrderSummaryProps {
   subtotalCents: number;
   taxCents: number;
+  taxRatePercent: string;
   shippingCents: number;
   totalCents: number;
   promoDiscount?: { subtotal: number; shipping: number; label: string };
@@ -485,6 +490,7 @@ interface OrderSummaryProps {
 function OrderSummary({
   subtotalCents,
   taxCents,
+  taxRatePercent,
   shippingCents,
   totalCents,
   promoDiscount,
@@ -574,7 +580,7 @@ function OrderSummary({
           </Row>
           <Row justify="between">
             <Text variant="body-sm" tone="muted">
-              Tax (8.25%)
+              Tax ({taxRatePercent}%)
             </Text>
             <Text variant="body-sm">{formatPrice(taxCents)}</Text>
           </Row>
