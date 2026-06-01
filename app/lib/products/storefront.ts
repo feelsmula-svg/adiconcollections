@@ -12,10 +12,16 @@ import { getProductRepository } from "./product-repository";
 import type { ProductCategory, ProductRecord } from "./types";
 
 /**
- * Request-scoped read of every admin-managed product. The storefront helpers
- * below all derive their results from this single list (filtering in memory),
- * so a page that needs several slices (featured, accessories, by-category)
- * pays a single Mongo query per request instead of one per section.
+ * Request-scoped read of every admin-managed product, in *summary* form — the
+ * heavy base64 `images` gallery is excluded (see `ListProductsFilters.summary`)
+ * because grid/list views only ever render the primary `imageUrl`. The
+ * storefront helpers below all derive their results from this single list
+ * (filtering in memory), so a page that needs several slices (featured,
+ * accessories, by-category) pays a single Mongo query per request instead of
+ * one per section.
+ *
+ * Detail pages need the full gallery and so fetch a single record directly via
+ * `findStorefrontProduct` (`repo.findById`) rather than scanning this list.
  *
  * NOTE: we use React `cache()` (per-request memoisation) rather than the
  * cross-request `unstable_cache` because admin products currently embed their
@@ -27,7 +33,7 @@ import type { ProductCategory, ProductRecord } from "./types";
 const getCachedAdminProducts = cache(
   async (): Promise<ProductRecord[]> => {
     const repo = await getProductRepository();
-    return repo.list();
+    return repo.list({ summary: true });
   },
 );
 
@@ -78,8 +84,11 @@ export async function findStorefrontProduct(
 ): Promise<CartProduct | undefined> {
   const seed = seedProducts().find((p) => p.id === id);
   if (seed) return seed;
-  const admin = await getCachedAdminProducts();
-  const record = admin.find((p) => p.id === id);
+  // Detail pages need the full image gallery, so fetch the single record
+  // directly (indexed lookup) instead of scanning the summary list — that
+  // also avoids pulling every other product's base64 images into memory.
+  const repo = await getProductRepository();
+  const record = await repo.findById(id);
   return record ? recordToCartProduct(record) : undefined;
 }
 

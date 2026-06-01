@@ -28,7 +28,7 @@ export class JsonProductRepository implements ProductRepository {
     return this.withLock(async () => {
       const { products } = await readFile();
       const q = filters.q?.trim().toLowerCase();
-      return products
+      const matched = products
         .filter((product) => {
           if (filters.category && product.category !== filters.category)
             return false;
@@ -45,6 +45,11 @@ export class JsonProductRepository implements ProductRepository {
           return true;
         })
         .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+      // Mirror the Mongo `summary` projection: drop the heavy `images` gallery
+      // for grid/list reads so the two repositories return the same shape.
+      return filters.summary
+        ? matched.map((product) => ({ ...product, images: undefined }))
+        : matched;
     });
   }
 

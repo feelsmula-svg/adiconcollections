@@ -42,8 +42,15 @@ export class MongoProductRepository implements ProductRepository {
         { description: { $regex: q, $options: "i" } },
       ];
     }
+    // Grid/list callers pass `summary` to exclude the base64 `images` gallery,
+    // which can be several MB per product. The primary `imageUrl` is kept so
+    // cards still render their thumbnail; detail pages use `findById` for the
+    // full gallery.
+    const options = filters.summary
+      ? { projection: { images: 0 } }
+      : undefined;
     const docs = await coll
-      .find(query)
+      .find(query, options)
       .sort({ createdAt: -1 })
       .toArray();
     return docs.map(strip);

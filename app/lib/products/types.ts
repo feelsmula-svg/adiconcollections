@@ -72,4 +72,11 @@ export interface ListProductsFilters {
   category?: ProductCategory;
   featured?: boolean;
   q?: string;
+  /**
+   * When true, omit the heavy `images` gallery (base64 data URLs) from each
+   * record. Grid/list views only render the primary `imageUrl`, so dropping
+   * the gallery keeps the Mongo read and the RSC payload small. Detail pages
+   * that need the full gallery must fetch the record via `findById`.
+   */
+  summary?: boolean;
 }
