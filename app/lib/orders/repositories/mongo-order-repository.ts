@@ -417,6 +417,10 @@ export class MongoOrderRepository implements OrderRepository {
   ): Promise<OrderRecord | null> {
     return this.mutate(id, (existing) => {
       if (existing.status === "cancelled") return existing;
+      // An order may only leave the placed/awaiting-payment state once Stripe
+      // has confirmed the payment (markPaidByPaymentIntent). Until then it
+      // cannot be advanced — not even manually by an admin.
+      if (existing.status === "awaiting-payment") return existing;
       const canonical = ensureCanonicalTracking(existing.tracking);
       const currentIdx = currentStepIndex(canonical);
       const timestamp = input.timestamp ?? nowIso();
@@ -464,6 +468,7 @@ export class MongoOrderRepository implements OrderRepository {
   ): Promise<OrderRecord | null> {
     return this.mutate(id, (existing) => {
       if (existing.status === "cancelled") return existing;
+      if (existing.status === "awaiting-payment") return existing;
       const canonical = ensureCanonicalTracking(existing.tracking);
       const lastComplete = lastCompleteIndex(canonical);
       if (lastComplete <= 0) return existing;

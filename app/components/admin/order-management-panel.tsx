@@ -120,9 +120,13 @@ export function OrderManagementPanel({ order }: OrderManagementPanelProps) {
   const delivered = useMemo(() => isFullyDelivered(order), [order]);
 
   const cancelled = order.status === "cancelled";
-  const canAdvance = !cancelled && !delivered && Boolean(current);
+  // Until Stripe confirms payment the order is frozen at the placed step — it
+  // cannot be advanced or reverted, only paid (or cancelled).
+  const awaitingPayment = order.status === "awaiting-payment";
+  const canAdvance = !cancelled && !awaitingPayment && !delivered && Boolean(current);
   const canRevert =
     !cancelled &&
+    !awaitingPayment &&
     order.tracking.some((step) => step.status === "complete") &&
     order.tracking[0]?.status === "complete" &&
     order.tracking.some(
@@ -280,6 +284,22 @@ export function OrderManagementPanel({ order }: OrderManagementPanelProps) {
                       : "Restore order"}
                   </Button>
                 </Row>
+              </Stack>
+            </Card>
+          ) : awaitingPayment ? (
+            <Card variant="tonal" padding="md" rounded="xl">
+              <Stack gap="sm">
+                <Row align="center" gap="sm" className="flex-wrap">
+                  <Badge tone="neutral">Awaiting payment</Badge>
+                  <Text variant="body-sm" tone="muted">
+                    Payment has not been confirmed yet.
+                  </Text>
+                </Row>
+                <Text variant="body-sm" tone="muted">
+                  This order can&rsquo;t be advanced until Stripe confirms the
+                  payment. It will move to Processing automatically once the
+                  charge succeeds.
+                </Text>
               </Stack>
             </Card>
           ) : (
