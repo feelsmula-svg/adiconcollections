@@ -12,6 +12,7 @@ import {
   renderInvoicePdfBuffer,
 } from "@/app/lib/orders/invoice-pdf";
 import type { EmailAttachment } from "@/app/lib/notifications/email";
+import { discountedCents } from "@/app/lib/cart/format";
 import { findStorefrontProduct } from "@/app/lib/products/storefront";
 import { getShippingSettings } from "@/app/lib/settings/shipping/actions";
 import { getStripe } from "@/app/lib/stripe/server";
@@ -91,13 +92,16 @@ async function lookupUnitPriceCents(
   const { baseId, lengthDigits } = parseVariantId(itemId);
   const product = await findStorefrontProduct(baseId);
   if (!product) return null;
+  let rawUnit = product.priceCents;
   if (lengthDigits && product.lengthOptions) {
     const match = product.lengthOptions.find(
       (opt) => opt.length.replace(/\D+/g, "") === lengthDigits,
     );
-    if (match) return match.priceCents;
+    if (match) rawUnit = match.priceCents;
   }
-  return product.priceCents;
+  // Apply the product-level discount the same way the storefront/cart does, so
+  // the server-recomputed total matches the discounted price the customer saw.
+  return discountedCents(rawUnit, product.discountPercent);
 }
 
 interface RecomputedTotals {
