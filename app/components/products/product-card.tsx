@@ -360,7 +360,7 @@ export function ProductCard({
               align="center"
               className="opacity-70"
             >
-              More sizes available
+              More length available
             </Text>
           )}
         </Stack>

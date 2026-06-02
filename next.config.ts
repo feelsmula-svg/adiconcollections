@@ -16,14 +16,6 @@ const CSP = [
   "form-action 'self'",
 ].join("; ");
 
-// Canonical host. `www` is the primary domain (see `metadataBase` in
-// app/layout.tsx); the bare apex must funnel to it so we never serve the site
-// on two hostnames. This is a belt-and-suspenders complement to the redirect
-// configured in the Vercel dashboard — if that platform-level rule is ever
-// removed, this keeps the canonical direction enforced in code.
-const APEX_HOST = "adiconcollections.com";
-const CANONICAL_ORIGIN = "https://www.adiconcollections.com";
-
 const securityHeaders = [
   { key: "Content-Security-Policy", value: CSP },
   { key: "X-Frame-Options", value: "DENY" },
@@ -41,11 +33,6 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   images: {
-    // Serve modern formats; the optimizer negotiates AVIF/WebP per request.
-    formats: ["image/avif", "image/webp"],
-    // Cache optimized variants for a week instead of re-running the optimizer
-    // on every request.
-    minimumCacheTTL: 60 * 60 * 24 * 7,
     remotePatterns: [
       {
         protocol: "https",
@@ -64,18 +51,6 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: securityHeaders,
-      },
-    ];
-  },
-  async redirects() {
-    return [
-      {
-        // Apex → www. The `has` host condition only matches the bare apex, so
-        // requests already on `www` never match — no redirect loop.
-        source: "/:path*",
-        has: [{ type: "host", value: APEX_HOST }],
-        destination: `${CANONICAL_ORIGIN}/:path*`,
-        permanent: true,
       },
     ];
   },

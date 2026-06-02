@@ -8,7 +8,6 @@ const ITEMS: PromoItem[] = [
   { icon: "local_fire_department", label: "WE ACCEPT SHOPPAY INSTALLMENTS" },
   { icon: "local_fire_department", label: "100% VIRGIN RAW HAIR" },
   { icon: "local_fire_department", label: "WORLDWIDE SHIPPING" },
-  { icon: "local_fire_department", label: "30-DAY RETURNS" },
 ];
 
 function PromoRow({ ariaHidden }: { ariaHidden?: boolean }) {
