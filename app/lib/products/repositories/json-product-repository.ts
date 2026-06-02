@@ -21,6 +21,11 @@ interface FileShape {
   products: ProductRecord[];
 }
 
+/** Keep a positive discount, otherwise drop the field entirely. */
+function normalizeDiscount(value: number | undefined): number | undefined {
+  return typeof value === "number" && value > 0 ? value : undefined;
+}
+
 export class JsonProductRepository implements ProductRepository {
   private mutex: Promise<void> = Promise.resolve();
 
@@ -75,6 +80,7 @@ export class JsonProductRepository implements ProductRepository {
         category: input.category,
         type: input.type.trim(),
         priceCents: input.priceCents,
+        discountPercent: normalizeDiscount(input.discountPercent),
         imageUrl: primaryImage,
         images:
           trimmedImages && trimmedImages.length > 0
@@ -117,6 +123,9 @@ export class JsonProductRepository implements ProductRepository {
         category: input.category ?? existing.category,
         type: input.type?.trim() ?? existing.type,
         priceCents: input.priceCents ?? existing.priceCents,
+        discountPercent: normalizeDiscount(
+          input.discountPercent ?? existing.discountPercent,
+        ),
         imageUrl: nextPrimary,
         images: nextImages,
         stock: input.stock ?? existing.stock,

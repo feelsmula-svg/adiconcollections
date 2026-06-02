@@ -154,6 +154,8 @@ function buildReference(): string {
 }
 
 function buildInitialTracking(timestamp: string): TrackingStep[] {
+  // New orders are "awaiting-payment": only the "placed" step is complete and
+  // "processing" stays upcoming until markPaidByPaymentIntent promotes it.
   return TRACKING_STEP_KEYS.map((key, index) => {
     if (index === 0) {
       return {
@@ -163,19 +165,34 @@ function buildInitialTracking(timestamp: string): TrackingStep[] {
         timestamp,
       };
     }
-    if (index === 1) {
-      return {
-        key,
-        label: TRACKING_STEP_LABELS[key],
-        status: "current" as TrackingStepStatus,
-        timestamp,
-      };
-    }
     return {
       key,
       label: TRACKING_STEP_LABELS[key],
       status: "upcoming" as TrackingStepStatus,
     };
+  });
+}
+
+function promoteTrackingToProcessing(
+  tracking: readonly TrackingStep[],
+  timestamp: string,
+): TrackingStep[] {
+  return ensureCanonicalTracking(tracking).map((step) => {
+    if (step.key === "placed") {
+      return {
+        ...step,
+        status: "complete" as TrackingStepStatus,
+        timestamp: step.timestamp ?? timestamp,
+      };
+    }
+    if (step.key === "processing") {
+      return {
+        ...step,
+        status: "current" as TrackingStepStatus,
+        timestamp: step.timestamp ?? timestamp,
+      };
+    }
+    return step;
   });
 }
 
@@ -231,7 +248,7 @@ export class MongoOrderRepository implements OrderRepository {
     const doc = await coll
       .find({
         userId,
-        status: { $in: ["in-transit", "processing"] },
+        status: { $in: ["in-transit", "processing", "awaiting-payment"] },
       })
       .sort({ placedAt: -1 })
       .limit(1)
@@ -269,16 +286,48 @@ export class MongoOrderRepository implements OrderRepository {
     paymentIntentId: string,
   ): Promise<OrderRecord | null> {
     const coll = await collection();
+    const existing = await coll.findOne({ paymentIntentId });
+    if (!existing) return null;
+    const order = strip(existing);
+
+    const alreadyPaid = order.paymentStatus === "paid";
+    // Promote an unpaid order into fulfilment only now that payment is
+    // confirmed — this is the gate that keeps orders out of "processing"
+    // until the customer has actually paid.
+    const needsPromotion = order.status === "awaiting-payment";
+    if (alreadyPaid && !needsPromotion) return order;
+
+    if (!needsPromotion) {
+      // Just record payment; never re-write an already-paid order.
+      const result = await coll.findOneAndUpdate(
+        { paymentIntentId, paymentStatus: { $ne: "paid" } },
+        { $set: { paymentStatus: "paid" } },
+        { returnDocument: "after" },
+      );
+      return result ? strip(result) : order;
+    }
+
+    const timestamp = nowIso();
+    const tracking = promoteTrackingToProcessing(order.tracking, timestamp);
+    const activity = appendActivity(order.activity, {
+      actorEmail: order.customerEmail,
+      kind: "advanced",
+      timestamp,
+      message: "Payment confirmed — order moved to Processing",
+    });
+    // Filter on status to keep the promotion idempotent under concurrent
+    // webhook + checkout-confirmation calls.
     const result = await coll.findOneAndUpdate(
-      // Only flip pending/failed → paid; never re-write an already-paid order.
-      { paymentIntentId, paymentStatus: { $ne: "paid" } },
-      { $set: { paymentStatus: "paid" } },
+      { paymentIntentId, status: "awaiting-payment" },
+      {
+        $set: { paymentStatus: "paid", status: "processing", tracking, activity },
+      },
       { returnDocument: "after" },
     );
     if (result) return strip(result);
-    // Already paid (or no match) — return the current doc if it exists.
-    const existing = await coll.findOne({ paymentIntentId });
-    return existing ? strip(existing) : null;
+    // Lost the race — another call already promoted it. Return the latest.
+    const fresh = await coll.findOne({ paymentIntentId });
+    return fresh ? strip(fresh) : order;
   }
 
   async create(input: CreateOrderInput): Promise<OrderRecord> {
@@ -297,7 +346,7 @@ export class MongoOrderRepository implements OrderRepository {
       id: randomUUID(),
       reference: buildReference(),
       placedAt,
-      status: "processing",
+      status: "awaiting-payment",
       total: input.totals.total,
       productName: deriveProductName(input.items),
       imageUrl: input.items[0]?.imageUrl,

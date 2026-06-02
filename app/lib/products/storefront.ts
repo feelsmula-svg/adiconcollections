@@ -47,6 +47,7 @@ export function recordToCartProduct(record: ProductRecord): CartProduct {
     name: record.name,
     description: record.description,
     priceCents: record.priceCents,
+    discountPercent: record.discountPercent,
     imageSrc: record.imageUrl,
     imageAlt: record.name,
     images:

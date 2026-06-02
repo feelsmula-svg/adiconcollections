@@ -1,10 +1,12 @@
 export type OrderStatus =
+  | "awaiting-payment"
   | "processing"
   | "in-transit"
   | "delivered"
   | "cancelled";
 
 export const ORDER_STATUSES: readonly OrderStatus[] = [
+  "awaiting-payment",
   "processing",
   "in-transit",
   "delivered",

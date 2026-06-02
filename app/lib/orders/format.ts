@@ -2,6 +2,7 @@ import type { OrderStatus, ShippingCarrier } from "./types";
 import { SHIPPING_CARRIER_LABELS } from "./types";
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  "awaiting-payment": "Awaiting Payment",
   processing: "Processing",
   "in-transit": "In Transit",
   delivered: "Delivered",
@@ -16,6 +17,7 @@ export type OrderStatusTone =
   | "error";
 
 export const ORDER_STATUS_TONE: Record<OrderStatus, OrderStatusTone> = {
+  "awaiting-payment": "neutral",
   processing: "secondary",
   "in-transit": "primary",
   delivered: "tertiary",
@@ -24,10 +26,12 @@ export const ORDER_STATUS_TONE: Record<OrderStatus, OrderStatusTone> = {
 
 /**
  * Step number along the fulfilment timeline (placed → processing → in-transit
- * → delivered). Cancelled orders sit outside the timeline; they get -1 so
- * timeline UIs can detect and treat them separately.
+ * → delivered). An unpaid order ("awaiting-payment") sits at the placed step
+ * (0) — it has not yet entered processing. Cancelled orders sit outside the
+ * timeline; they get -1 so timeline UIs can detect and treat them separately.
  */
 export const ORDER_STATUS_INDEX: Record<OrderStatus, number> = {
+  "awaiting-payment": 0,
   processing: 1,
   "in-transit": 2,
   delivered: 3,

@@ -8,7 +8,12 @@ import {
 } from "@/app/lib/state/cart-store";
 import { useWishlist } from "@/app/lib/wishlist/wishlist-context";
 import { useHydrated } from "@/app/lib/state/hydration";
-import { formatPrice } from "@/app/lib/cart/format";
+import {
+  discountBadgeLabel,
+  discountedCents,
+  formatPrice,
+  hasDiscount,
+} from "@/app/lib/cart/format";
 import type {
   CartProduct,
   ProductLengthOption,
@@ -152,13 +157,28 @@ export function ProductCard({
       const opt =
         lengthOptions.find((o) => o.length === selectedLength) ??
         lengthOptions[0];
+      const baseCents = opt.priceCents || product.priceCents;
       const variantProduct: CartProduct = {
         ...product,
         id: variantId(product.id, opt.length),
         name: `${product.name} — ${opt.length}`,
-        priceCents: opt.priceCents || product.priceCents,
+        // Charge the discounted price; the cart line is the net source of truth.
+        priceCents: discountedCents(baseCents, product.discountPercent),
+        discountPercent: undefined,
       };
       addItem(variantProduct, pendingQuantity);
+    } else if (hasDiscount(product.discountPercent)) {
+      addItem(
+        {
+          ...product,
+          priceCents: discountedCents(
+            product.priceCents,
+            product.discountPercent,
+          ),
+          discountPercent: undefined,
+        },
+        pendingQuantity,
+      );
     } else {
       addItem(product, pendingQuantity);
     }
@@ -183,13 +203,19 @@ export function ProductCard({
           />
         </TextLink>
 
-        {product.badge && (
+        {hasDiscount(product.discountPercent) ? (
+          <Box className="absolute top-sm left-sm sm:top-md sm:left-md pointer-events-none">
+            <Badge tone="primary" size="sm">
+              {discountBadgeLabel(product.discountPercent as number)}
+            </Badge>
+          </Box>
+        ) : product.badge ? (
           <Box className="absolute top-sm left-sm sm:top-md sm:left-md pointer-events-none">
             <Badge tone={product.badge.tone} size="sm">
               {product.badge.label}
             </Badge>
           </Box>
-        )}
+        ) : null}
 
         {typeof rank === "number" && (
           <Text
@@ -349,9 +375,26 @@ export function ProductCard({
           >
             {product.name}
           </Heading>
-          <Text variant="label-caps" tone="primary" className="font-bold">
-            {formatPrice(product.priceCents)}
-          </Text>
+          {hasDiscount(product.discountPercent) ? (
+            <Row gap="xs" align="center" justify="center" wrap>
+              <Text variant="label-caps" tone="primary" className="font-bold">
+                {formatPrice(
+                  discountedCents(product.priceCents, product.discountPercent),
+                )}
+              </Text>
+              <Text
+                variant="label-caps"
+                tone="muted"
+                className="line-through opacity-70"
+              >
+                {formatPrice(product.priceCents)}
+              </Text>
+            </Row>
+          ) : (
+            <Text variant="label-caps" tone="primary" className="font-bold">
+              {formatPrice(product.priceCents)}
+            </Text>
+          )}
           {hasVariants && (
             <Text
               variant="body-sm"

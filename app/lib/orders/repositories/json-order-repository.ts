@@ -179,7 +179,9 @@ export class JsonOrderRepository implements OrderRepository {
         .filter(
           (order) =>
             order.userId === userId &&
-            (order.status === "in-transit" || order.status === "processing"),
+            (order.status === "in-transit" ||
+              order.status === "processing" ||
+              order.status === "awaiting-payment"),
         )
         .sort((a, b) => (a.placedAt < b.placedAt ? 1 : -1));
       return active[0] ?? null;
@@ -228,13 +230,46 @@ export class JsonOrderRepository implements OrderRepository {
         (order) => order.paymentIntentId === paymentIntentId,
       );
       if (index === -1) return null;
-      if (data.orders[index].paymentStatus === "paid") {
-        return data.orders[index];
+      const order = data.orders[index];
+      const alreadyPaid = order.paymentStatus === "paid";
+      // Promote an unpaid order into fulfilment only now that payment is
+      // confirmed — this is the gate that keeps orders out of "processing"
+      // until the customer has actually paid.
+      const needsPromotion = order.status === "awaiting-payment";
+      if (alreadyPaid && !needsPromotion) return order;
+
+      let next: OrderRecord = { ...order, paymentStatus: "paid" };
+      if (needsPromotion) {
+        const timestamp = nowIso();
+        const tracking = ensureCanonicalTracking(order.tracking).map((step) => {
+          if (step.key === "placed") {
+            return {
+              ...step,
+              status: "complete" as TrackingStepStatus,
+              timestamp: step.timestamp ?? timestamp,
+            };
+          }
+          if (step.key === "processing") {
+            return {
+              ...step,
+              status: "current" as TrackingStepStatus,
+              timestamp: step.timestamp ?? timestamp,
+            };
+          }
+          return step;
+        });
+        next = {
+          ...next,
+          status: "processing",
+          tracking,
+          activity: appendActivity(order.activity, {
+            actorEmail: order.customerEmail,
+            kind: "advanced",
+            timestamp,
+            message: "Payment confirmed — order moved to Processing",
+          }),
+        };
       }
-      const next: OrderRecord = {
-        ...data.orders[index],
-        paymentStatus: "paid",
-      };
       data.orders[index] = next;
       await writeFile(data);
       return next;
@@ -250,20 +285,16 @@ export class JsonOrderRepository implements OrderRepository {
       if (existing) return existing;
 
       const placedAt = nowIso();
+      // The order is created before the customer's payment is confirmed, so it
+      // starts "awaiting-payment": only the "placed" step is complete and
+      // "processing" stays upcoming. markPaidByPaymentIntent promotes it to
+      // "processing" once Stripe confirms the charge.
       const tracking: TrackingStep[] = TRACKING_STEP_KEYS.map((key, index) => {
         if (index === 0) {
           return {
             key,
             label: TRACKING_STEP_LABELS[key],
             status: "complete" as TrackingStepStatus,
-            timestamp: placedAt,
-          };
-        }
-        if (index === 1) {
-          return {
-            key,
-            label: TRACKING_STEP_LABELS[key],
-            status: "current" as TrackingStepStatus,
             timestamp: placedAt,
           };
         }
@@ -293,7 +324,7 @@ export class JsonOrderRepository implements OrderRepository {
         id: randomUUID(),
         reference,
         placedAt,
-        status: "processing",
+        status: "awaiting-payment",
         total: input.totals.total,
         productName,
         imageUrl: input.items[0]?.imageUrl,

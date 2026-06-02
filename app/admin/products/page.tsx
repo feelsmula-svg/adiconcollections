@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AdminPage } from "@/app/components/admin/admin-page";
+import { DiscountCell } from "@/app/components/admin/discount-cell";
 import {
   Badge,
   Card,
@@ -35,6 +36,7 @@ interface CatalogRow {
   category: ProductCategory;
   stock: number;
   featured: boolean;
+  discountPercent: number;
 }
 
 const PRODUCTS_PAGE_SIZE = 10;
@@ -83,6 +85,8 @@ export default async function AdminProductsPage({
           ? seedStockMap[meta.product.id]
           : DEFAULT_SEED_STOCK,
       featured: meta.featured,
+      // Seed products' metadata (including discounts) isn't editable here.
+      discountPercent: 0,
     })),
     ...admin.map<CatalogRow>((p) => ({
       id: p.id,
@@ -94,6 +98,7 @@ export default async function AdminProductsPage({
       category: p.category,
       stock: p.stock,
       featured: p.featured,
+      discountPercent: p.discountPercent ?? 0,
     })),
   ];
 
@@ -153,6 +158,23 @@ export default async function AdminProductsPage({
           {formatCurrency(row.priceCents)}
         </Text>
       ),
+    },
+    {
+      key: "discount",
+      header: "Discount",
+      align: "end",
+      render: (row) =>
+        row.source === "admin" ? (
+          <DiscountCell
+            productId={row.id}
+            priceCents={row.priceCents}
+            currentDiscount={row.discountPercent}
+          />
+        ) : (
+          <Text variant="body-sm" tone="muted" as="span">
+            —
+          </Text>
+        ),
     },
     {
       key: "featured",

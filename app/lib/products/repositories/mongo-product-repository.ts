@@ -28,6 +28,11 @@ function strip(record: ProductRecord & { _id?: unknown }): ProductRecord {
   return rest;
 }
 
+/** Keep a positive discount, otherwise drop the field entirely. */
+function normalizeDiscount(value: number | undefined): number | undefined {
+  return typeof value === "number" && value > 0 ? value : undefined;
+}
+
 export class MongoProductRepository implements ProductRepository {
   async list(filters: ListProductsFilters = {}): Promise<ProductRecord[]> {
     const coll = await collection();
@@ -76,6 +81,10 @@ export class MongoProductRepository implements ProductRepository {
       category: input.category,
       type: input.type.trim(),
       priceCents: input.priceCents,
+      discountPercent:
+        input.discountPercent && input.discountPercent > 0
+          ? input.discountPercent
+          : undefined,
       imageUrl: primaryImage,
       images:
         trimmedImages && trimmedImages.length > 0
@@ -117,6 +126,9 @@ export class MongoProductRepository implements ProductRepository {
       category: input.category ?? existingRecord.category,
       type: input.type?.trim() ?? existingRecord.type,
       priceCents: input.priceCents ?? existingRecord.priceCents,
+      discountPercent: normalizeDiscount(
+        input.discountPercent ?? existingRecord.discountPercent,
+      ),
       imageUrl: nextPrimary,
       images: nextImages,
       stock: input.stock ?? existingRecord.stock,

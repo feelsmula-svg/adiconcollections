@@ -28,6 +28,7 @@ import { getRewardsSummary } from "@/app/lib/account/rewards";
 import { listUserNotifications } from "@/app/lib/notifications/user-actions";
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
+  "awaiting-payment": "Awaiting Payment",
   processing: "Processing",
   "in-transit": "In Transit",
   delivered: "Delivered",
@@ -35,6 +36,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 };
 
 const STATUS_INDEX: Record<OrderStatus, number> = {
+  "awaiting-payment": 0,
   processing: 1,
   "in-transit": 2,
   delivered: 3,

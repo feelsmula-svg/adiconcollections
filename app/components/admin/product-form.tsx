@@ -12,6 +12,7 @@ import {
   FileInput,
   FormField,
   Heading,
+  Icon,
   IconButton,
   Modal,
   ProductThumb,
@@ -23,6 +24,7 @@ import {
   TextField,
   type SelectOption,
 } from "@/app/components/ui";
+import { discountedCents, formatPrice } from "@/app/lib/cart/format";
 import type {
   ProductCategory,
   ProductRecord,
@@ -74,6 +76,7 @@ interface FormState {
   category: ProductCategory;
   type: string;
   priceDollars: string;
+  discountPercent: string;
   images: string[];
   stock: string;
   featured: boolean;
@@ -105,6 +108,7 @@ function toInitialState(
       category: defaultCategory,
       type: "",
       priceDollars: "",
+      discountPercent: "",
       images: [],
       stock: "0",
       featured: false,
@@ -123,6 +127,10 @@ function toInitialState(
     category: initial.category,
     type: initial.type,
     priceDollars: (initial.priceCents / 100).toFixed(2),
+    discountPercent:
+      initial.discountPercent && initial.discountPercent > 0
+        ? String(initial.discountPercent)
+        : "",
     images,
     stock: String(initial.stock),
     featured: initial.featured,
@@ -245,6 +253,18 @@ export function ProductForm({
     })),
   ];
 
+  // Live "100.00 → 90.00" preview shown beneath the discount field so the admin
+  // sees the resulting price drop while typing. Only rendered for a valid,
+  // positive discount on a positive base price.
+  const previewBaseCents = Math.round(Number(state.priceDollars) * 100);
+  const previewDiscount = Math.round(Number(state.discountPercent));
+  const showDiscountPreview =
+    Number.isFinite(previewBaseCents) &&
+    previewBaseCents > 0 &&
+    Number.isFinite(previewDiscount) &&
+    previewDiscount > 0 &&
+    previewDiscount <= 95;
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -254,6 +274,19 @@ export function ProductForm({
     const stock = Number(state.stock);
     if (!Number.isFinite(priceCents) || priceCents < 0) {
       setError("Enter a valid price.");
+      setSaving(false);
+      return;
+    }
+
+    const trimmedDiscount = state.discountPercent.trim();
+    const discountPercent =
+      trimmedDiscount.length === 0 ? 0 : Math.round(Number(trimmedDiscount));
+    if (
+      !Number.isFinite(discountPercent) ||
+      discountPercent < 0 ||
+      discountPercent > 95
+    ) {
+      setError("Discount must be a whole number between 0 and 95.");
       setSaving(false);
       return;
     }
@@ -294,6 +327,7 @@ export function ProductForm({
       category: state.category,
       type: state.type,
       priceCents,
+      discountPercent,
       images: state.images,
       stock,
       featured: state.featured,
@@ -456,6 +490,50 @@ export function ProductForm({
                 required
               />
             </FormField>
+          </Box>
+
+          <Box className="grid grid-cols-1 md:grid-cols-2 items-start gap-md">
+            <Stack gap="xs">
+              <FormField
+                label="Discount (%)"
+                hint="Optional whole number 0–95. Applies to the base price and every length variant, showing a price drop with a “-X%” badge on the storefront."
+              >
+                <TextField
+                  type="number"
+                  step="1"
+                  min="0"
+                  max="95"
+                  value={state.discountPercent}
+                  placeholder="0"
+                  onChange={(event) =>
+                    update("discountPercent", event.target.value)
+                  }
+                />
+              </FormField>
+              {showDiscountPreview ? (
+                <Row gap="xs" align="center" wrap>
+                  <Text variant="body-sm" tone="muted">
+                    Price drop:
+                  </Text>
+                  <Text variant="body-sm" tone="muted" className="line-through">
+                    {formatPrice(previewBaseCents)}
+                  </Text>
+                  <Icon
+                    name="arrow_forward"
+                    className="text-sm text-on-surface-variant"
+                  />
+                  <Text
+                    variant="body-sm"
+                    tone="primary"
+                    className="font-bold"
+                  >
+                    {formatPrice(
+                      discountedCents(previewBaseCents, previewDiscount),
+                    )}
+                  </Text>
+                </Row>
+              ) : null}
+            </Stack>
           </Box>
 
           <Stack gap="sm">

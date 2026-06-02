@@ -40,6 +40,7 @@ import { SystemPromptFeed } from "@/app/components/orders/system-prompt-feed";
 export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
+  "awaiting-payment": "Awaiting Payment",
   processing: "Processing",
   "in-transit": "In Transit",
   delivered: "Delivered",
@@ -50,6 +51,7 @@ const STATUS_TONE: Record<
   OrderStatus,
   "primary" | "secondary" | "neutral" | "error" | "tertiary"
 > = {
+  "awaiting-payment": "neutral",
   processing: "secondary",
   "in-transit": "secondary",
   delivered: "neutral",

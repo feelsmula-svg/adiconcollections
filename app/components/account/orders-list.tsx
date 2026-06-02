@@ -28,6 +28,7 @@ import type { OrderSummary } from "@/app/lib/orders/types";
 
 const STATUS_FILTERS = [
   { value: "all", label: "All statuses" },
+  { value: "awaiting-payment", label: "Awaiting payment" },
   { value: "processing", label: "Processing" },
   { value: "in-transit", label: "In transit" },
   { value: "delivered", label: "Delivered" },

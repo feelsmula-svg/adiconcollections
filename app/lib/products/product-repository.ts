@@ -12,6 +12,7 @@ export interface CreateProductInput {
   category: ProductCategory;
   type: string;
   priceCents: number;
+  discountPercent?: number;
   imageUrl: string;
   images?: string[];
   stock: number;
@@ -26,6 +27,7 @@ export interface UpdateProductInput {
   category?: ProductCategory;
   type?: string;
   priceCents?: number;
+  discountPercent?: number;
   imageUrl?: string;
   images?: string[];
   stock?: number;

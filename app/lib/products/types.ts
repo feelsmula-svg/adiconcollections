@@ -53,6 +53,12 @@ export interface ProductRecord {
   category: ProductCategory;
   type: string;
   priceCents: number;
+  /**
+   * Optional whole-percent discount (1–95) applied to the base price and every
+   * length variant. `0` or `undefined` means no discount. The struck-through
+   * `priceCents` is the original; the customer pays the discounted amount.
+   */
+  discountPercent?: number;
   /** Primary image — always equal to `images[0]` when `images` is present. */
   imageUrl: string;
   /**

@@ -42,6 +42,17 @@ export const productSchema = z.object({
     .min(0, "Price must be ≥ 0")
     .max(1_000_000_00, "Too large"),
   /**
+   * Whole-percent discount applied to the base price and every length variant.
+   * `0` (or omitted) means no discount. Capped at 95% so a product can never
+   * effectively become free.
+   */
+  discountPercent: z
+    .number({ invalid_type_error: "Discount must be a number" })
+    .int("Discount must be a whole number")
+    .min(0, "Discount must be ≥ 0")
+    .max(95, "Discount must be ≤ 95")
+    .optional(),
+  /**
    * The full image gallery. Required for new uploads (≥ 1 image). The first
    * entry becomes the primary `imageUrl` stored on the record.
    */

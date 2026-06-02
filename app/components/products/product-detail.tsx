@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useCartStore } from "@/app/lib/state/cart-store";
-import { formatPrice } from "@/app/lib/cart/format";
+import {
+  discountBadgeLabel,
+  discountedCents,
+  formatPrice,
+  hasDiscount,
+} from "@/app/lib/cart/format";
 import type { CartProduct, ProductLengthOption } from "@/app/lib/cart/types";
 import {
   Badge,
@@ -69,9 +74,26 @@ export function ProductDetail({ product }: ProductDetailProps) {
         ...product,
         id: variantId(product.id, selectedOption.length),
         name: `${product.name} — ${selectedOption.length}`,
-        priceCents: selectedOption.priceCents,
+        // Charge the discounted price; the cart line is the net source of truth.
+        priceCents: discountedCents(
+          selectedOption.priceCents,
+          product.discountPercent,
+        ),
+        discountPercent: undefined,
       };
       addItem(variantProduct, quantity);
+    } else if (hasDiscount(product.discountPercent)) {
+      addItem(
+        {
+          ...product,
+          priceCents: discountedCents(
+            product.priceCents,
+            product.discountPercent,
+          ),
+          discountPercent: undefined,
+        },
+        quantity,
+      );
     } else {
       addItem(product, quantity);
     }
@@ -139,11 +161,17 @@ function ProductGallery({ product }: { product: CartProduct }) {
             sizes="(min-width: 1024px) 560px, 100vw"
             className="object-cover"
           />
-          {product.badge && (
+          {hasDiscount(product.discountPercent) ? (
+            <Box className="absolute top-md left-md">
+              <Badge tone="primary">
+                {discountBadgeLabel(product.discountPercent as number)}
+              </Badge>
+            </Box>
+          ) : product.badge ? (
             <Box className="absolute top-md left-md">
               <Badge tone={product.badge.tone}>{product.badge.label}</Badge>
             </Box>
-          )}
+          ) : null}
         </Box>
         {images.length > 1 && (
           <Row gap="sm" wrap>
@@ -219,14 +247,35 @@ function PurchasePanel({
         {product.name}
       </Heading>
 
-      <Text
-        variant="body-lg"
-        size="headline-md"
-        tone="primary"
-        className="font-bold"
-      >
-        {formatPrice(displayPriceCents)}
-      </Text>
+      {hasDiscount(product.discountPercent) ? (
+        <Row gap="sm" align="center" wrap>
+          <Text
+            variant="body-lg"
+            size="headline-md"
+            tone="primary"
+            className="font-bold"
+          >
+            {formatPrice(
+              discountedCents(displayPriceCents, product.discountPercent),
+            )}
+          </Text>
+          <Text variant="body-lg" tone="muted" className="line-through">
+            {formatPrice(displayPriceCents)}
+          </Text>
+          <Badge tone="primary">
+            {discountBadgeLabel(product.discountPercent as number)}
+          </Badge>
+        </Row>
+      ) : (
+        <Text
+          variant="body-lg"
+          size="headline-md"
+          tone="primary"
+          className="font-bold"
+        >
+          {formatPrice(displayPriceCents)}
+        </Text>
+      )}
 
       {product.description && (
         <Text variant="body-md" tone="muted" className="leading-relaxed">
