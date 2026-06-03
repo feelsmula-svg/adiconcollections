@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Inter, Noto_Serif } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { NavProgress } from "@/app/components/ui";
 import { BottomTabNav } from "@/app/components/bottom-tab-nav";
 import { CampaignModal } from "@/app/components/campaign-modal";
@@ -141,6 +142,7 @@ export default async function RootLayout({
           <CampaignModal campaigns={modalCampaigns} />
           <BottomTabNav />
         </WishlistProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
