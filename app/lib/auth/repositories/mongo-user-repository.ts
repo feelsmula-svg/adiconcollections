@@ -23,14 +23,21 @@ export class DuplicateEmailError extends Error {
   }
 }
 
-async function collection(): Promise<Collection<UserRecord & Document>> {
-  const db = await getDb();
-  const coll = db.collection<UserRecord & Document>(COLLECTION);
-  await Promise.all([
-    coll.createIndex({ id: 1 }, { unique: true }),
-    coll.createIndex({ email: 1 }, { unique: true }),
-  ]);
-  return coll;
+let _collectionPromise: Promise<Collection<UserRecord & Document>> | null = null;
+
+function collection(): Promise<Collection<UserRecord & Document>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<UserRecord & Document>(COLLECTION);
+      await Promise.all([
+        coll.createIndex({ id: 1 }, { unique: true }),
+        coll.createIndex({ email: 1 }, { unique: true }),
+      ]);
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(record: UserRecord & { _id?: unknown }): UserRecord {

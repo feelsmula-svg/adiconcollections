@@ -14,31 +14,19 @@ import { isCampaignLive, type Campaign } from "../types";
 
 const COLLECTION = "campaigns";
 
-async function collection(): Promise<Collection<Campaign & Document>> {
-  const db = await getDb();
-  const coll = db.collection<Campaign & Document>(COLLECTION);
-  await coll.createIndex({ id: 1 }, { unique: true });
-  await coll.createIndex({ enabled: 1 });
+let _collectionPromise: Promise<Collection<Campaign & Document>> | null = null;
 
-  // `partialFilterExpression` and `sparse` are mutually exclusive in Mongo;
-  // the partial filter already excludes docs without a string promoCode.
-  try {
-    await coll.createIndex(
-      { promoCode: 1 },
-      {
-        unique: true,
-        partialFilterExpression: {
-          promoCode: { $exists: true, $type: "string" },
-        },
-      },
-    );
-  } catch (error: unknown) {
-    // An older deployment created this index with `sparse: true` which
-    // conflicts with the partial filter. Drop the legacy index and recreate.
-    const message = error instanceof Error ? error.message : String(error);
-    if (/sparse|IndexOptionsConflict|already exists/i.test(message)) {
+function collection(): Promise<Collection<Campaign & Document>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<Campaign & Document>(COLLECTION);
+      await coll.createIndex({ id: 1 }, { unique: true });
+      await coll.createIndex({ enabled: 1 });
+
+      // `partialFilterExpression` and `sparse` are mutually exclusive in Mongo;
+      // the partial filter already excludes docs without a string promoCode.
       try {
-        await coll.dropIndex("promoCode_1");
         await coll.createIndex(
           { promoCode: 1 },
           {
@@ -48,20 +36,39 @@ async function collection(): Promise<Collection<Campaign & Document>> {
             },
           },
         );
-      } catch (innerError: unknown) {
-        const m =
-          innerError instanceof Error ? innerError.message : String(innerError);
-        console.warn(
-          "[campaigns] could not rebuild promoCode index — continuing without it:",
-          m,
-        );
+      } catch (error: unknown) {
+        // An older deployment created this index with `sparse: true` which
+        // conflicts with the partial filter. Drop the legacy index and recreate.
+        const message = error instanceof Error ? error.message : String(error);
+        if (/sparse|IndexOptionsConflict|already exists/i.test(message)) {
+          try {
+            await coll.dropIndex("promoCode_1");
+            await coll.createIndex(
+              { promoCode: 1 },
+              {
+                unique: true,
+                partialFilterExpression: {
+                  promoCode: { $exists: true, $type: "string" },
+                },
+              },
+            );
+          } catch (innerError: unknown) {
+            const m =
+              innerError instanceof Error ? innerError.message : String(innerError);
+            console.warn(
+              "[campaigns] could not rebuild promoCode index — continuing without it:",
+              m,
+            );
+          }
+        } else {
+          throw error;
+        }
       }
-    } else {
-      throw error;
-    }
-  }
 
-  return coll;
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(record: Campaign & { _id?: unknown }): Campaign {

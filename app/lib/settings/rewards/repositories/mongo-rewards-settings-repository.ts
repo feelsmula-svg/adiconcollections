@@ -17,11 +17,18 @@ interface RewardsSettingsDoc extends RewardsSettings, Document {
   key: string;
 }
 
-async function collection(): Promise<Collection<RewardsSettingsDoc>> {
-  const db = await getDb();
-  const coll = db.collection<RewardsSettingsDoc>(COLLECTION);
-  await coll.createIndex({ key: 1 }, { unique: true });
-  return coll;
+let _collectionPromise: Promise<Collection<RewardsSettingsDoc>> | null = null;
+
+function collection(): Promise<Collection<RewardsSettingsDoc>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<RewardsSettingsDoc>(COLLECTION);
+      await coll.createIndex({ key: 1 }, { unique: true });
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(doc: RewardsSettingsDoc & { _id?: unknown }): RewardsSettings {

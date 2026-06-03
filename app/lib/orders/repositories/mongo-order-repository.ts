@@ -134,18 +134,25 @@ function refundActivityKind(
   return "refund-issued";
 }
 
-async function collection(): Promise<Collection<OrderRecord & Document>> {
-  const db = await getDb();
-  const coll = db.collection<OrderRecord & Document>(COLLECTION);
-  await Promise.all([
-    coll.createIndex({ id: 1 }, { unique: true }),
-    coll.createIndex(
-      { paymentIntentId: 1 },
-      { unique: true, sparse: true },
-    ),
-    coll.createIndex({ userId: 1, placedAt: -1 }),
-  ]);
-  return coll;
+let _collectionPromise: Promise<Collection<OrderRecord & Document>> | null = null;
+
+function collection(): Promise<Collection<OrderRecord & Document>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<OrderRecord & Document>(COLLECTION);
+      await Promise.all([
+        coll.createIndex({ id: 1 }, { unique: true }),
+        coll.createIndex(
+          { paymentIntentId: 1 },
+          { unique: true, sparse: true },
+        ),
+        coll.createIndex({ userId: 1, placedAt: -1 }),
+      ]);
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function buildReference(): string {

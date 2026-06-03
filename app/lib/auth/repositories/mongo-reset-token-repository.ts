@@ -12,13 +12,18 @@ import type { PasswordResetRecord } from "../types";
 
 const COLLECTION = "password_resets";
 
-async function collection(): Promise<
-  Collection<PasswordResetRecord & Document>
-> {
-  const db = await getDb();
-  const coll = db.collection<PasswordResetRecord & Document>(COLLECTION);
-  await coll.createIndex({ tokenHash: 1 }, { unique: true });
-  return coll;
+let _collectionPromise: Promise<Collection<PasswordResetRecord & Document>> | null = null;
+
+function collection(): Promise<Collection<PasswordResetRecord & Document>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<PasswordResetRecord & Document>(COLLECTION);
+      await coll.createIndex({ tokenHash: 1 }, { unique: true });
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(

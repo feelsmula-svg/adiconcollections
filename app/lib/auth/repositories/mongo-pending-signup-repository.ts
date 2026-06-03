@@ -12,13 +12,18 @@ import type { PendingSignupRecord } from "../types";
 
 const COLLECTION = "pending_signups";
 
-async function collection(): Promise<
-  Collection<PendingSignupRecord & Document>
-> {
-  const db = await getDb();
-  const coll = db.collection<PendingSignupRecord & Document>(COLLECTION);
-  await coll.createIndex({ email: 1 }, { unique: true });
-  return coll;
+let _collectionPromise: Promise<Collection<PendingSignupRecord & Document>> | null = null;
+
+function collection(): Promise<Collection<PendingSignupRecord & Document>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<PendingSignupRecord & Document>(COLLECTION);
+      await coll.createIndex({ email: 1 }, { unique: true });
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(

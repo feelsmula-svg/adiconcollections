@@ -28,15 +28,22 @@ function normalizeSlug(input: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-async function collection(): Promise<Collection<CategoryRecord & Document>> {
-  const db = await getDb();
-  const coll = db.collection<CategoryRecord & Document>(COLLECTION);
-  await Promise.all([
-    coll.createIndex({ id: 1 }, { unique: true }),
-    coll.createIndex({ slug: 1 }, { unique: true }),
-  ]);
-  await ensureSystemSeeds(coll);
-  return coll;
+let _collectionPromise: Promise<Collection<CategoryRecord & Document>> | null = null;
+
+function collection(): Promise<Collection<CategoryRecord & Document>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<CategoryRecord & Document>(COLLECTION);
+      await Promise.all([
+        coll.createIndex({ id: 1 }, { unique: true }),
+        coll.createIndex({ slug: 1 }, { unique: true }),
+      ]);
+      await ensureSystemSeeds(coll);
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 async function ensureSystemSeeds(

@@ -18,15 +18,22 @@ import type {
 
 const COLLECTION = "contact_messages";
 
-async function collection(): Promise<Collection<ContactMessage & Document>> {
-  const db = await getDb();
-  const coll = db.collection<ContactMessage & Document>(COLLECTION);
-  await Promise.all([
-    coll.createIndex({ id: 1 }, { unique: true }),
-    coll.createIndex({ createdAt: -1 }),
-    coll.createIndex({ status: 1 }),
-  ]);
-  return coll;
+let _collectionPromise: Promise<Collection<ContactMessage & Document>> | null = null;
+
+function collection(): Promise<Collection<ContactMessage & Document>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<ContactMessage & Document>(COLLECTION);
+      await Promise.all([
+        coll.createIndex({ id: 1 }, { unique: true }),
+        coll.createIndex({ createdAt: -1 }),
+        coll.createIndex({ status: 1 }),
+      ]);
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(record: ContactMessage & { _id?: unknown }): ContactMessage {

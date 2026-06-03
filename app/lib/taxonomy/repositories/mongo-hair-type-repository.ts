@@ -23,14 +23,21 @@ function normalizeSlug(input: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-async function collection(): Promise<Collection<HairType & Document>> {
-  const db = await getDb();
-  const coll = db.collection<HairType & Document>(COLLECTION);
-  await Promise.all([
-    coll.createIndex({ id: 1 }, { unique: true }),
-    coll.createIndex({ slug: 1 }, { unique: true }),
-  ]);
-  return coll;
+let _collectionPromise: Promise<Collection<HairType & Document>> | null = null;
+
+function collection(): Promise<Collection<HairType & Document>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<HairType & Document>(COLLECTION);
+      await Promise.all([
+        coll.createIndex({ id: 1 }, { unique: true }),
+        coll.createIndex({ slug: 1 }, { unique: true }),
+      ]);
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(record: HairType & { _id?: unknown }): HairType {

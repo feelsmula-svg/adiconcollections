@@ -17,11 +17,18 @@ interface StoreProfileDoc extends StoreProfileSettings, Document {
   key: string;
 }
 
-async function collection(): Promise<Collection<StoreProfileDoc>> {
-  const db = await getDb();
-  const coll = db.collection<StoreProfileDoc>(COLLECTION);
-  await coll.createIndex({ key: 1 }, { unique: true });
-  return coll;
+let _collectionPromise: Promise<Collection<StoreProfileDoc>> | null = null;
+
+function collection(): Promise<Collection<StoreProfileDoc>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<StoreProfileDoc>(COLLECTION);
+      await coll.createIndex({ key: 1 }, { unique: true });
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(doc: StoreProfileDoc & { _id?: unknown }): StoreProfileSettings {

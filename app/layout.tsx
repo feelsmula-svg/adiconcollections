@@ -111,17 +111,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [user, modalCampaigns] = await Promise.all([
+  const [user, modalCampaigns, wishlistIds] = await Promise.all([
     getSessionUser(),
     getModalCampaigns().catch(() => []),
+    getWishlistIds(), // getSessionUser() inside is memoized with React cache() — safe to parallelize
   ]);
-  const wishlistIds = user ? await getWishlistIds() : [];
   return (
     <html
       lang="en"
       className={`${inter.variable} ${notoSerif.variable} h-full antialiased scroll-smooth`}
     >
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0..1,0&display=swap"
           rel="stylesheet"

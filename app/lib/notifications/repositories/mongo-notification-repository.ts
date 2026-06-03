@@ -19,14 +19,21 @@ const COLLECTION = "admin_notifications";
 type NotificationDoc = Omit<AdminNotification, "recipientUserId"> &
   Document & { recipientUserId?: string | null };
 
-async function collection(): Promise<Collection<NotificationDoc>> {
-  const db = await getDb();
-  const coll = db.collection<NotificationDoc>(COLLECTION);
-  await Promise.all([
-    coll.createIndex({ id: 1 }, { unique: true }),
-    coll.createIndex({ createdAt: -1 }),
-  ]);
-  return coll;
+let _collectionPromise: Promise<Collection<NotificationDoc>> | null = null;
+
+function collection(): Promise<Collection<NotificationDoc>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<NotificationDoc>(COLLECTION);
+      await Promise.all([
+        coll.createIndex({ id: 1 }, { unique: true }),
+        coll.createIndex({ createdAt: -1 }),
+      ]);
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(record: NotificationDoc & { _id?: unknown }): AdminNotification {

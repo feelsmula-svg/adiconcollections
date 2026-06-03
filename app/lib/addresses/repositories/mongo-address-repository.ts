@@ -10,14 +10,21 @@ import type { AddressInput, AddressRecord } from "../types";
 
 const COLLECTION = "addresses";
 
-async function collection(): Promise<Collection<AddressRecord & Document>> {
-  const db = await getDb();
-  const coll = db.collection<AddressRecord & Document>(COLLECTION);
-  await Promise.all([
-    coll.createIndex({ id: 1 }, { unique: true }),
-    coll.createIndex({ userId: 1 }),
-  ]);
-  return coll;
+let _collectionPromise: Promise<Collection<AddressRecord & Document>> | null = null;
+
+function collection(): Promise<Collection<AddressRecord & Document>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<AddressRecord & Document>(COLLECTION);
+      await Promise.all([
+        coll.createIndex({ id: 1 }, { unique: true }),
+        coll.createIndex({ userId: 1 }),
+      ]);
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(record: AddressRecord & { _id?: unknown }): AddressRecord {

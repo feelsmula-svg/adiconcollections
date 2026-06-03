@@ -18,11 +18,18 @@ interface ShippingSettingsDoc extends ShippingSettings, Document {
   key: string;
 }
 
-async function collection(): Promise<Collection<ShippingSettingsDoc>> {
-  const db = await getDb();
-  const coll = db.collection<ShippingSettingsDoc>(COLLECTION);
-  await coll.createIndex({ key: 1 }, { unique: true });
-  return coll;
+let _collectionPromise: Promise<Collection<ShippingSettingsDoc>> | null = null;
+
+function collection(): Promise<Collection<ShippingSettingsDoc>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<ShippingSettingsDoc>(COLLECTION);
+      await coll.createIndex({ key: 1 }, { unique: true });
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function method(

@@ -15,11 +15,18 @@ import type { ListProductsFilters, ProductRecord } from "../types";
 
 const COLLECTION = "products";
 
-async function collection(): Promise<Collection<ProductRecord & Document>> {
-  const db = await getDb();
-  const coll = db.collection<ProductRecord & Document>(COLLECTION);
-  await coll.createIndex({ id: 1 }, { unique: true });
-  return coll;
+let _collectionPromise: Promise<Collection<ProductRecord & Document>> | null = null;
+
+function collection(): Promise<Collection<ProductRecord & Document>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<ProductRecord & Document>(COLLECTION);
+      await coll.createIndex({ id: 1 }, { unique: true });
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(record: ProductRecord & { _id?: unknown }): ProductRecord {

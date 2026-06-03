@@ -17,11 +17,18 @@ interface AdminSignupSettingsDoc extends AdminSignupSettings, Document {
   key: string;
 }
 
-async function collection(): Promise<Collection<AdminSignupSettingsDoc>> {
-  const db = await getDb();
-  const coll = db.collection<AdminSignupSettingsDoc>(COLLECTION);
-  await coll.createIndex({ key: 1 }, { unique: true });
-  return coll;
+let _collectionPromise: Promise<Collection<AdminSignupSettingsDoc>> | null = null;
+
+function collection(): Promise<Collection<AdminSignupSettingsDoc>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<AdminSignupSettingsDoc>(COLLECTION);
+      await coll.createIndex({ key: 1 }, { unique: true });
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function strip(

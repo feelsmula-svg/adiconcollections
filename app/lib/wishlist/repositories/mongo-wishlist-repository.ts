@@ -9,11 +9,18 @@ import type { WishlistRecord } from "../types";
 
 const COLLECTION = "wishlists";
 
-async function collection(): Promise<Collection<WishlistRecord & Document>> {
-  const db = await getDb();
-  const coll = db.collection<WishlistRecord & Document>(COLLECTION);
-  await coll.createIndex({ userId: 1 }, { unique: true });
-  return coll;
+let _collectionPromise: Promise<Collection<WishlistRecord & Document>> | null = null;
+
+function collection(): Promise<Collection<WishlistRecord & Document>> {
+  if (!_collectionPromise) {
+    _collectionPromise = (async () => {
+      const db = await getDb();
+      const coll = db.collection<WishlistRecord & Document>(COLLECTION);
+      await coll.createIndex({ userId: 1 }, { unique: true });
+      return coll;
+    })().catch((err) => { _collectionPromise = null; throw err; });
+  }
+  return _collectionPromise;
 }
 
 function nowIso(): string {
