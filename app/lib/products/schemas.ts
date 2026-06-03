@@ -4,14 +4,15 @@ const imageStringSchema = z
   .string()
   .trim()
   .min(1, "Image is required")
-  // ~6 MB worth of base64 — covers ~4.5 MB binary images with headroom.
+  // Blob URLs are short (~100 chars). Base64 strings (legacy data) are kept
+  // working until the migration script converts all existing products.
   .max(8_000_000, "Image is too large")
   .refine(
     (value) =>
       /^data:image\/(jpeg|png|webp|gif);base64,/i.test(value) ||
       value.startsWith("/") ||
       /^https?:\/\//i.test(value),
-    "Image must be an uploaded data URL, a /public path, or an http(s) URL",
+    "Image must be a Vercel Blob URL, a /public path, or an http(s) URL",
   );
 
 const lengthOptionSchema = z.object({

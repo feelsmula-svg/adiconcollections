@@ -44,13 +44,57 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
         pathname: "/**",
       },
+      // Vercel Blob CDN — add once BLOB_READ_WRITE_TOKEN is configured
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+        pathname: "/**",
+      },
     ],
+
+    // Serve AVIF first (smallest), then WebP, then original format.
+    // Browsers negotiate via Accept header automatically.
+    formats: ["image/avif", "image/webp"],
+
+    // Match device widths used by the product grid and hero.
+    deviceSizes: [360, 640, 750, 828, 1080, 1200, 1440, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+
+    // Cache optimized variants on the CDN for 30 days.
+    // Default is 60 seconds — re-optimizes constantly for every unique URL.
+    minimumCacheTTL: 60 * 60 * 24 * 30,
+
+    dangerouslyAllowSVG: false,
   },
+
+  // Compress responses — reduces HTML/JSON transfer size.
+  compress: true,
+
   async headers() {
     return [
       {
         source: "/:path*",
         headers: securityHeaders,
+      },
+      // Next.js hashed static assets are immutable — cache for 1 year.
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      // Public folder assets (images, icons) — cache 7 days, revalidate in background.
+      {
+        source: "/(.*)\\.(ico|png|jpg|jpeg|webp|avif|svg|woff2|woff)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=604800, stale-while-revalidate=86400",
+          },
+        ],
       },
     ];
   },

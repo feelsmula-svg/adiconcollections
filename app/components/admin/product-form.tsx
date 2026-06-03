@@ -31,24 +31,20 @@ import type {
 } from "@/app/lib/products/types";
 import type { CategoryRecord, HairType } from "@/app/lib/taxonomy/types";
 
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4 MB — enforced server-side too
 const MAX_IMAGES = 8;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-      } else {
-        reject(new Error("Unexpected file reader result"));
-      }
-    };
-    reader.onerror = () =>
-      reject(reader.error ?? new Error("Failed to read file"));
-    reader.readAsDataURL(file);
-  });
+async function uploadImageToBlob(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/api/admin/upload", { method: "POST", body: form });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { error?: string }).error ?? "Upload failed");
+  }
+  const { url } = (await res.json()) as { url: string };
+  return url;
 }
 
 function humanBytes(bytes: number): string {
@@ -183,11 +179,11 @@ export function ProductForm({
     setError(null);
     setImageReading(true);
     try {
-      const dataUrl = await readFileAsDataUrl(file);
-      setState((prev) => ({ ...prev, images: [...prev.images, dataUrl] }));
+      const url = await uploadImageToBlob(file);
+      setState((prev) => ({ ...prev, images: [...prev.images, url] }));
     } catch (caught: unknown) {
       const message =
-        caught instanceof Error ? caught.message : "Could not read image";
+        caught instanceof Error ? caught.message : "Could not upload image";
       setError(message);
     } finally {
       setImageReading(false);
