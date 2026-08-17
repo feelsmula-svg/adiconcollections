@@ -1,4 +1,3 @@
-import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 
 import { AdminAccessError, requireAdmin } from "@/app/lib/auth/server";
@@ -29,13 +28,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Image must be under 4 MB" }, { status: 400 });
   }
 
-  const ext = file.type.split("/")[1] ?? "jpg";
-  const filename = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const url = `data:${file.type};base64,${bytes.toString("base64")}`;
 
-  const blob = await put(filename, file, {
-    access: "public",
-    contentType: file.type,
-  });
-
-  return NextResponse.json({ url: blob.url }, { status: 201 });
+  return NextResponse.json({ url }, { status: 201 });
 }
