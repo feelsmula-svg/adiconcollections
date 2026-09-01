@@ -45,7 +45,7 @@ function resolveSiteUrl(): string {
 const siteUrl = resolveSiteUrl();
 const siteName = "AdiCon Collections";
 const siteDescription =
-  "100% virgin raw hair bundles, wigs, closures and styling. 30-day returns and free US shipping on orders over $150.";
+  "100% customized raw single donor human hair bundles, wigs, closures, frontals and luxury styling.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -57,7 +57,8 @@ export const metadata: Metadata = {
   applicationName: siteName,
   keywords: [
     "raw hair",
-    "virgin hair",
+    "single donor hair",
+    "customized raw hair",
     "human hair bundles",
     "lace wigs",
     "lace frontals",
