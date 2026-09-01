@@ -35,9 +35,9 @@ const HELP_TOPICS: HelpTopic[] = [
     icon: "assignment_return",
     title: "Returns & refunds",
     description:
-      "We accept returns within 30 days of delivery. Contact us to start a return and we’ll guide you through it.",
+      "For return eligibility, contact support. All custom raw single donor hair items are non-refundable once processed.",
     href: "/contact",
-    cta: "Start a return",
+    cta: "Contact support",
   },
   {
     icon: "person",
