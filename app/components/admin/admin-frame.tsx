@@ -23,6 +23,7 @@ export type AdminNavKey =
   | "campaigns"
   | "promo-codes"
   | "marketing"
+  | "catalogs"
   | "taxonomy"
   | "settings";
 
@@ -66,6 +67,7 @@ const NAV_SECTIONS: NavSection[] = [
         icon: "confirmation_number",
       },
       { key: "marketing", href: "/admin/marketing", label: "Marketing", icon: "trending_up" },
+      { key: "catalogs", href: "/admin/catalogs", label: "Catalogs", icon: "auto_awesome_mosaic" },
     ],
   },
   {
@@ -89,6 +91,7 @@ function deriveActive(pathname: string): AdminNavKey {
     "campaigns",
     "promo-codes",
     "marketing",
+    "catalogs",
     "taxonomy",
     "settings",
   ];

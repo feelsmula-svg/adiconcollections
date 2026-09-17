@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AdminPage } from "@/app/components/admin/admin-page";
 import { DiscountCell } from "@/app/components/admin/discount-cell";
+import { ProductShareButton } from "@/app/components/admin/product-share-button";
 import {
   Badge,
   Card,
@@ -193,26 +194,30 @@ export default async function AdminProductsPage({
       header: "",
       align: "end",
       mobileFooter: true,
-      render: (row) =>
-        row.source === "admin" ? (
-          <LinkButton
-            href={`/admin/products/${row.id}`}
-            variant="outline"
-            size="sm"
-            caps={false}
-          >
-            Edit
-          </LinkButton>
-        ) : (
-          <LinkButton
-            href={`/products/${row.id}`}
-            variant="ghost"
-            size="sm"
-            caps={false}
-          >
-            View
-          </LinkButton>
-        ),
+      render: (row) => (
+        <Row gap="sm" justify="end" align="center">
+          <ProductShareButton productId={row.id} productName={row.name} />
+          {row.source === "admin" ? (
+            <LinkButton
+              href={`/admin/products/${row.id}`}
+              variant="outline"
+              size="sm"
+              caps={false}
+            >
+              Edit
+            </LinkButton>
+          ) : (
+            <LinkButton
+              href={`/products/${row.id}`}
+              variant="ghost"
+              size="sm"
+              caps={false}
+            >
+              View
+            </LinkButton>
+          )}
+        </Row>
+      ),
     },
   ];
 
