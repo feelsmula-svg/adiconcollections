@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import type { NextConfig } from "next";
 
 // Content-Security-Policy is intentionally permissive for the surfaces we
@@ -32,6 +34,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Pin the Turbopack root to this project. Without it Next walks up and picks
+  // a stray lockfile in the home directory as the workspace root.
+  turbopack: {
+    root: path.join(__dirname),
+  },
+
   images: {
     remotePatterns: [
       {
