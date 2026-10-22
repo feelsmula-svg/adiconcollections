@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getAllStorefrontProducts } from "@/app/lib/products/storefront";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // revalidate every 60 seconds
 
 export async function GET() {
   try {

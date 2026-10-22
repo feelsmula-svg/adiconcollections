@@ -73,7 +73,7 @@ export function SearchDialog({ open, onClose }: SearchDialogProps) {
     let cancelled = false;
     (async () => {
       try {
-        const response = await fetch("/api/products", { cache: "no-store" });
+        const response = await fetch("/api/products");
         if (!response.ok) return;
         const data = (await response.json()) as { products?: CartProduct[] };
         if (cancelled) return;

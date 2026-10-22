@@ -5,12 +5,12 @@ import { StickyActions } from "@/app/components/sticky-actions";
 import { CollectionContent } from "@/app/components/products/collection-content";
 import { getStorefrontProductsByCategory } from "@/app/lib/products/storefront";
 
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "Bundles — AdiCon Collections",
   description: "Premium raw-hair bundles and curated multi-piece sets.",
 };
-
-export const dynamic = "force-dynamic";
 
 export default async function BundlesPage() {
   const products = await getStorefrontProductsByCategory("bundles", [

@@ -5,12 +5,12 @@ import { StickyActions } from "@/app/components/sticky-actions";
 import { CollectionContent } from "@/app/components/products/collection-content";
 import { getAllStorefrontProducts } from "@/app/lib/products/storefront";
 
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "Sale — AdiCon Collections",
   description: "Limited-time markdowns across the AdiCon collection.",
 };
-
-export const dynamic = "force-dynamic";
 
 const SALE_THRESHOLD_CENTS = 16_900;
 

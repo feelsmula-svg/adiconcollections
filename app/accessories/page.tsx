@@ -5,12 +5,12 @@ import { StickyActions } from "@/app/components/sticky-actions";
 import { CollectionContent } from "@/app/components/products/collection-content";
 import { getAccessoryStorefrontProducts } from "@/app/lib/products/storefront";
 
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "Accessories — AdiCon Collections",
   description: "Brushes, clips, combs and styling tools.",
 };
-
-export const dynamic = "force-dynamic";
 
 export default async function AccessoriesPage() {
   const products = await getAccessoryStorefrontProducts();

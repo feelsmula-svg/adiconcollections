@@ -104,6 +104,26 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Cache storefront product API responses at the edge for 60s, stale-while-revalidate 10s.
+      {
+        source: "/api/products/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "s-maxage=60, stale-while-revalidate=10, public, max-age=120",
+          },
+        ],
+      },
+      // Cache shop/category API responses at the edge for 120s, stale-while-revalidate 30s.
+      {
+        source: "/api/shop/:path*|/api/categories/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "s-maxage=120, stale-while-revalidate=30, public, max-age=150",
+          },
+        ],
+      },
     ];
   },
 };

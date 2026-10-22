@@ -9,7 +9,7 @@ import { TrustStrip } from "./components/trust-strip";
 import { UGCGrid } from "./components/ugc-grid";
 import { getFeaturedStorefrontProducts } from "./lib/products/storefront";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function Home() {
   const featuredProducts = await getFeaturedStorefrontProducts();
