@@ -18,7 +18,7 @@ function asMeta(
   featured: boolean,
 ): SeedProductMeta {
   return {
-    product,
+    product: { ...product, createdAt: product.createdAt ?? "1970-01-01T00:00:00.000Z" },
     category,
     type: product.description ?? "Hair",
     featured,

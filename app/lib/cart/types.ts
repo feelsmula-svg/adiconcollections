@@ -28,6 +28,7 @@ export interface CartProduct {
   images?: string[];
   badge?: ProductBadge;
   lengthOptions?: ProductLengthOption[];
+  createdAt?: string;
 }
 
 export interface CartLine {

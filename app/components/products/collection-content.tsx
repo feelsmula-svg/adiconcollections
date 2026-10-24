@@ -162,6 +162,11 @@ export function CollectionContent({
   const sorted = [...filtered].sort((a, b) => {
     if (sort === "price-asc") return a.priceCents - b.priceCents;
     if (sort === "price-desc") return b.priceCents - a.priceCents;
+    const at = a.createdAt ?? "";
+    const bt = b.createdAt ?? "";
+    if (bt && at) return bt.localeCompare(at);
+    if (bt) return 1;
+    if (at) return -1;
     return 0;
   });
 

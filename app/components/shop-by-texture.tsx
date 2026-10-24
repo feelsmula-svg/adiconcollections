@@ -29,8 +29,7 @@ const CATEGORIES: Category[] = [
   },
   {
     label: "Accessories",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAjCQu0QPNAkFBb1tA9xI77q1acxkB6nzpKS1Dy-19RGYNfQa5Ggwj4TlL-RCj0X6my1mbF22E72w47K9wMVXu1ns5kYOl0OQsMPxC8LD4uP2vVAxN4kACIe5OxfhmATB6fvOgYjIUyn28apZO9bPUstdQufqCZwCo5HQ-UyFCwmSqo1BOh8aQbyHptQzVKskbKtjgPEZXIMtnPu0bfuzo7SdxDVV_cS2LPCHJTj9_QL6DDsxybb2fJ0P46rfMVBTQNnlqPVAgt_7c",
+    image: "/categories/category-accessories.jpeg",
     alt: "Curated set of styling accessories for AdiCon hair",
     href: "/accessories",
   },

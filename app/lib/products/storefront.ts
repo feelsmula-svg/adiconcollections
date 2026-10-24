@@ -60,6 +60,7 @@ export function recordToCartProduct(record: ProductRecord): CartProduct {
       record.badge ??
       (record.featured ? { tone: "primary", label: "Featured" } : undefined),
     lengthOptions: record.lengthOptions,
+    createdAt: record.createdAt,
   };
 }
 
@@ -77,7 +78,15 @@ export function seedProducts(): CartProduct[] {
 /** All products visible on the storefront — seed + admin-uploaded. */
 export async function getAllStorefrontProducts(): Promise<CartProduct[]> {
   const admin = await getCachedAdminProducts();
-  return [...seedProducts(), ...admin.map(recordToCartProduct)];
+  const items = [...seedProducts(), ...admin.map(recordToCartProduct)];
+  return items.sort((a, b) => {
+    const at = a.createdAt ?? "";
+    const bt = b.createdAt ?? "";
+    if (bt && at) return bt.localeCompare(at);
+    if (bt) return 1;
+    if (at) return -1;
+    return 0;
+  });
 }
 
 export async function findStorefrontProduct(

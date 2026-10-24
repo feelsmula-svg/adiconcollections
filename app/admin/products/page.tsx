@@ -72,8 +72,23 @@ export default async function AdminProductsPage({
     categoryRepo.list(),
   ]);
 
+  const seedMetas = seedProductMetas();
+  const adminSorted = [...admin].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+
   const rows: CatalogRow[] = [
-    ...seedProductMetas().map<CatalogRow>((meta) => ({
+    ...adminSorted.map<CatalogRow>((p) => ({
+      id: p.id,
+      source: "admin",
+      name: p.name,
+      type: p.type,
+      imageUrl: p.imageUrl,
+      priceCents: p.priceCents,
+      category: p.category,
+      stock: p.stock,
+      featured: p.featured,
+      discountPercent: p.discountPercent ?? 0,
+    })),
+    ...seedMetas.map<CatalogRow>((meta) => ({
       id: meta.product.id,
       source: "seed",
       name: meta.product.name,
@@ -88,18 +103,6 @@ export default async function AdminProductsPage({
       featured: meta.featured,
       // Seed products' metadata (including discounts) isn't editable here.
       discountPercent: 0,
-    })),
-    ...admin.map<CatalogRow>((p) => ({
-      id: p.id,
-      source: "admin",
-      name: p.name,
-      type: p.type,
-      imageUrl: p.imageUrl,
-      priceCents: p.priceCents,
-      category: p.category,
-      stock: p.stock,
-      featured: p.featured,
-      discountPercent: p.discountPercent ?? 0,
     })),
   ];
 
