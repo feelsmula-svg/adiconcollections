@@ -23,6 +23,7 @@ function collection(): Promise<Collection<ProductRecord & Document>> {
       const db = await getDb();
       const coll = db.collection<ProductRecord & Document>(COLLECTION);
       await coll.createIndex({ id: 1 }, { unique: true });
+      await coll.createIndex({ createdAt: -1 });
       return coll;
     })().catch((err) => { _collectionPromise = null; throw err; });
   }
@@ -58,9 +59,10 @@ export class MongoProductRepository implements ProductRepository {
     // which can be several MB per product. The primary `imageUrl` is kept so
     // cards still render their thumbnail; detail pages use `findById` for the
     // full gallery.
-    const options = filters.summary
-      ? { projection: { images: 0 } }
-      : undefined;
+    const options = {
+      allowDiskUse: true,
+      ...(filters.summary ? { projection: { images: 0 } } : {}),
+    };
     const docs = await coll
       .find(query, options)
       .sort({ createdAt: -1 })
